@@ -1,0 +1,50 @@
+{
+  "id": "plaza.first-conversation",
+  "presentation": "twoPerson",
+  "participants": ["CHAR-001", "CHAR-002"],
+  "label": "첫 대화",
+  "title": "모험가들의 대화",
+  "start": "greeting",
+  "nodes": {
+    "greeting": {
+      "speakerCharacterId": "CHAR-001",
+      "speaker": "{{characterOneName}}",
+      "text": "{{characterTwoName}}님도 원정대를 찾고 계셨군요. 함께 떠나면 든든하겠어요.",
+      "next": "reply"
+    },
+    "reply": {
+      "speakerCharacterId": "CHAR-002",
+      "speaker": "{{characterTwoName}}",
+      "text": "저도 같은 생각이에요. {{playerName}}님, 저희 둘을 함께 데려가 주시겠어요?",
+      "next": "choice"
+    },
+    "choice": {
+      "speakerCharacterId": "CHAR-001",
+      "speaker": "{{characterOneName}}",
+      "text": "어떻게 대답하시겠어요?",
+      "choices": [
+        { "text": "두 사람과 함께 원정을 준비한다.", "next": "accept" },
+        { "text": "두 사람의 이야기를 더 듣는다.", "next": "explain" },
+        { "text": "지금은 다른 동료를 찾아본다.", "next": "decline" }
+      ]
+    },
+    "accept": {
+      "speakerCharacterId": "CHAR-002",
+      "speaker": "{{characterTwoName}}",
+      "text": "좋아요. 원정 준비를 마치면 다시 이야기해요.",
+      "end": true
+    },
+    "explain": {
+      "speakerCharacterId": "CHAR-001",
+      "speaker": "{{characterOneName}}",
+      "text": "저희는 오래전부터 같은 길드를 꿈꿔 왔어요. 이제 함께 시작해 보고 싶어요.",
+      "end": true
+    },
+    "decline": {
+      "speakerCharacterId": "CHAR-002",
+      "speaker": "{{characterTwoName}}",
+      "text": "알겠습니다. 준비가 되면 다시 찾아와 주세요.",
+      "end": true
+    }
+  }
+}

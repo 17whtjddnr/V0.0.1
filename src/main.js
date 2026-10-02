@@ -2,6 +2,9 @@ import * as XLSX from 'xlsx';
 import { rebalanceSkill } from './skill-balance.js';
 import { generateRosters } from './roster-generation.mjs';
 import { initialAffinityFor, zodiacGlyphs, zodiacNames } from './zodiac-affinity.mjs';
+import plazaFirstVisitDialogue from '../data/dialogues/plaza-first-visit.json';
+import plazaFirstEncounterDialogue from '../data/dialogues/plaza-first-encounter.json';
+import plazaFirstConversationDialogue from '../data/dialogues/plaza-first-conversation.json';
 
 const game = document.querySelector('#game');
 
@@ -99,6 +102,7 @@ const state = {
     affinityByCharacterId: {},
     fixedCostNoticeShown: false,
     plazaDialog: '',
+    activePlazaDialogue: null,
     recruits: [],
     plazaOffers: [],
     plazaCurrentOffer: null,
@@ -118,6 +122,8 @@ const state = {
     catalogLevel: 1,
     catalogSort: { key: '', direction: 'initial' },
     catalogPage: 0,
+    characterCodexTab: 'characters',
+    catalogSelectedRosterId: 'CHAR-001',
     room: 0,
     gold: 175,
     mode: 'explore',
@@ -767,6 +773,80 @@ function confirmPlayerName() {
     render();
 }
 
+const plazaDialogues = {
+    [plazaFirstVisitDialogue.id]: plazaFirstVisitDialogue,
+    [plazaFirstEncounterDialogue.id]: plazaFirstEncounterDialogue,
+    [plazaFirstConversationDialogue.id]: plazaFirstConversationDialogue,
+};
+let plazaTransitionPhase = '';
+let plazaDialogueExitPending = false;
+
+function getActivePlazaDialogue() {
+    const progress = state.activePlazaDialogue;
+    const dialogue = plazaDialogues[progress?.id];
+    const node = dialogue?.nodes?.[progress?.nodeId];
+    return dialogue && node ? { dialogue, node, bubbleSide: progress.bubbleSide } : null;
+}
+
+function startPlazaDialogue(dialogueId) {
+    const dialogue = plazaDialogues[dialogueId];
+    if (!dialogue?.nodes?.[dialogue.start]) return false;
+    state.activePlazaDialogue = { id: dialogueId, nodeId: dialogue.start, bubbleSide: Math.random() < 0.5 ? 'left' : 'right' };
+    plazaTransitionPhase = 'enter';
+    return true;
+}
+
+function finishPlazaDialogue(nextDialogueId) {
+    if (plazaDialogueExitPending) return;
+    plazaDialogueExitPending = true;
+    plazaTransitionPhase = 'exit';
+    render();
+
+    const exitPage = game.querySelector('.plaza-transition-exit.plaza-page');
+    const finishExit = () => {
+        if (!plazaDialogueExitPending) return;
+        plazaDialogueExitPending = false;
+        if (!nextDialogueId || !startPlazaDialogue(nextDialogueId)) {
+            state.activePlazaDialogue = null;
+            plazaTransitionPhase = 'enter';
+        }
+        render();
+    };
+    if (!exitPage || getComputedStyle(exitPage).animationName === 'none') {
+        finishExit();
+        return;
+    }
+    const handleAnimationEnd = (event) => {
+        if (event.target !== exitPage) return;
+        exitPage.removeEventListener('animationend', handleAnimationEnd);
+        finishExit();
+    };
+    exitPage.addEventListener('animationend', handleAnimationEnd);
+    window.setTimeout(finishExit, 600);
+}
+
+function advancePlazaDialogue(nextNodeId) {
+    if (plazaDialogueExitPending) return;
+    const activeDialogue = getActivePlazaDialogue();
+    if (!activeDialogue) {
+        state.activePlazaDialogue = null;
+        render();
+        return;
+    }
+    const destination = nextNodeId || activeDialogue.node.next;
+    if (activeDialogue.node.end || !destination) {
+        finishPlazaDialogue(activeDialogue.dialogue.nextDialogue);
+        return;
+    } else if (activeDialogue.dialogue.nodes[destination]) {
+        state.activePlazaDialogue.nodeId = destination;
+        state.activePlazaDialogue.bubbleSide = Math.random() < 0.5 ? 'left' : 'right';
+    } else {
+        console.warn(`Dialogue node not found: ${activeDialogue.dialogue.id}.${destination}`);
+        state.activePlazaDialogue = null;
+    }
+    render();
+}
+
 function confirmPlayerZodiac() {
     if (!zodiacGlyphs[state.playerZodiac]) {
         state.playerSetupMessage = '별자리를 선택해 주세요.';
@@ -782,10 +862,14 @@ function confirmPlayerZodiac() {
     state.plazaOffers = drawPlazaOffers();
     state.plazaCurrentOffer = null;
     state.plazaMessage = '';
+    startPlazaDialogue('plaza.first-visit');
     render();
 }
 
 const catalogPageSize = 20;
+let codexCarouselDrag = null;
+let suppressCodexCarouselClick = false;
+let renderedPortraitSelection = '';
 
 function escapeHtml(value) {
     return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -800,6 +884,10 @@ const elementTints = { 불: '#d76b50', 물: '#568fb2', 풀: '#759763', 빛: '#e2
 const elementBorderClasses = { 불: 'fire', 물: 'water', 풀: 'nature', 빛: 'light', 어둠: 'dark' };
 const jobGlyphs = { 기사: '⚔', 마도사: '✧', 사수: '➶', 정령사: '✚', 도적: '⚝', 전사: '⚒' };
 const elementGlyphs = { 불: '♨', 물: '◒', 풀: '❧', 빛: '✦', 어둠: '☾' };
+const characterPortraitAssets = {
+    'CHAR-001': '/assets/art/2D/Character/0001_F_W.png',
+    'CHAR-002': '/assets/art/2D/Character/0002_F_W.png',
+};
 const plazaJobOrder = ['기사', '전사', '마도사', '사수', '정령사', '도적'];
 
 function playerZodiacIconMarkup() {
@@ -817,7 +905,8 @@ function plazaJobCountsMarkup() {
 
 function catalogIconMarkup(symbol, tint, label, className = 'catalog-icon', title = '', inlineStyle = '') {
     if (className === 'plaza-action-icon') return plazaActionIconMarkup(symbol, tint);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect x="1" y="1" width="38" height="38" rx="8" fill="#211e19" stroke="${tint}" stroke-opacity=".7"/><text x="20" y="27" text-anchor="middle" font-family="serif" font-size="23" fill="${tint}">${symbol}</text></svg>`;
+    const background = className === 'codex-character-thumb' ? '' : `<rect x="1" y="1" width="38" height="38" rx="8" fill="#211e19" stroke="${tint}" stroke-opacity=".7"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">${background}<text x="20" y="27" text-anchor="middle" font-family="serif" font-size="23" fill="${tint}">${symbol}</text></svg>`;
     return `<img class="${className}" src="data:image/svg+xml,${encodeURIComponent(svg)}" alt="${escapeHtml(label)}"${title ? ` title="${escapeHtml(title)}"` : ''}${inlineStyle ? ` style="${escapeHtml(inlineStyle)}"` : ''}>`;
 }
 
@@ -966,6 +1055,59 @@ function renderCatalog() {
     game.innerHTML = catalogMarkup();
 }
 
+function characterCodexMarkup() {
+    const query = state.catalogSearch.trim().toLocaleLowerCase();
+    const isMonster = state.characterCodexTab === 'monsters';
+    const rosterLabel = isMonster ? '몬스터' : '캐릭터';
+    const entries = catalogData[isMonster ? 'monsters' : 'characters'].filter((entry) => {
+        const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level].join(' ').toLocaleLowerCase().includes(query);
+        return matchesQuery
+            && (!state.catalogElement || entry.element === state.catalogElement)
+            && (!state.catalogJob || entry.job === state.catalogJob)
+            && (!state.catalogGrade || String(entry.grade) === state.catalogGrade);
+    });
+    const selected = entries.find((entry) => entry.id === state.catalogSelectedRosterId) || entries[0];
+    state.catalogSelectedRosterId = selected?.id || '';
+    const jobOptions = [...new Set(catalogData.stats.map((profile) => profile.job))];
+    const gradeOptions = isMonster ? [1, 2, 3, 4, 5] : [3, 4, 5];
+    const filters = `<label>전체 레벨<select data-catalog-filter="level">${[1, 2, 3, 4, 5].map((value) => `<option value="${value}" ${state.catalogLevel === value ? 'selected' : ''}>Lv.${value}</option>`).join('')}</select></label><label>속성<select data-catalog-filter="element"><option value="">전체 속성</option>${['불', '물', '풀', '빛', '어둠'].map((value) => `<option value="${value}" ${state.catalogElement === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label>직업<select data-catalog-filter="job"><option value="">전체 직업</option>${jobOptions.map((value) => `<option value="${escapeHtml(value)}" ${state.catalogJob === value ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('')}</select></label><label>등급<select data-catalog-filter="grade"><option value="">전체 등급</option>${gradeOptions.map((value) => `<option value="${value}" ${state.catalogGrade === String(value) ? 'selected' : ''}>${value}등급</option>`).join('')}</select></label>`;
+    const portraits = entries.map((entry) => {
+        const active = entry.id === selected?.id;
+        const border = elementBorderClasses[entry.element] || 'light';
+        const title = `${entry.name} · ${entry.element} · ${entry.job} · ${entry.grade}등급`;
+        const thumbnail = catalogIconMarkup(entry.mark, elementTints[entry.element] || '#a6d7e8', entry.name, 'codex-character-thumb');
+        return `<button class="codex-character-card ${active ? 'active' : ''}" type="button" data-codex-character="${entry.id}" aria-pressed="${active}" aria-label="${escapeHtml(title)}"><span class="codex-character-frame element-border-${border}">${thumbnail}</span><span class="codex-character-name">${escapeHtml(entry.name)}</span></button>`;
+    }).join('');
+    const tabs = `<nav class="codex-tabs" aria-label="도감 종류"><button class="codex-tab ${isMonster ? '' : 'active'}" type="button" data-codex-tab="characters" aria-pressed="${!isMonster}">캐릭터 도감</button><button class="codex-tab ${isMonster ? 'active' : ''}" type="button" data-codex-tab="monsters" aria-pressed="${isMonster}">몬스터 도감</button></nav>`;
+    const developerLink = import.meta.env.DEV ? '<button class="codex-developer-link" type="button" data-action="developer-catalog">개발자 자료실</button>' : '';
+    const panel = selected
+        ? plazaEncounterMarkup(isMonster ? selected : { ...selected, price: hirePrices[selected.grade] ?? 30, portraitSrc: characterPortraitAssets[selected.id] })
+        : `<div class="codex-empty-state">조건에 맞는 ${rosterLabel}가 없습니다.</div>`;
+    const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
+    return `<header class="topbar plaza-topbar codex-topbar"><div class="player-profile"><div class="player-profile-name"><strong>${escapeHtml(state.playerName)}</strong>${playerZodiacIconMarkup()}<span>Lv.${state.userLevel}</span></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div><span class="codex-topbar-count">${rosterLabel} ${entries.length}${isMonster ? '마리' : '명'}</span><div class="codex-topbar-actions">${developerLink}<button class="catalog-back" type="button" data-action="view-expedition">돌아가기 <span>→</span></button></div></header><main class="character-codex-page plaza-page">${tabs}<div class="character-codex-heading"><div><h1 class="${isMonster ? 'codex-monster-heading' : ''}">${rosterLabel} 도감</h1></div><span class="catalog-result-count">${entries.length}${isMonster ? '마리' : '명'}</span></div><section class="catalog-browser codex-browser"><section class="codex-feature-panel" aria-label="선택한 ${rosterLabel} 상세 정보">${panel}</section><div class="catalog-tools"><label class="catalog-search"><span>검색</span><input type="search" data-catalog-search value="${escapeHtml(state.catalogSearch)}" placeholder="이름, 속성, 직업 검색" autocomplete="off"></label>${filters}</div><section class="codex-roster" aria-label="${rosterLabel} 목록"><div class="codex-roster-heading"><h2>${rosterLabel} 목록</h2><span>${entries.length}${isMonster ? '마리' : '명'}</span></div><div class="codex-roster-viewport" tabindex="0" aria-label="${rosterLabel}를 좌우로 스크롤하여 선택">${portraits || '<p class="codex-empty-roster">표시할 항목이 없습니다.</p>'}</div></section></section></main><footer class="bottom-note codex-bottom-note"><span>검은 회랑 <i>·</i> ${rosterLabel} 도감</span><span>조디악 성장표 기반 콘텐츠</span></footer>`;
+}
+
+function renderCharacterCodex() {
+    const selectionKey = `${state.characterCodexTab}:${state.catalogSelectedRosterId}`;
+    const animatePortrait = selectionKey !== renderedPortraitSelection;
+    renderedPortraitSelection = selectionKey;
+    game.innerHTML = characterCodexMarkup();
+    const portraitSrc = state.characterCodexTab === 'characters'
+        ? characterPortraitAssets[state.catalogSelectedRosterId]
+        : '';
+    const panel = game.querySelector('.codex-feature-panel');
+    if (!portraitSrc || !panel) return;
+    const mask = document.createElement('div');
+    mask.className = `codex-character-art-mask${animatePortrait ? ' is-entering' : ''}`;
+    mask.setAttribute('aria-hidden', 'true');
+    const image = document.createElement('img');
+    image.src = portraitSrc;
+    image.alt = '';
+    image.draggable = false;
+    mask.append(image);
+    panel.prepend(mask);
+}
+
 function plazaEncounterMarkup(offer) {
     if (!offer) {
         const exhausted = state.plazaOffers.length === 0;
@@ -976,7 +1118,9 @@ function plazaEncounterMarkup(offer) {
         return `<button type="button" class="plaza-skill-tooltip-trigger" aria-label="${escapeHtml(skill.name)}">${catalogIconMarkup(glyph, tint, skill.name, 'plaza-skill-icon')}${skillTooltip(skill, offer)}</button>`;
     }).join('');
     const elementColor = elementTints[offer.element] || '#a99060';
-    const portrait = catalogIconMarkup(offer.mark, elementColor, offer.name, 'plaza-portrait-icon', `${offer.name} · ${offer.element}`);
+    const portrait = offer.portraitSrc
+        ? ''
+        : catalogIconMarkup(offer.mark, elementColor, offer.name, 'plaza-portrait-icon', `${offer.name} · ${offer.element}`);
     const statRows = [
         ['공격', offer.stats.attack], ['생명', offer.stats.maxHp], ['방어', offer.stats.defense], ['속도', offer.stats.speed],
         ['치명 확률', offer.stats.critChance], ['치명 피해', offer.stats.critDamage], ['효과 적중', offer.stats.effectHit], ['효과 저항', offer.stats.effectResist],
@@ -989,7 +1133,8 @@ function plazaEncounterMarkup(offer) {
     const affinityLabel = affinity === 0 ? '앙숙' : affinity <= 10 ? '데면데면한 사이' : affinity <= 20 ? '보통 사이' : affinity <= 50 ? '호감이 있는 사이' : affinity <= 90 ? '친밀한 사이' : '소울메이트';
     const zodiacIcon = catalogIconMarkup(zodiacGlyph, '#a6d7e8', offer.zodiac || '별자리', 'plaza-affinity-icon');
     const affinityPanel = `<div class="plaza-encounter-affinity"><span class="section-kicker">친밀도</span><div class="plaza-affinity-main"><div class="plaza-affinity-copy"><strong>${affinityLabel}</strong><small>${affinity} / 100</small></div>${zodiacIcon}</div><div class="plaza-affinity-meter"><span style="width:${affinity}%"></span></div></div>`;
-    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span></div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span><span class="plaza-grade-stars" role="img" aria-label="${offer.grade}등급">${gradeStars}</span></h2><div class="plaza-encounter-stats">${statRows.map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('')}</div><span class="plaza-encounter-price">영입가 <strong>◈ ${offer.price} 골드</strong></span></section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">보유 스킬</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
+    const priceMarkup = offer.price === undefined ? '' : `<span class="plaza-encounter-price">영입가 <strong>◈ ${offer.price} 골드</strong></span>`;
+    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span></div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span><span class="plaza-grade-stars" role="img" aria-label="${offer.grade}등급">${gradeStars}</span></h2><div class="plaza-encounter-stats">${statRows.map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('')}</div>${priceMarkup}</section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">보유 스킬</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
 }
 
 function combatStatsFromProfile(stats) {
@@ -1259,9 +1404,28 @@ function renderPlazaLegacy() {
 }
 
 function renderPlaza() {
+    const transitionClass = plazaTransitionPhase ? ` plaza-transition-${plazaTransitionPhase}` : '';
+    plazaTransitionPhase = '';
     const offer = state.plazaCurrentOffer;
+    const activeDialogue = getActivePlazaDialogue();
+    const isMonologue = activeDialogue?.dialogue.presentation === 'monologue';
+    const isOneOnOne = activeDialogue?.dialogue.presentation === 'oneOnOne';
+    const isTwoPerson = activeDialogue?.dialogue.presentation === 'twoPerson';
+    const dialogueCharacter = isOneOnOne
+        ? catalogData.characters.find((character) => character.id === activeDialogue.dialogue.characterId)
+        : null;
+    const dialogueCharacterName = dialogueCharacter?.name || '모험가';
+    const dialogueParticipants = activeDialogue?.dialogue.participants || [];
+    const dialogueParticipantNames = dialogueParticipants.map((id) => catalogData.characters.find((character) => character.id === id)?.name || '모험가');
+    const dialogueContextLabel = isMonologue
+        ? '독백'
+        : isOneOnOne
+            ? `${dialogueCharacterName}과 대화`
+            : isTwoPerson
+                ? `${dialogueParticipantNames[0] || '인물'}과 ${dialogueParticipantNames[1] || '인물'}의 대화`
+                : '';
     const currentStateDescription = offer
-        ? '광장에서 모험가와 대화 중입니다.'
+        ? '광장에서 모험가와 계약 중입니다.'
         : state.plazaOffers.length
             ? '원정대원을 모으고 다음 여정을 준비합니다.'
             : '더 이상 제안할 용병이 없는 듯 하다';
@@ -1284,16 +1448,77 @@ function renderPlaza() {
         : state.plazaDialog === 'expedition'
             ? { title: '원정 출발', label: '원정대 확인', message: `원정에는 4명의 용병을 고용하는 것을 추천합니다. 현재 ${state.recruits.length}명의 용병이 원정대에 참여한 상태입니다. 이대로 원정을 떠나시겠습니까?`, confirm: '이대로 출발' }
             : null;
-    const header = `<header class="topbar plaza-topbar"><div class="player-profile"><div class="player-profile-name"><strong>${escapeHtml(state.playerName)}</strong>${playerZodiacIconMarkup()}<span>Lv.${state.userLevel}</span></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div><div class="plaza-player-meta"><button class="game-menu-button" type="button" data-action="game-menu-open" aria-label="메뉴" title="메뉴">☰</button></div></header>`;
-    const scene = `<section class="scene plaza-scene"><div class="scene-heading"><h1>모험가 광장</h1><div class="plaza-current-info"><span>${state.week}주차</span><strong><i>◈</i> ${state.gold} 골드</strong></div></div><div class="dungeon-art plaza-encounter-stage">${offer ? plazaEncounterMarkup(offer) : `<div class="plaza-empty-stage"></div>`}</div></section>`;
+    const header = `<header class="topbar plaza-topbar${transitionClass}"><div class="player-profile"><div class="player-profile-name"><strong>${escapeHtml(state.playerName)}</strong>${playerZodiacIconMarkup()}<span>Lv.${state.userLevel}</span></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div><div class="plaza-player-meta"><button class="game-menu-button" type="button" data-action="game-menu-open" aria-label="메뉴" title="메뉴">☰</button></div></header>`;
+    const sceneContent = isOneOnOne || isTwoPerson ? '' : offer ? plazaEncounterMarkup(offer) : '<div class="plaza-empty-stage"></div>';
+    const dialogueContext = dialogueContextLabel
+        ? `<span class="plaza-dialogue-context-diamond" aria-hidden="true">◆</span><span class="plaza-dialogue-context-label">${escapeHtml(dialogueContextLabel)}</span>`
+        : '';
+    const scene = `<section class="scene plaza-scene"><div class="scene-heading"><h1>모험가 광장</h1>${dialogueContext}<div class="plaza-current-info"><span>${state.week}주차</span><strong><i>◈</i> ${state.gold} 골드</strong></div></div><div class="dungeon-art plaza-encounter-stage">${sceneContent}</div></section>`;
     const roster = `<section class="party-panel plaza-roster"><div class="panel-heading"><div><span class="section-kicker">원정 준비</span><h2>원정대 <small>${state.recruits.length}/${maxPartySize}</small></h2></div><span class="formation-label">Lv.${state.userLevel}</span></div><div class="party-list plaza-party-list">${recruits}${vacantSlots}</div></section>`;
-    const actionPanel = `<aside class="action-panel plaza-action-panel"><div class="panel-heading"><div><span class="section-kicker">${offer ? '대화 선택' : '광장 행동'}</span><h2>${offer ? `${escapeHtml(offer.name)}과의 대화` : '다음 행동'}</h2></div><span class="plaza-state-description">${escapeHtml(currentStateDescription)}</span></div>${choices}</aside>`;
+    const dialogueNode = activeDialogue?.node;
+    const dialogueText = dialogueNode?.text
+        ?.replaceAll('{{playerName}}', state.playerName)
+        .replaceAll('{{characterName}}', dialogueCharacterName)
+        .replaceAll('{{characterOneName}}', dialogueParticipantNames[0] || '모험가')
+        .replaceAll('{{characterTwoName}}', dialogueParticipantNames[1] || '모험가') || '';
+    const dialogueSpeaker = dialogueNode?.speaker
+        ?.replaceAll('{{playerName}}', state.playerName)
+        .replaceAll('{{characterName}}', dialogueCharacterName)
+        .replaceAll('{{characterOneName}}', dialogueParticipantNames[0] || '모험가')
+        .replaceAll('{{characterTwoName}}', dialogueParticipantNames[1] || '모험가') || dialogueCharacterName;
+    const dialogueChoices = dialogueNode?.choices?.length
+        ? `<div class="plaza-dialogue-choices">${dialogueNode.choices.slice(0, 8).map((choice) => `<button class="combat-action" type="button" data-action="plaza-dialogue-advance" data-dialogue-next="${escapeHtml(choice.next)}">${escapeHtml(choice.text)}</button>`).join('')}</div>`
+        : `<div class="plaza-dialogue-controls"><button class="combat-action" type="button" data-action="plaza-dialogue-advance">${dialogueNode?.end ? '광장 둘러보기' : '다음'}</button></div>`;
+    const dialogueMarkup = activeDialogue && !isMonologue && !isOneOnOne && !isTwoPerson
+        ? `<div class="plaza-dialogue-copy" aria-live="polite"><span class="plaza-dialogue-speaker">${escapeHtml(dialogueSpeaker)}</span><p>${escapeHtml(dialogueText)}</p></div>${dialogueChoices}`
+        : isMonologue ? '' : choices;
+    const actionPanel = `<aside class="action-panel plaza-action-panel"><div class="panel-heading"><div><span class="section-kicker">${activeDialogue ? escapeHtml(activeDialogue.dialogue.label) : offer ? '계약 진행' : '광장 행동'}</span><h2>${activeDialogue ? escapeHtml(activeDialogue.dialogue.title) : offer ? `${escapeHtml(offer.name)}과의 계약` : '원정 준비'}</h2></div><span class="plaza-state-description">${escapeHtml(currentStateDescription)}</span></div>${dialogueMarkup}</aside>`;
     const modal = dialog ? `<div class="end-overlay plaza-confirm-overlay"><section class="end-dialog" role="dialog" aria-modal="true" aria-labelledby="plaza-dialog-title"><span class="section-kicker">${dialog.label}</span><h2 id="plaza-dialog-title">${dialog.title}</h2><p>${dialog.message}</p><div class="plaza-dialog-actions ${dialog.cancel === false ? 'single-action' : ''}">${dialog.cancel === false ? '' : '<button class="plaza-dialog-cancel" data-action="plaza-dialog-cancel">취소</button>'}<button data-action="plaza-dialog-confirm">${dialog.confirm}</button></div></section></div>` : '';
-    const plazaJobSummary = !offer && state.plazaOffers.length
+    const plazaJobSummary = !activeDialogue && !offer && state.plazaOffers.length
         ? `<p class="plaza-job-summary">광장에 <span class="plaza-job-counts">${plazaJobCountsMarkup()}</span>이 남아 있습니다. 광장을 탐색하여 그들과 조우해보세요.</p>`
         : '';
-    game.innerHTML = `${header}<main class="plaza-page">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main><footer class="bottom-note"><span>원정대 ${state.recruits.length}/${maxPartySize}</span><span>최대 ${maxPartySize}명</span></footer>${modal}${gameMenuMarkup()}`;
+    game.innerHTML = `${header}<main class="plaza-page${transitionClass}">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main><footer class="bottom-note${transitionClass}"><span>원정대 ${state.recruits.length}/${maxPartySize}</span><span>최대 ${maxPartySize}명</span></footer>${modal}${gameMenuMarkup()}`;
     if (plazaJobSummary) game.querySelector('.plaza-empty-stage')?.insertAdjacentHTML('beforeend', plazaJobSummary);
+    if (isMonologue) {
+        const stage = game.querySelector('.plaza-encounter-stage');
+        stage?.insertAdjacentHTML('beforeend', `<p class="plaza-job-summary plaza-monologue-text" aria-live="polite">${escapeHtml(dialogueText)}</p>`);
+        const lowerGrid = game.querySelector('.plaza-lower-grid');
+        if (lowerGrid) {
+            lowerGrid.classList.add('plaza-lower-grid-monologue');
+            lowerGrid.innerHTML = '<div class="plaza-monologue-controls"><button class="combat-action plaza-monologue-next" type="button" data-action="plaza-dialogue-advance">다음</button></div>';
+        }
+    }
+    if (isOneOnOne || isTwoPerson) {
+        const stage = game.querySelector('.plaza-encounter-stage');
+        const dialoguePortraits = isOneOnOne
+            ? [{ id: activeDialogue.dialogue.characterId, character: dialogueCharacter, name: dialogueCharacterName, side: 'center' }]
+            : dialogueParticipants.map((id, index) => ({
+                id,
+                character: catalogData.characters.find((character) => character.id === id),
+                name: dialogueParticipantNames[index],
+                side: index === 0 ? 'left' : 'right',
+            }));
+        const portraitMarkup = dialoguePortraits.map(({ id, character, name, side }) => {
+            const portraitSrc = characterPortraitAssets[id];
+            return portraitSrc
+                ? `<div class="codex-character-art-mask plaza-dialogue-character-mask plaza-dialogue-character-${side}" aria-hidden="true"><img src="${portraitSrc}" alt="" draggable="false"></div>`
+                : `<div class="plaza-dialogue-character-fallback plaza-dialogue-character-${side}">${catalogIconMarkup(character?.mark || jobGlyphs[character?.job] || '✧', elementTints[character?.element] || '#a6d7e8', name, 'plaza-dialogue-character-icon')}</div>`;
+        }).join('');
+        const bubbleSide = isTwoPerson
+            ? dialogueNode.speakerCharacterId === dialogueParticipants[0] ? 'center-left' : 'center-right'
+            : activeDialogue.bubbleSide;
+        stage?.insertAdjacentHTML('beforeend', `${portraitMarkup}<div class="plaza-dialogue-bubble is-${bubbleSide}" aria-live="polite"><p>${escapeHtml(dialogueText)}</p></div>`);
+        const lowerGrid = game.querySelector('.plaza-lower-grid');
+        const choices = (dialogueNode?.choices || []).slice(0, 8);
+        const choiceButtons = choices.map((choice) => `<button class="combat-action plaza-dialogue-choice" type="button" data-action="plaza-dialogue-advance" data-dialogue-next="${escapeHtml(choice.next)}">${escapeHtml(choice.text)}</button>`).join('');
+        if (lowerGrid) {
+            lowerGrid.classList.add('plaza-lower-grid-one-on-one');
+            lowerGrid.innerHTML = `<div class="plaza-dialogue-options" role="group" aria-label="대화 선택지">${choiceButtons}</div>`;
+        }
+        if (!choices.length) {
+            stage?.insertAdjacentHTML('beforeend', '<button class="plaza-dialogue-next-icon" type="button" data-action="plaza-dialogue-advance" aria-label="다음 대사"><span aria-hidden="true">⌄</span></button>');
+        }
+    }
 }
 
 let skillNoticeTimer;
@@ -1412,6 +1637,10 @@ function render() {
     if (state.view === 'catalog') {
         saveGame();
         return renderCatalog();
+    }
+    if (state.view === 'characterCodex') {
+        saveGame();
+        return renderCharacterCodex();
     }
     if (state.view === 'plaza') {
         saveGame();
@@ -2097,7 +2326,13 @@ game.addEventListener('click', (event) => {
     if (action === 'setup-select-zodiac') {
         state.playerZodiac = event.target.closest('[data-zodiac]').dataset.zodiac;
         state.playerSetupMessage = '';
-        render();
+        game.querySelectorAll('.zodiac-card').forEach((card) => {
+            const selected = card.dataset.zodiac === state.playerZodiac;
+            card.classList.toggle('selected', selected);
+            card.setAttribute('aria-pressed', String(selected));
+        });
+        game.querySelector('[data-action="setup-zodiac-confirm"]').disabled = false;
+        game.querySelector('.player-setup-message')?.remove();
         return;
     }
     if (action === 'setup-zodiac-confirm') {
@@ -2192,8 +2427,21 @@ game.addEventListener('click', (event) => {
         state.catalogReturnView = state.view;
         gameMenuOpen = false;
         gameMenuNotice = '';
+        state.view = 'characterCodex';
+        state.catalogPage = 0;
+        render();
+        return;
+    }
+    if (action === 'developer-catalog') {
+        state.catalogReturnView = 'characterCodex';
+        state.catalogTab = 'characters';
         state.view = 'catalog';
         state.catalogPage = 0;
+        render();
+        return;
+    }
+    if (action === 'character-codex') {
+        state.view = 'characterCodex';
         render();
         return;
     }
@@ -2204,6 +2452,10 @@ game.addEventListener('click', (event) => {
     }
     if (action === 'plaza-look-around') {
         encounterNextMercenary();
+        return;
+    }
+    if (action === 'plaza-dialogue-advance') {
+        advancePlazaDialogue(event.target.closest('[data-dialogue-next]')?.dataset.dialogueNext || '');
         return;
     }
     if (action === 'plaza-pass') {
@@ -2248,6 +2500,23 @@ game.addEventListener('click', (event) => {
         render();
         return;
     }
+    const codexTab = event.target.closest('[data-codex-tab]');
+    if (codexTab) {
+        state.characterCodexTab = codexTab.dataset.codexTab;
+        if (state.characterCodexTab === 'characters' && ['1', '2'].includes(state.catalogGrade)) state.catalogGrade = '';
+        render();
+        return;
+    }
+    const codexCharacter = event.target.closest('[data-codex-character]');
+    if (codexCharacter) {
+        if (suppressCodexCarouselClick) {
+            suppressCodexCarouselClick = false;
+            return;
+        }
+        state.catalogSelectedRosterId = codexCharacter.dataset.codexCharacter;
+        render();
+        return;
+    }
     const sortHeader = event.target.closest('[data-catalog-sort]');
     if (sortHeader) {
         const key = sortHeader.dataset.catalogSort;
@@ -2278,6 +2547,50 @@ game.addEventListener('click', (event) => {
         showExpeditionResult(false, false);
         return;
     }
+});
+
+game.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    const viewport = event.target.closest('.codex-roster-viewport');
+    if (!viewport) return;
+    const captureTarget = event.target.closest('[data-codex-character]') || viewport;
+    codexCarouselDrag = {
+        viewport,
+        captureTarget,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startScrollLeft: viewport.scrollLeft,
+        dragging: false,
+    };
+    captureTarget.setPointerCapture(event.pointerId);
+});
+
+game.addEventListener('pointermove', (event) => {
+    if (!codexCarouselDrag || event.pointerId !== codexCarouselDrag.pointerId) return;
+    const deltaX = event.clientX - codexCarouselDrag.startX;
+    const deltaY = event.clientY - codexCarouselDrag.startY;
+    if (!codexCarouselDrag.dragging && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        codexCarouselDrag.dragging = true;
+        codexCarouselDrag.viewport.classList.add('is-dragging');
+        suppressCodexCarouselClick = true;
+    }
+    if (codexCarouselDrag.dragging) codexCarouselDrag.viewport.scrollLeft = codexCarouselDrag.startScrollLeft - deltaX;
+});
+
+function finishCodexCarouselDrag(event) {
+    if (!codexCarouselDrag || event.pointerId !== codexCarouselDrag.pointerId) return;
+    const { viewport, captureTarget, dragging } = codexCarouselDrag;
+    viewport.classList.remove('is-dragging');
+    if (captureTarget.hasPointerCapture(event.pointerId)) captureTarget.releasePointerCapture(event.pointerId);
+    codexCarouselDrag = null;
+    if (dragging) window.setTimeout(() => { suppressCodexCarouselClick = false; }, 0);
+}
+
+game.addEventListener('pointerup', finishCodexCarouselDrag);
+game.addEventListener('pointercancel', finishCodexCarouselDrag);
+game.addEventListener('dragstart', (event) => {
+    if (event.target.closest('.codex-roster-viewport')) event.preventDefault();
 });
 
 game.addEventListener('input', (event) => {
@@ -2331,6 +2644,14 @@ game.addEventListener('change', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+    const activeDialogue = state.view === 'plaza' ? getActivePlazaDialogue() : null;
+    if (activeDialogue && ['monologue', 'oneOnOne', 'twoPerson'].includes(activeDialogue.dialogue.presentation) && !activeDialogue.node.choices?.length && (event.code === 'Space' || event.key === ' ') && !event.repeat) {
+        const target = event.target;
+        if (target instanceof HTMLElement && (target.matches('input, textarea, select, [contenteditable="true"]') || target.closest('button'))) return;
+        event.preventDefault();
+        advancePlazaDialogue();
+        return;
+    }
     if (state.view === 'playerSetup' && state.playerSetupStep === 'name' && event.key === 'Enter') {
         event.preventDefault();
         confirmPlayerName();

@@ -1,0 +1,40 @@
+{
+  "id": "plaza.first-encounter",
+  "presentation": "oneOnOne",
+  "characterId": "CHAR-001",
+  "label": "첫 만남",
+  "title": "모험가와의 계약",
+  "start": "greeting",
+  "nextDialogue": "plaza.first-conversation",
+  "nodes": {
+    "greeting": {
+      "speaker": "{{characterName}}",
+      "text": "안녕하세요, {{playerName}}님. 원정대를 꾸리고 계신가요? 저도 회랑에 함께 가고 싶어요.",
+      "next": "request"
+    },
+    "request": {
+      "speaker": "{{characterName}}",
+      "text": "아직 경험은 부족하지만, 동료를 지키며 끝까지 싸우겠습니다. 제안에 답해 주시겠어요?",
+      "choices": [
+        { "text": "물론이에요. 함께 가요.", "next": "accept" },
+        { "text": "어떤 모험가인지 더 알려주세요.", "next": "explain" },
+        { "text": "미안해요. 아직은 어려워요.", "next": "decline" }
+      ]
+    },
+    "accept": {
+      "speaker": "{{characterName}}",
+      "text": "고마워요. {{playerName}}님의 원정에 힘을 보탤게요.",
+      "end": true
+    },
+    "explain": {
+      "speaker": "{{characterName}}",
+      "text": "저는 동료가 위험할 때 먼저 나서는 편이에요. 잘 부탁드려요.",
+      "end": true
+    },
+    "decline": {
+      "speaker": "{{characterName}}",
+      "text": "알겠습니다. 광장에서 다시 만날 기회가 있겠죠.",
+      "end": true
+    }
+  }
+}
