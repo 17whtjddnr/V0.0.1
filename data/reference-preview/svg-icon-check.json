@@ -1,0 +1,182 @@
+{
+  "assets": [
+    {
+      "name": "양자리",
+      "source": "/assets/icons/zodiac-aries.svg",
+      "pixels": 6686
+    },
+    {
+      "name": "황소자리",
+      "source": "/assets/icons/zodiac-taurus.svg",
+      "pixels": 6917
+    },
+    {
+      "name": "쌍둥이자리",
+      "source": "/assets/icons/zodiac-gemini.svg",
+      "pixels": 7069
+    },
+    {
+      "name": "게자리",
+      "source": "/assets/icons/zodiac-cancer.svg",
+      "pixels": 8838
+    },
+    {
+      "name": "사자자리",
+      "source": "/assets/icons/zodiac-leo.svg",
+      "pixels": 7864
+    },
+    {
+      "name": "처녀자리",
+      "source": "/assets/icons/zodiac-virgo.svg",
+      "pixels": 9603
+    },
+    {
+      "name": "천칭자리",
+      "source": "/assets/icons/zodiac-libra.svg",
+      "pixels": 8260
+    },
+    {
+      "name": "전갈자리",
+      "source": "/assets/icons/zodiac-scorpio.svg",
+      "pixels": 9205
+    },
+    {
+      "name": "사수자리",
+      "source": "/assets/icons/zodiac-sagittarius.svg",
+      "pixels": 6049
+    },
+    {
+      "name": "염소자리",
+      "source": "/assets/icons/zodiac-capricorn.svg",
+      "pixels": 7786
+    },
+    {
+      "name": "물병자리",
+      "source": "/assets/icons/zodiac-aquarius.svg",
+      "pixels": 7621
+    },
+    {
+      "name": "물고기자리",
+      "source": "/assets/icons/zodiac-pisces.svg",
+      "pixels": 7619
+    },
+    {
+      "name": "기사",
+      "source": "/assets/icons/shield_icon.svg",
+      "pixels": 8481
+    },
+    {
+      "name": "전사",
+      "source": "/assets/icons/axe_icon.svg",
+      "pixels": 4871
+    },
+    {
+      "name": "마도사",
+      "source": "/assets/icons/Magition_icon.svg",
+      "pixels": 7234
+    },
+    {
+      "name": "도적",
+      "source": "/assets/icons/dagger_icon.svg",
+      "pixels": 4331
+    },
+    {
+      "name": "사수",
+      "source": "/assets/icons/bow_icon.svg",
+      "pixels": 6874
+    },
+    {
+      "name": "정령사",
+      "source": "/assets/icons/potion_icon.svg",
+      "pixels": 7479
+    },
+    {
+      "name": "불",
+      "source": "/assets/icons/element-fire.svg",
+      "pixels": 8480
+    },
+    {
+      "name": "물",
+      "source": "/assets/icons/element-water.svg",
+      "pixels": 7751
+    },
+    {
+      "name": "풀",
+      "source": "/assets/icons/element-leaf.svg",
+      "pixels": 8129
+    },
+    {
+      "name": "빛",
+      "source": "/assets/icons/element-sun.svg",
+      "pixels": 8360
+    },
+    {
+      "name": "어둠",
+      "source": "/assets/icons/element-moon.svg",
+      "pixels": 6268
+    }
+  ],
+  "cases": [
+    {
+      "zodiac": "/assets/icons/zodiac-aries.svg",
+      "job": "/assets/icons/shield_icon.svg",
+      "element": "/assets/icons/element-fire.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-taurus.svg",
+      "job": "/assets/icons/axe_icon.svg",
+      "element": "/assets/icons/element-water.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-gemini.svg",
+      "job": "/assets/icons/Magition_icon.svg",
+      "element": "/assets/icons/element-leaf.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-cancer.svg",
+      "job": "/assets/icons/dagger_icon.svg",
+      "element": "/assets/icons/element-sun.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-leo.svg",
+      "job": "/assets/icons/bow_icon.svg",
+      "element": "/assets/icons/element-moon.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-virgo.svg",
+      "job": "/assets/icons/potion_icon.svg",
+      "element": "/assets/icons/element-fire.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-libra.svg",
+      "job": "/assets/icons/shield_icon.svg",
+      "element": "/assets/icons/element-water.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-scorpio.svg",
+      "job": "/assets/icons/axe_icon.svg",
+      "element": "/assets/icons/element-leaf.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-sagittarius.svg",
+      "job": "/assets/icons/Magition_icon.svg",
+      "element": "/assets/icons/element-sun.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-capricorn.svg",
+      "job": "/assets/icons/dagger_icon.svg",
+      "element": "/assets/icons/element-moon.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-aquarius.svg",
+      "job": "/assets/icons/bow_icon.svg",
+      "element": "/assets/icons/element-fire.svg"
+    },
+    {
+      "zodiac": "/assets/icons/zodiac-pisces.svg",
+      "job": "/assets/icons/potion_icon.svg",
+      "element": "/assets/icons/element-water.svg"
+    }
+  ],
+  "errors": []
+}

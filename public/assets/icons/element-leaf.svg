@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><g id="leaf"><defs>
+    <filter id="leaf_shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+    <mask id="leaf_vein" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="white" />
+      <path d="M31 97 82 46" stroke="black" stroke-width="7" stroke-linecap="round" />
+    </mask>
+  </defs>
+  <g filter="url(#leaf_shadow)">
+    <path d="M105 23C72 23 47 29 34 47 23 63 24 80 37 93c13 13 30 14 46 3 18-13 24-38 22-73Z" fill="#A6E632" mask="url(#leaf_vein)" />
+    <path d="M24 104 36 92" stroke="#A6E632" stroke-width="8" stroke-linecap="round" />
+  </g>
+</g></svg>

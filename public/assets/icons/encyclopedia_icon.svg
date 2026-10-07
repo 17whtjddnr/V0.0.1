@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>도감 — 펼친 책</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path fill-rule="evenodd" d="M18 27c16-3 30 1 42 9v65c-12-8-26-12-42-9a4 4 0 0 1-5-4V32a5 5 0 0 1 5-5Zm9 19v6c8 0 15 2 23 6v-6c-8-4-15-6-23-6Zm0 16v6c8 0 15 2 23 6v-6c-8-4-15-6-23-6Z"/>
+    <path fill-rule="evenodd" d="M110 27c-16-3-30 1-42 9v65c12-8 26-12 42-9a4 4 0 0 0 5-4V32a5 5 0 0 0-5-5Zm-9 19v6c-8 0-15 2-23 6v-6c8-4 15-6 23-6Zm0 16v6c-8 0-15 2-23 6v-6c8-4 15-6 23-6Z"/>
+  </g>
+</svg>

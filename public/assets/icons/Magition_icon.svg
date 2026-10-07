@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>맞물린 선으로 표현된 별</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <mask id="weave" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="white"/>
+      <g stroke="black" stroke-width="16">
+        <path d="M51 60 57 42M66 51h18M73 76 87 66M56 77 72 89M40 51h22"/>
+      </g>
+    </mask>
+  </defs>
+  <g filter="url(#shadow)" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 20 90 101 22 51h84l-68 50 26-81Z" mask="url(#weave)"/>
+    <path d="M51 60 57 42M66 51h18M73 76 87 66M56 77 72 89M40 51h22"/>
+  </g>
+</svg>

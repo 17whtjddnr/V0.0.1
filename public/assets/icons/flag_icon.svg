@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>깃발</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <rect x="27" y="19" width="10" height="92" rx="5"/>
+    <path d="M43 27c12-6 22-5 32 0s20 6 30 1v43c-10 5-20 4-30-1s-20-6-32 0V27Z"/>
+  </g>
+</svg>

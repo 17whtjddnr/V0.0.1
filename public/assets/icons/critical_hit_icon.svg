@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>치명타</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <mask id="slash" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="#FFFFFF"/>
+      <path d="M20 111 91 23" stroke="#000000" stroke-width="20"/>
+    </mask>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="m61 18 10 24 22-13-8 26 27 5-24 14 17 24-29-8-7 23-13-23-27 12 9-26-24-12 28-7-9-27 23 14 5-26Z" mask="url(#slash)"/>
+    <path d="M24 108 61 51 99 16 75 62 24 108Z"/>
+  </g>
+</svg>

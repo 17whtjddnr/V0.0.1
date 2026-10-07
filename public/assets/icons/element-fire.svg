@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><g id="fire"><defs>
+    <filter id="fire_shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+  <path fill-rule="evenodd" d="M66 16c1 21 23 31 18 51 8-4 12-13 12-23 10 14 14 27 12 38-3 20-20 31-44 31S22 101 20 82c-2-17 9-33 23-44-2 15 1 25 9 29-3-20 8-34 14-51ZM64 68c-2 11-15 20-15 29 0 8 6 14 15 14s15-6 15-14c0-9-12-18-15-29Z" fill="#F7653F" filter="url(#fire_shadow)" />
+</g></svg>

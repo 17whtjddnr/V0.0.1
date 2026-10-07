@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "icons": 55,
+  "heroTooltip": true,
+  "enemyTooltip": true,
+  "disabledEnemyHover": true,
+  "keyboardTooltip": true,
+  "turnDecrement": true,
+  "errors": []
+}

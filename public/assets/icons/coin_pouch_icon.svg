@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>동전 주머니</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="M42 22c8 4 15 4 22 0s14-4 22 0L74 41H54L42 22Z"/>
+    <rect x="49" y="45" width="30" height="8" rx="4"/>
+    <path fill-rule="evenodd" d="M52 58h24c10 10 29 25 29 39 0 12-14 17-41 17s-41-5-41-17c0-14 19-29 29-39Zm12 14a15 15 0 1 0 0 30 15 15 0 0 0 0-30Zm0 6a9 9 0 1 1 0 18 9 9 0 0 1 0-18Z"/>
+  </g>
+</svg>

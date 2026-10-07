@@ -1,6 +1,7 @@
 const targetMultipliers = { 적: 1, 자신: 1, 아군: 1, '아군과 자신': 1.6, 적전체: 2.4, 아군전체: 2.4 };
 const integerEffectUnits = new Set(['추가 턴 수', '턴 수', '초기화 스킬 수', '해제 개수', '연장 턴 수', '단축 턴 수', '전이 개수']);
 const scoreTolerance = 0.02;
+export { calculateScore as calculateSkillScore };
 
 function roundToStep(value, step) {
     return Number((Math.round(value / step) * step).toFixed(4));

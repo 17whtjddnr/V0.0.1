@@ -1,0 +1,33 @@
+{
+  "report": {
+    "icons": [
+      {
+        "selector": ".player-zodiac-mark",
+        "width": 33.5938,
+        "font": 24,
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "selector": ".plaza-encounter-meta:first-child img",
+        "width": 28,
+        "font": 20,
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "selector": ".plaza-encounter-meta:nth-child(2) img",
+        "width": 28,
+        "font": 20,
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "selector": ".hero-job-icon",
+        "width": 22.3906,
+        "font": 16,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ],
+    "skillHasBackground": false,
+    "overflow": false
+  },
+  "errors": []
+}

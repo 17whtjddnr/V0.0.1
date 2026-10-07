@@ -1,0 +1,30 @@
+{
+  "spacing": {
+    "columnGap": "32px",
+    "labels": [
+      {
+        "gap": "16px",
+        "width": 599.640625,
+        "overflow": false
+      },
+      {
+        "gap": "16px",
+        "width": 374.78125,
+        "overflow": false
+      },
+      {
+        "gap": "16px",
+        "width": 374.78125,
+        "overflow": false
+      },
+      {
+        "gap": "16px",
+        "width": 374.796875,
+        "overflow": false
+      }
+    ],
+    "overflow": false
+  },
+  "contractIcon": "url(\"http://127.0.0.1:5173/assets/icons/scroll_icon.svg\")",
+  "filterWorks": true
+}

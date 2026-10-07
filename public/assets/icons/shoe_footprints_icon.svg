@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>큰 구두 발자국과 작은 구두 발자국</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <g id="sole" fill="#FFFFFF">
+      <path d="M0-32c-11 0-17 9-17 23 0 12 5 21 7 29h20c2-8 7-17 7-29 0-14-6-23-17-23Z"/>
+      <path d="M-10 26h20v11c0 6-4 10-10 10s-10-4-10-10V26Z"/>
+    </g>
+  </defs>
+  <g filter="url(#shadow)">
+    <use href="#sole" transform="translate(43 64) rotate(-18)"/>
+    <use href="#sole" transform="translate(89 43) rotate(18) scale(.72)"/>
+  </g>
+</svg>

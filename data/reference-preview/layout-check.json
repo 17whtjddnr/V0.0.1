@@ -1,0 +1,596 @@
+{
+  "results": [
+    {
+      "name": "layout-plaza",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "actions": {
+        "x": 1110,
+        "y": 716,
+        "width": 760,
+        "height": 270
+      },
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-encounter",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "actions": {
+        "x": 1110,
+        "y": 716,
+        "width": 760,
+        "height": 270
+      },
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-codex",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 50
+      },
+      "party": null,
+      "actions": null,
+      "roster": {
+        "x": 50,
+        "y": 786,
+        "width": 1820,
+        "height": 200
+      },
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-monsters",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 50
+      },
+      "party": null,
+      "actions": null,
+      "roster": {
+        "x": 50,
+        "y": 786,
+        "width": 1820,
+        "height": 200
+      },
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-dialogue-monologue",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": null,
+      "actions": null,
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-dialogue-oneOnOne",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": null,
+      "actions": null,
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-dialogue-oneOnOne-choices",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": null,
+      "actions": null,
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-dialogue-twoPerson",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": null,
+      "actions": null,
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-dialogue-twoPerson-choices",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": null,
+      "actions": null,
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-exploration",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "actions": {
+        "x": 1110,
+        "y": 716,
+        "width": 760,
+        "height": 270
+      },
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-battle",
+      "header": {
+        "x": 50,
+        "y": 36,
+        "width": 1820,
+        "height": 120
+      },
+      "title": {
+        "x": 50,
+        "y": 156,
+        "width": 1820,
+        "height": 50
+      },
+      "scene": {
+        "x": 50,
+        "y": 206,
+        "width": 1820,
+        "height": 490
+      },
+      "lower": {
+        "x": 50,
+        "y": 716,
+        "width": 1820,
+        "height": 270
+      },
+      "party": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "actions": {
+        "x": 1110,
+        "y": 716,
+        "width": 760,
+        "height": 270
+      },
+      "roster": null,
+      "footer": {
+        "x": 50,
+        "y": 1006,
+        "width": 1820,
+        "height": 30
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-battle-1280",
+      "header": {
+        "x": 33,
+        "y": 24,
+        "width": 1213,
+        "height": 80
+      },
+      "title": {
+        "x": 33,
+        "y": 104,
+        "width": 1213,
+        "height": 33
+      },
+      "scene": {
+        "x": 33,
+        "y": 137,
+        "width": 1213,
+        "height": 327
+      },
+      "lower": {
+        "x": 33,
+        "y": 477,
+        "width": 1213,
+        "height": 180
+      },
+      "party": {
+        "x": 33,
+        "y": 477,
+        "width": 687,
+        "height": 180
+      },
+      "actions": {
+        "x": 740,
+        "y": 477,
+        "width": 507,
+        "height": 180
+      },
+      "roster": null,
+      "footer": {
+        "x": 33,
+        "y": 671,
+        "width": 1213,
+        "height": 20
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    },
+    {
+      "name": "layout-battle-1024",
+      "header": {
+        "x": 27,
+        "y": 115,
+        "width": 971,
+        "height": 64
+      },
+      "title": {
+        "x": 27,
+        "y": 179,
+        "width": 971,
+        "height": 27
+      },
+      "scene": {
+        "x": 27,
+        "y": 206,
+        "width": 971,
+        "height": 261
+      },
+      "lower": {
+        "x": 27,
+        "y": 478,
+        "width": 971,
+        "height": 144
+      },
+      "party": {
+        "x": 27,
+        "y": 478,
+        "width": 549,
+        "height": 144
+      },
+      "actions": {
+        "x": 592,
+        "y": 478,
+        "width": 405,
+        "height": 144
+      },
+      "roster": null,
+      "footer": {
+        "x": 27,
+        "y": 633,
+        "width": 971,
+        "height": 16
+      },
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "controlsOutsideStage": [],
+      "obstructedButtons": []
+    }
+  ],
+  "errors": [],
+  "gameSourceUnchanged": true
+}

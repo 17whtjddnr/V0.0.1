@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="688 492 64 64" width="64" height="64"><g id="icon_25"><title>25 저주</title><rect x="688" y="492" width="64" height="64" rx="9" fill="#E83D36" />
+<g transform="translate(688 492)" fill="white"><path d="M32 6Q44 22 38 28Q47 22 48 17C66 43 50 58 32 58C12 58 2 40 15 24Q16 37 22 38Q17 22 32 6Z" /><g transform="translate(19 26) scale(.4)"><path d="M14 34C4 10 22 6 32 6C47 6 59 18 50 35L46 39V49H18V39Z" /><g fill="#E83D36"><circle cx="23" cy="27" r="5" /><circle cx="41" cy="27" r="5" /><path d="M32 33 28 40H36Z" /><rect x="24" y="44" width="3" height="7" rx="0" /><rect x="31" y="44" width="3" height="7" rx="0" /><rect x="38" y="44" width="3" height="7" rx="0" /></g></g></g></g>
+</svg>

@@ -1,0 +1,54 @@
+{
+  "grades": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "stats": 8,
+  "gold": true,
+  "layout": [
+    {
+      "class": "plaza-current-info",
+      "overflow": false
+    },
+    {
+      "class": "plaza-encounter-name",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    },
+    {
+      "class": "",
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

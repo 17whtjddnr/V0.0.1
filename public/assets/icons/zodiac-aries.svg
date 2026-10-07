@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><defs><filter id="shadow" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" /></filter></defs>
+<g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"><g id="aries"><title>양자리</title><path d="M64 105V53C64 30 45 20 33 29C20 39 24 57 34 63M64 53C64 30 83 20 95 29C108 39 104 57 94 63" /></g>
+</g></svg>

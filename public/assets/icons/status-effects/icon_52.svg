@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="208 1200 64 64" width="64" height="64"><g id="icon_52"><title>52 강화효과 지속시간 증가</title><rect x="208" y="1200" width="64" height="64" rx="9" fill="#087CF0" />
+<g transform="translate(208 1200)" fill="white"><g transform="translate(3 3) scale(.62)"><path d="M32 8Q35 26 56 32Q35 36 32 56Q28 36 8 32Q28 27 32 8Z" /></g><g transform="translate(26 26) scale(.55)"><circle cx="32" cy="32" r="20" fill="none" stroke="white" stroke-width="5" /><path d="M32 19V33H42" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" /></g></g></g>
+</svg>

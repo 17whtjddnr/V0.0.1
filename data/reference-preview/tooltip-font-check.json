@@ -1,0 +1,95 @@
+{
+  "reports": [
+    {
+      "name": "skill-0",
+      "width": 360,
+      "height": 371.125,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "skill-1",
+      "width": 360,
+      "height": 239.5625,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "skill-2",
+      "width": 360,
+      "height": 284.34375,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "skill-3",
+      "width": 360,
+      "height": 214.375,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "character",
+      "width": 360,
+      "height": 357.140625,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "menu",
+      "width": 460,
+      "height": 472.375,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "save",
+      "width": 460,
+      "height": 504.53125,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "settings",
+      "width": 520,
+      "height": 278.78125,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "delete-confirm",
+      "width": 520,
+      "height": 278.78125,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    },
+    {
+      "name": "result",
+      "width": 520,
+      "height": 522.9375,
+      "inside": true,
+      "small": [],
+      "wide": [],
+      "scroll": false
+    }
+  ],
+  "errors": []
+}

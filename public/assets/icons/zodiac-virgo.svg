@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><defs><filter id="shadow" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" /></filter></defs>
+<g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"><g id="virgo"><title>처녀자리</title><path d="M23 99V39C23 22 43 22 43 39V91M43 39C43 22 63 22 63 39V91M63 39C63 22 83 22 83 39V74C83 89 92 99 104 102M83 52C106 36 112 70 91 88L76 101" /></g>
+</g></svg>

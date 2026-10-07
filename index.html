@@ -13,7 +13,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="/src/style.css">
     <style>
-        #game.loading-screen { width: 100%; min-height: 100vh; display: grid; place-items: center; margin: 0; padding: 24px; background: #366887; }
+        #game.loading-screen { width: 100%; min-height: 100%; display: grid; place-items: center; margin: 0; padding: 24px; background: #366887; }
         #initial-loader { width: min(320px,80vw); color: #e2edf3; font: 500 13px/1.4 'Noto Sans KR',sans-serif; }
         #initial-loader-label { min-height: 20px; margin-bottom: 12px; text-align: center; }
         #loading-progress-track { height: 5px; overflow: hidden; border: 1px solid #a6d7e866; background: #24485e; }
@@ -21,12 +21,16 @@
     </style>
 </head>
 <body>
-    <main id="game" class="loading-screen" aria-live="polite">
-        <div id="initial-loader" role="status">
-            <div id="initial-loader-label">Loading<span id="loading-dots">.</span></div>
-            <div id="loading-progress-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><div id="loading-progress-fill"></div></div>
+    <div id="viewport-stage">
+        <div id="stage-canvas">
+            <main id="game" class="loading-screen" aria-live="polite">
+                <div id="initial-loader" role="status">
+                    <div id="initial-loader-label">Loading<span id="loading-dots">.</span></div>
+                    <div id="loading-progress-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><div id="loading-progress-fill"></div></div>
+                </div>
+            </main>
         </div>
-    </main>
+    </div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

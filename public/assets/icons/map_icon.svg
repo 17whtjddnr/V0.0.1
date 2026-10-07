@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>지도</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="m21 35 24-12v70l-25 12a4 4 0 0 1-6-4V43a9 9 0 0 1 7-8Z"/>
+    <path d="m51 23 26 12v70L51 93V23Z"/>
+    <path d="m83 35 25-12a4 4 0 0 1 6 4v58a9 9 0 0 1-7 8l-24 12V35Z"/>
+  </g>
+</svg>

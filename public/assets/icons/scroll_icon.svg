@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>아래쪽이 말린 한 장의 스크롤</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path fill-rule="evenodd" d="M34 20h60a4 4 0 0 1 4 4v58H52a4 4 0 0 0-4 4v9c0 8-4 13-10 13s-10-5-10-13V26a6 6 0 0 1 6-6Zm10 22v7h38v-7H44Zm0 17v7h30v-7H44Z"/>
+    <path d="M54 88h56v7c0 8-6 13-14 13H51c2-4 3-8 3-13v-7Z"/>
+  </g>
+</svg>

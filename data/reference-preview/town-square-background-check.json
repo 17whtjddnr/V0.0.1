@@ -1,0 +1,38 @@
+{
+  "reports": [
+    {
+      "view": "plaza",
+      "background": "linear-gradient(rgba(14, 28, 39, 0.48), rgba(14, 28, 39, 0.48)), url(\"http://127.0.0.1:5173/assets/backgrounds/town-square.webp\")",
+      "backgroundSize": "auto, cover",
+      "width": 1820,
+      "height": 490,
+      "overlayOpacity": "0.3",
+      "overflow": false,
+      "imageWidth": 2171,
+      "imageHeight": 724
+    },
+    {
+      "view": "characterCodex",
+      "background": "linear-gradient(145deg, rgb(65, 111, 137) 0%, rgb(49, 93, 120) 54%, rgb(38, 79, 105) 100%)",
+      "backgroundSize": "auto",
+      "width": 1820,
+      "height": 490,
+      "overlayOpacity": "0.3",
+      "overflow": false,
+      "imageWidth": 2171,
+      "imageHeight": 724
+    },
+    {
+      "view": "expedition",
+      "background": "radial-gradient(at 50% 57%, rgb(65, 53, 43) 0%, rgb(43, 38, 33) 31%, rgb(32, 30, 26) 71%, rgb(25, 24, 22) 100%)",
+      "backgroundSize": "auto",
+      "width": 1820,
+      "height": 490,
+      "overlayOpacity": "0.3",
+      "overflow": false,
+      "imageWidth": 2171,
+      "imageHeight": 724
+    }
+  ],
+  "errors": []
+}

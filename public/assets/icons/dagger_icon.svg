@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>단검</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)" transform="rotate(35 64 64)">
+    <path d="M64 17 79 55 75 70H53l-4-15 15-38Z"/>
+    <rect x="42" y="70" width="44" height="9" rx="4.5"/>
+    <rect x="58" y="79" width="12" height="23" rx="3"/>
+    <rect x="54" y="102" width="20" height="9" rx="4.5"/>
+  </g>
+</svg>

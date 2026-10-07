@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>뒤로가기</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M77 24a6 6 0 0 1 0 8.5L45.5 64 77 95.5a6 6 0 0 1-8.5 8.5l-35.75-35.75a6 6 0 0 1 0-8.5L68.5 24a6 6 0 0 1 8.5 0Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

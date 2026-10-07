@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>이벤트</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path fill-rule="evenodd" d="M64 40c-6-13-14-21-23-21-10 0-17 7-17 16 0 11 9 18 22 18h36c13 0 22-7 22-18 0-9-7-16-17-16-9 0-17 8-23 21ZM45 44c-8 0-12-3-12-8 0-4 3-7 7-7 5 0 11 6 16 15H45Zm27 0c5-9 11-15 16-15 4 0 7 3 7 7 0 5-4 8-12 8H72Z"/>
+    <rect x="18" y="53" width="40" height="18" rx="3"/>
+    <rect x="70" y="53" width="40" height="18" rx="3"/>
+    <path d="M25 77h33v33H30a5 5 0 0 1-5-5V77Zm45 0h33v28a5 5 0 0 1-5 5H70V77Z"/>
+  </g>
+</svg>

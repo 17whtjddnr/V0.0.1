@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>방패</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M64 20c11 7 23 11 36 13a5 5 0 0 1 4 5v23c0 23-14 39-37 50a7 7 0 0 1-6 0C38 100 24 84 24 61V38a5 5 0 0 1 4-5c13-2 25-6 36-13Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

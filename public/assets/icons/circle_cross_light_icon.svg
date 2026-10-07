@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>원 안에 뚫린 크로스라이트</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path fill-rule="evenodd" d="M64 18a46 46 0 1 0 0 92 46 46 0 0 0 0-92ZM64 33l6 20c1 3 2 5 5 6l20 5-20 5c-3 1-4 3-5 6l-6 20-6-20c-1-3-2-5-5-6l-20-5 20-5c3-1 4-3 5-6l6-20Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

@@ -1,0 +1,20 @@
+{
+  "dialogueFade": true,
+  "characterEncounterFade": true,
+  "monsterEncounterFade": true,
+  "listenerTint": true,
+  "listenerIdleStopped": true,
+  "speakerSwitch": true,
+  "tailHalfHeight": true,
+  "idleFrames": [
+    "0px",
+    "0px -5px",
+    "0px"
+  ],
+  "rerenderSoundNotRepeated": true,
+  "reducedMotion": true,
+  "soundFrequencies": {
+    "dialogue": 260,
+    "encounter": 95
+  }
+}

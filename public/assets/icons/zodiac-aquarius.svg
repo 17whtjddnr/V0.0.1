@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><defs><filter id="shadow" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" /></filter></defs>
+<g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"><g id="aquarius"><title>물병자리</title><path d="M20 53L35 38L50 53L65 38L80 53L95 38L108 51M20 89L35 74L50 89L65 74L80 89L95 74L108 87" /></g>
+</g></svg>

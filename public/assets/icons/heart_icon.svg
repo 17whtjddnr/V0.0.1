@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>하트</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M64 39C52 19 20 23 20 47c0 22 25 43 40 56a6 6 0 0 0 8 0c15-13 40-34 40-56 0-24-32-28-44-8Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

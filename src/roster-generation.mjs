@@ -159,6 +159,25 @@ function createRoster(kind, count, gradeCounts, zodiacs, jobs, growth, level, sk
     });
 }
 
+export function applyRosterProfile(entry, changes, growthRows, skillPool = []) {
+    const profile = { ...entry, ...changes };
+    const row = growthRows.find((row) => row['별자리'] === profile.zodiac
+        && row['직업'] === profile.job
+        && Number(row['레벨']) === Number(profile.level)
+        && Number(row['등급']) === Number(profile.grade));
+    if (!row) throw new Error('선택한 별자리·직업·등급·레벨의 성장표가 없습니다.');
+    const index = Math.max(0, Number(String(entry.id).split('-')[1]) - 1);
+    return {
+        ...profile,
+        title: jobTitles[profile.job] || profile.job,
+        mark: jobMarks[profile.job] || '✦',
+        gradeColor: gradeColors[profile.grade],
+        growthStateId: Number(row['상태ID']),
+        stats: statsFromGrowth(row),
+        skills: profile.job === entry.job ? entry.skills : skillsForRoster(index, skillPool, profile.job),
+    };
+}
+
 export function generateRosters(growthRows, level = 5, skillPool = []) {
     const selectedLevel = Number(level);
     if (!Number.isInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) {

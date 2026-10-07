@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": [
+    "plaza → developer → plaza",
+    "plaza → codex → developer → codex → plaza",
+    "expedition → developer → expedition",
+    "expedition → codex → developer → codex → expedition",
+    "legacy self-return recovered"
+  ],
+  "errors": []
+}

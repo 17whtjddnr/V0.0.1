@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>활</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M40 22c40 12 40 72 0 84" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+    <path d="m40 22-16 42 16 42" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M22 64h76" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+    <path d="m110 64-22-14 5 14-5 14 22-14ZM19 53l13 8v6l-13 8 3-11-3-11Z" fill="#FFFFFF"/>
+  </g>
+</svg>

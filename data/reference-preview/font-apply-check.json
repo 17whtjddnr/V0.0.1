@@ -1,0 +1,1256 @@
+{
+  "fontChecks": [
+    {
+      "screen": "plaza",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "주차",
+      "selector": ".plaza-current-info > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "보유 골드",
+      "selector": ".plaza-current-info > strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "원정대 제목",
+      "selector": ".party-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "원정대 인원",
+      "selector": ".party-panel .panel-heading h2 small",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "빈 자리",
+      "selector": ".plaza-empty-label",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "행동 패널 제목",
+      "selector": ".action-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "광장 행동 버튼",
+      "selector": ".plaza-action-label",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "광장 상황 설명",
+      "selector": ".plaza-state-description",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "광장 중앙 안내",
+      "selector": ".plaza-job-summary:not(.plaza-monologue-text)",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "plaza",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "주차",
+      "selector": ".plaza-current-info > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "보유 골드",
+      "selector": ".plaza-current-info > strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "원정대 제목",
+      "selector": ".party-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "원정대 인원",
+      "selector": ".party-panel .panel-heading h2 small",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "빈 자리",
+      "selector": ".plaza-empty-label",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "행동 패널 제목",
+      "selector": ".action-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "광장 행동 버튼",
+      "selector": ".plaza-action-label",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "광장 상황 설명",
+      "selector": ".plaza-state-description",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "캐릭터 직업·속성",
+      "selector": ".plaza-encounter-meta > span",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "캐릭터 레벨",
+      "selector": ".plaza-encounter-level",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "캐릭터 이름",
+      "selector": ".plaza-encounter-name > span:first-child",
+      "figmaSize": 32,
+      "current": 32,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "능력치 항목",
+      "selector": ".plaza-encounter-stats small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "능력치 수치",
+      "selector": ".plaza-encounter-stats strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "영입가 항목",
+      "selector": ".plaza-encounter-price:not(.plaza-encounter-wage)",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "영입가 수치",
+      "selector": ".plaza-encounter-price:not(.plaza-encounter-wage) strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "주급 항목",
+      "selector": ".plaza-encounter-wage",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "주급 표시",
+      "selector": ".plaza-encounter-wage strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "보유 스킬 제목",
+      "selector": ".plaza-encounter-skills-title",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "친밀도 제목",
+      "selector": ".plaza-encounter-affinity > .section-kicker",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "친밀도 관계",
+      "selector": ".plaza-affinity-copy strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "label": "친밀도 수치",
+      "selector": ".plaza-affinity-copy small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "캐릭터 직업·속성",
+      "selector": ".plaza-encounter-meta > span",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "캐릭터 레벨",
+      "selector": ".plaza-encounter-level",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "캐릭터 이름",
+      "selector": ".plaza-encounter-name > span:first-child",
+      "figmaSize": 32,
+      "current": 32,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "능력치 항목",
+      "selector": ".plaza-encounter-stats small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "능력치 수치",
+      "selector": ".plaza-encounter-stats strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "영입가 항목",
+      "selector": ".plaza-encounter-price:not(.plaza-encounter-wage)",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "영입가 수치",
+      "selector": ".plaza-encounter-price:not(.plaza-encounter-wage) strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "주급 항목",
+      "selector": ".plaza-encounter-wage",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "주급 표시",
+      "selector": ".plaza-encounter-wage strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "보유 스킬 제목",
+      "selector": ".plaza-encounter-skills-title",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "친밀도 제목",
+      "selector": ".plaza-encounter-affinity > .section-kicker",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "친밀도 관계",
+      "selector": ".plaza-affinity-copy strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "친밀도 수치",
+      "selector": ".plaza-affinity-copy small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 탭",
+      "selector": ".codex-tab",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 검색 제목",
+      "selector": ".catalog-search > span",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 필터 제목",
+      "selector": ".catalog-tools > label:not(.catalog-search)",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 목록 제목",
+      "selector": ".codex-roster-heading h2",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 목록 인원",
+      "selector": ".codex-roster-heading > span",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "codex",
+      "label": "도감 목록 이름",
+      "selector": ".codex-character-name",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "캐릭터 직업·속성",
+      "selector": ".plaza-encounter-meta > span",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "캐릭터 레벨",
+      "selector": ".plaza-encounter-level",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "캐릭터 이름",
+      "selector": ".plaza-encounter-name > span:first-child",
+      "figmaSize": 32,
+      "current": 32,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "능력치 항목",
+      "selector": ".plaza-encounter-stats small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "능력치 수치",
+      "selector": ".plaza-encounter-stats strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "보유 스킬 제목",
+      "selector": ".plaza-encounter-skills-title",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "친밀도 제목",
+      "selector": ".plaza-encounter-affinity > .section-kicker",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "친밀도 관계",
+      "selector": ".plaza-affinity-copy strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "친밀도 수치",
+      "selector": ".plaza-affinity-copy small",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 탭",
+      "selector": ".codex-tab",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 검색 제목",
+      "selector": ".catalog-search > span",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 필터 제목",
+      "selector": ".catalog-tools > label:not(.catalog-search)",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 목록 제목",
+      "selector": ".codex-roster-heading h2",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 목록 인원",
+      "selector": ".codex-roster-heading > span",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "monsters",
+      "label": "도감 목록 이름",
+      "selector": ".codex-character-name",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "주차",
+      "selector": ".plaza-current-info > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "보유 골드",
+      "selector": ".plaza-current-info > strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "대화 상황",
+      "selector": ".plaza-dialogue-context-label",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-monologue",
+      "label": "독백",
+      "selector": ".plaza-monologue-text",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "주차",
+      "selector": ".plaza-current-info > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "보유 골드",
+      "selector": ".plaza-current-info > strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "대화 상황",
+      "selector": ".plaza-dialogue-context-label",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "label": "대화 선택지",
+      "selector": ".plaza-dialogue-choice",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "화면 제목",
+      "selector": ".scene-heading h1, .character-codex-heading h1",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "주차",
+      "selector": ".plaza-current-info > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "보유 골드",
+      "selector": ".plaza-current-info > strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "대화 상황",
+      "selector": ".plaza-dialogue-context-label",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "label": "대화 선택지",
+      "selector": ".plaza-dialogue-choice",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "원정대 제목",
+      "selector": ".party-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "원정대 인원",
+      "selector": ".party-panel .panel-heading h2 small",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "행동 패널 제목",
+      "selector": ".action-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "지역 이름",
+      "selector": ".journey-label strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "파티 캐릭터 이름",
+      "selector": ".hero-name",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "파티 HP",
+      "selector": ".hero-status",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "파티 최대 HP",
+      "selector": ".hero-status small",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "다음 지역 버튼",
+      "selector": ".continue-button",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "exploration",
+      "label": "지역 환경 설명",
+      "selector": ".scene-caption > span:last-child",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "플레이어 이름",
+      "selector": ".player-profile-name strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "플레이어 레벨",
+      "selector": ".player-profile-name > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "경험치 제목",
+      "selector": ".player-experience > div:first-child > span",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "경험치 수치",
+      "selector": ".player-experience strong",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "원정대 제목",
+      "selector": ".party-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "원정대 인원",
+      "selector": ".party-panel .panel-heading h2 small",
+      "figmaSize": 18,
+      "current": 18,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "행동 패널 제목",
+      "selector": ".action-panel .panel-heading h2",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "하단 안내",
+      "selector": ".bottom-note > span",
+      "figmaSize": 10,
+      "current": 10,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "지역 이름",
+      "selector": ".journey-label strong",
+      "figmaSize": 24,
+      "current": 24,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "파티 캐릭터 이름",
+      "selector": ".hero-name",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "파티 HP",
+      "selector": ".hero-status",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "파티 최대 HP",
+      "selector": ".hero-status small",
+      "figmaSize": 16,
+      "current": 16,
+      "matches": true
+    },
+    {
+      "screen": "battle",
+      "label": "전투 스킬 이름",
+      "selector": ".combat-skill-name",
+      "figmaSize": 20,
+      "current": 20,
+      "matches": true
+    }
+  ],
+  "layoutChecks": [
+    {
+      "screen": "plaza",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "encounter",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "codex",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "monsters",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "dialogue-monologue",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "dialogue-oneOnOne",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "dialogue-twoPerson",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "exploration",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "battle",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "battle-1280",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    },
+    {
+      "screen": "battle-1024",
+      "stageOverflow": false,
+      "horizontalOverflow": false,
+      "outside": [],
+      "obstructed": [],
+      "textOverflow": []
+    }
+  ],
+  "errors": [],
+  "gameSourceUnchanged": true
+}

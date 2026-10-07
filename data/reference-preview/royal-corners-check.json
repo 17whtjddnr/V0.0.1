@@ -1,0 +1,47 @@
+{
+  "reports": [
+    {
+      "view": "plaza",
+      "size": "1440px 1440px",
+      "position": "-550px calc(100% + 540px)",
+      "header": "rgba(0, 0, 0, 0)",
+      "overlay": "url(\"http://127.0.0.1:5173/assets/design/royal_corners_shadow_proportional.svg\")",
+      "overlayPointer": "none",
+      "scene": {
+        "width": 1820,
+        "height": 490
+      },
+      "clickable": true,
+      "overflow": false
+    },
+    {
+      "view": "characterCodex",
+      "size": "1440px 1440px",
+      "position": "-550px calc(100% + 540px)",
+      "header": "rgba(0, 0, 0, 0)",
+      "overlay": "url(\"http://127.0.0.1:5173/assets/design/royal_corners_shadow_proportional.svg\")",
+      "overlayPointer": "none",
+      "scene": {
+        "width": 1820,
+        "height": 490
+      },
+      "clickable": true,
+      "overflow": false
+    },
+    {
+      "view": "expedition",
+      "size": "1440px 1440px",
+      "position": "-550px calc(100% + 540px)",
+      "header": "rgba(0, 0, 0, 0)",
+      "overlay": "url(\"http://127.0.0.1:5173/assets/design/royal_corners_shadow_proportional.svg\")",
+      "overlayPointer": "none",
+      "scene": {
+        "width": 1820,
+        "height": 490
+      },
+      "clickable": true,
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

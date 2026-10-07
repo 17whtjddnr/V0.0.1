@@ -1,0 +1,48 @@
+{
+  "fieldsSaved": true,
+  "listApplied": true,
+  "codexApplied": true,
+  "reloadRetained": true,
+  "newOfferApplied": true,
+  "statsMatchGrowthTable": true,
+  "jobSkillsUpdated": true,
+  "baseCatalogUnchanged": true,
+  "storage": "localStorage / game-developer-characters-v1",
+  "baseline": {
+    "name": "아르덴 루미엘",
+    "element": "불",
+    "zodiac": "양자리",
+    "job": "기사",
+    "grade": 3,
+    "stats": {
+      "attack": 2,
+      "maxHp": 3,
+      "defense": 3,
+      "speed": 2,
+      "critChance": 1,
+      "critDamage": 2,
+      "effectHit": 1,
+      "effectResist": 1
+    }
+  },
+  "edited": {
+    "name": "저장 검증 캐릭터",
+    "element": "물",
+    "zodiac": "물고기자리",
+    "job": "정령사",
+    "grade": 5,
+    "stats": {
+      "attack": 2,
+      "maxHp": 4,
+      "defense": 4,
+      "speed": 4,
+      "critChance": 1,
+      "critDamage": 2,
+      "effectHit": 2,
+      "effectResist": 2
+    }
+  },
+  "newOfferPrice": 85,
+  "currentOfferPrice": 85,
+  "expectedCurrentOfferPrice": 85
+}

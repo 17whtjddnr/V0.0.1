@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>도끼</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <rect x="58" y="24" width="12" height="86" rx="5" transform="rotate(30 64 67)"/>
+    <path d="M81 20c5 9 13 15 24 18-1 17-9 31-23 40-2-12-8-21-18-27l17-31Z"/>
+    <path d="m67 25 14 8-9 16-14-8a4 4 0 0 1-1-5l5-9a4 4 0 0 1 5-2Z"/>
+  </g>
+</svg>

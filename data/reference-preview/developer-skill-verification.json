@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "id": "SKILL_0001",
+  "changes": [
+    {
+      "field": "effect0value",
+      "before": "183.4%",
+      "after": "206.7%"
+    },
+    {
+      "field": "effect0duration",
+      "before": "206.7%",
+      "after": "222.3%"
+    },
+    {
+      "field": "effect0chance",
+      "before": "222.3%",
+      "after": "253.5%"
+    },
+    {
+      "field": "target",
+      "before": "253.5%",
+      "after": "105.6%"
+    },
+    {
+      "field": "cooldown",
+      "before": "105.6%",
+      "after": "86.0%"
+    },
+    {
+      "field": "damage1",
+      "before": "86.0%",
+      "after": "93.0%"
+    },
+    {
+      "field": "healing1",
+      "before": "93.0%",
+      "after": "99.5%"
+    }
+  ],
+  "game": {
+    "name": "검증용 스킬",
+    "target": "적",
+    "damage": [
+      1,
+      0.3,
+      0,
+      0
+    ],
+    "thumbnail": "/assets/icons/sword_icon.svg",
+    "score": 0.9946511627906978,
+    "markup": "<img class=\"combat-skill-icon\" src=\"/assets/icons/sword_icon.svg\" alt=\"검증용 스킬\" title=\"\">"
+  },
+  "activationExclusion": true,
+  "persistence": true,
+  "imageUpload": true,
+  "advancedEditing": true,
+  "cancelWithoutSaving": true,
+  "errors": []
+}

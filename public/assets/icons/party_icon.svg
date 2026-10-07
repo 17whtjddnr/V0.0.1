@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>파티</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <circle cx="64" cy="35" r="16"/>
+    <circle cx="26" cy="48" r="12"/>
+    <circle cx="102" cy="48" r="12"/>
+    <path d="M34 94V84c0-18 12-27 30-27s30 9 30 27v10a5 5 0 0 1-5 5H39a5 5 0 0 1-5-5Z"/>
+    <path d="M26 66c4 0 7 1 10 2-5 6-8 14-8 23v2H12a5 5 0 0 1-5-5v-5c0-11 7-17 19-17Zm76 0c12 0 19 6 19 17v5a5 5 0 0 1-5 5h-16v-2c0-9-3-17-8-23 3-1 6-2 10-2Z"/>
+  </g>
+</svg>

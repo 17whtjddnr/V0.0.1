@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>갑옷</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="M43 25h9c0 9 5 14 12 14s12-5 12-14h9l5 29-7 30H45l-7-30 5-29Z"/>
+    <path d="M37 29 24 33c-7 2-11 8-12 16l-1 9 22 4 4-33Zm54 0 13 4c7 2 11 8 12 16l1 9-22 4-4-33Z"/>
+    <rect x="45" y="88" width="38" height="8" rx="3"/>
+    <path d="M44 100h17v13H39l5-13Zm23 0h17l5 13H67v-13Z"/>
+  </g>
+</svg>

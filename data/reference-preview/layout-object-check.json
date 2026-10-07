@@ -1,0 +1,363 @@
+{
+  "preservedFunctions": 118,
+  "geometry": [
+    {
+      "screen": "party-three",
+      "selector": ".party-panel",
+      "id": "38:493",
+      "expected": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "actual": {
+        "x": 50,
+        "y": 716,
+        "width": 1030,
+        "height": 270
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero",
+      "id": "38:495",
+      "expected": {
+        "x": 50,
+        "y": 776,
+        "width": 250,
+        "height": 210
+      },
+      "actual": {
+        "x": 50,
+        "y": 776,
+        "width": 250,
+        "height": 210
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero-thumbnail",
+      "id": "38:510",
+      "expected": {
+        "x": 78,
+        "y": 797,
+        "width": 120,
+        "height": 120
+      },
+      "actual": {
+        "x": 78,
+        "y": 797,
+        "width": 120,
+        "height": 120
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero .combat-statuses",
+      "id": "38:535",
+      "expected": {
+        "x": 214,
+        "y": 797,
+        "width": 54.54545593261719,
+        "height": 120.0000228881836
+      },
+      "actual": {
+        "x": 214,
+        "y": 797,
+        "width": 54.53125,
+        "height": 120
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero-name-row",
+      "id": "38:517",
+      "expected": {
+        "x": 55,
+        "y": 929,
+        "width": 240,
+        "height": 27
+      },
+      "actual": {
+        "x": 55,
+        "y": 929,
+        "width": 238,
+        "height": 27
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero-vitals",
+      "id": "38:476",
+      "expected": {
+        "x": 55,
+        "y": 956,
+        "width": 240,
+        "height": 18
+      },
+      "actual": {
+        "x": 55,
+        "y": 956,
+        "width": 238,
+        "height": 18
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".hero .health",
+      "id": "38:516",
+      "expected": {
+        "x": 52,
+        "y": 974,
+        "width": 246,
+        "height": 10
+      },
+      "actual": {
+        "x": 52,
+        "y": 974,
+        "width": 244,
+        "height": 10
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".plaza-empty-hero",
+      "id": "38:504",
+      "expected": {
+        "x": 830,
+        "y": 776,
+        "width": 250,
+        "height": 210
+      },
+      "actual": {
+        "x": 830,
+        "y": 776,
+        "width": 250,
+        "height": 210
+      },
+      "matches": true
+    },
+    {
+      "screen": "party-three",
+      "selector": ".player-avatar",
+      "id": "8:84",
+      "expected": {
+        "x": 50,
+        "y": 36,
+        "width": 100,
+        "height": 100
+      },
+      "actual": {
+        "x": 50,
+        "y": 36,
+        "width": 100,
+        "height": 100
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": ".plaza-encounter-info",
+      "id": "31:168",
+      "expected": {
+        "x": 130.99999999999997,
+        "y": 251,
+        "width": 650,
+        "height": 400
+      },
+      "actual": {
+        "x": 131,
+        "y": 251,
+        "width": 650,
+        "height": 400
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": ".plaza-encounter-skills",
+      "id": "36:204",
+      "expected": {
+        "x": 1371,
+        "y": 251,
+        "width": 400,
+        "height": 400
+      },
+      "actual": {
+        "x": 1371,
+        "y": 251,
+        "width": 400,
+        "height": 400
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": ".plaza-encounter-price:not(.plaza-encounter-wage)",
+      "id": "31:200",
+      "expected": {
+        "x": 130.99999999999997,
+        "y": 551,
+        "width": 650,
+        "height": 50
+      },
+      "actual": {
+        "x": 131,
+        "y": 551,
+        "width": 650,
+        "height": 50
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": ".plaza-encounter-wage",
+      "id": "36:201",
+      "expected": {
+        "x": 130.99999999999997,
+        "y": 601,
+        "width": 650,
+        "height": 50
+      },
+      "actual": {
+        "x": 131,
+        "y": 601,
+        "width": 650,
+        "height": 50
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": "[data-action=\"plaza-hire\"]",
+      "id": "38:538",
+      "expected": {
+        "x": 1110,
+        "y": 774,
+        "width": 375,
+        "height": 100
+      },
+      "actual": {
+        "x": 1110,
+        "y": 776,
+        "width": 375,
+        "height": 100
+      },
+      "matches": true
+    },
+    {
+      "screen": "encounter",
+      "selector": "[data-action=\"plaza-pass\"]",
+      "id": "40:733",
+      "expected": {
+        "x": 1495,
+        "y": 884,
+        "width": 375,
+        "height": 100
+      },
+      "actual": {
+        "x": 1495,
+        "y": 886,
+        "width": 375,
+        "height": 100
+      },
+      "matches": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "party-three",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "encounter",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "party-four",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "codex",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "codex-menu",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "monsters",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "dialogue-monologue",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "dialogue-oneOnOne",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "dialogue-twoPerson",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "exploration",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "battle",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "battle-1280",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    },
+    {
+      "name": "battle-1024",
+      "overflow": false,
+      "outside": [],
+      "obstructed": []
+    }
+  ],
+  "errors": [],
+  "interactions": [
+    "Hire retains cost and party assignment",
+    "Codex tabs and menu keep level selection and return navigation",
+    "Combat skill buttons retain selection and target controls",
+    "Expedition retreat remains in menu",
+    "HP, recovery and barrier visuals read existing effect values without mutating them"
+  ]
+}

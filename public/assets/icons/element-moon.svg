@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><g id="moon"><defs>
+    <filter id="moon_shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+  <path d="M91 21C77 28 68 43 68 64s9 36 23 43a46 46 0 1 1 0-86Z" fill="#BB56C0" filter="url(#moon_shadow)" />
+</g></svg>

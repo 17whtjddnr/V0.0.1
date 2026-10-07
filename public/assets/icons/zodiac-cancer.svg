@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none"><defs><filter id="shadow" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" /></filter></defs>
+<g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"><g id="cancer"><title>게자리</title><circle cx="40" cy="48" r="15" /><circle cx="88" cy="80" r="15" /><path d="M25 48C25 19 85 21 102 39M103 80C103 109 43 107 26 89" /></g>
+</g></svg>

@@ -1,0 +1,24 @@
+{
+  "layout": {
+    "left": "url(\"http://127.0.0.1:5173/assets/design/celestial_orbit_animation.svg\")",
+    "right": "url(\"http://127.0.0.1:5173/assets/design/runic_zodiac_animation.svg\")",
+    "pointer": [
+      "none",
+      "none"
+    ],
+    "overflow": false
+  },
+  "animations": [
+    {
+      "name": "celestial_orbit_animation",
+      "count": 5,
+      "running": true
+    },
+    {
+      "name": "runic_zodiac_animation",
+      "count": 25,
+      "running": true
+    }
+  ],
+  "errors": []
+}

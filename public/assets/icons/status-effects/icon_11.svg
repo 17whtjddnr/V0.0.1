@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 256 64 64" width="64" height="64"><g id="icon_11"><title>11 명중 증가</title><rect x="48" y="256" width="64" height="64" rx="9" fill="#087CF0" />
+<g transform="translate(48 256)" fill="white"><path d="M32 10V18M32 46V54M10 32H18M46 32H54" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><circle cx="32" cy="32" r="17" fill="none" stroke="white" stroke-width="4" /><circle cx="32" cy="32" r="3" /></g></g>
+</svg>

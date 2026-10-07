@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>모서리가 둥근 별</title>
+  <defs>
+    <linearGradient id="yellow" x1="64" y1="18" x2="64" y2="117" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7A6"/>
+      <stop offset="0.5" stop-color="#FFE94D"/>
+      <stop offset="1" stop-color="#FFD52A"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M59 23Q64 13 69 23L80 45Q81 48 85 48L109 52Q120 54 112 62L94 79Q92 81 93 85L97 109Q99 120 89 114L67 103Q64 101 61 103L39 114Q29 120 31 109L35 85Q36 81 34 79L16 62Q8 54 19 52L43 48Q47 48 48 45L59 23Z" fill="url(#yellow)" filter="url(#shadow)"/>
+</svg>

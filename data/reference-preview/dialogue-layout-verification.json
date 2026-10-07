@@ -1,0 +1,247 @@
+{
+  "nodesChecked": 11,
+  "results": [
+    {
+      "id": "plaza.first-encounter",
+      "nodeId": "greeting",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "920px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, -287, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-encounter",
+      "nodeId": "request",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "920px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, -287, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-encounter",
+      "nodeId": "accept",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "920px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, -287, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-encounter",
+      "nodeId": "explain",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "920px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, -287, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-encounter",
+      "nodeId": "decline",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "920px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, -287, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "greeting",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "reply",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "choice",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "accept",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "explain",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 105,
+      "clientHeight": 105,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    },
+    {
+      "id": "plaza.first-conversation",
+      "nodeId": "decline",
+      "overflowY": "visible",
+      "maxHeight": "none",
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "inside": true,
+      "tail": "20px",
+      "images": [
+        {
+          "left": "451px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(-1, 0, 0, 1, -287, 0)"
+        },
+        {
+          "left": "1370px",
+          "top": "-10px",
+          "height": "900px",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)"
+        }
+      ]
+    }
+  ],
+  "long": {
+    "width": 1738,
+    "height": 719,
+    "scrollHeight": 717,
+    "clientHeight": 717,
+    "stageHeight": 777,
+    "overflow": "visible"
+  }
+}
