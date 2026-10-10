@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>잠김 아이콘</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="M36 55V40C36 24.5 48.5 12 64 12C79.5 12 92 24.5 92 40V55H80V40C80 31.2 72.8 24 64 24C55.2 24 48 31.2 48 40V55H36Z"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M35 51H93C99.6 51 105 56.4 105 63V100C105 106.6 99.6 112 93 112H35C28.4 112 23 106.6 23 100V63C23 56.4 28.4 51 35 51Z M64 69C58.5 69 54 73.5 54 79C54 82.5 55.8 85.6 59 87.4V97H69V87.4C72.2 85.6 74 82.5 74 79C74 73.5 69.5 69 64 69Z"/>
+  </g>
+</svg>

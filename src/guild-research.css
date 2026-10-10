@@ -1,0 +1,24 @@
+.guild-research { position: absolute; inset: 0; background: rgb(8 17 23 / 24%); }
+.guild-research-connections { position: absolute; left: calc(50% - 260px); right: calc(50% - 260px); top: 50%; height: 2px; background: #a48c59; box-shadow: 0 1px 5px #000; }
+.guild-research-nodes { position: absolute; top: calc(50% - 30px); left: 50%; transform: translateX(-50%); width: 780px; display: grid; grid-template-columns: repeat(3, 1fr); }
+.guild-research-node { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; color: #fff; outline: none; cursor: help; }
+.guild-research-icon { display: grid; place-items: center; width: 60px; height: 60px; box-sizing: border-box; border: 2px solid #af9f7c; border-radius: 12px; background: #080a0e; box-shadow: 0 4px 12px rgb(0 0 0 / 65%); }
+.guild-research-icon img { width: 34px; height: 34px; object-fit: contain; }
+.guild-research-node > strong { font: 700 21px/1.4 var(--serif); text-shadow: 0 2px 5px #000; }
+.guild-research-node.is-central .guild-research-icon { border-color: #e1c887; }
+.guild-research-cost { display: inline-flex; align-items: center; gap: 6px; color: #f2cd8f; font-size: 21px; font-weight: 700; }
+.guild-research-cost img { width: 26px; height: 26px; object-fit: contain; }
+.guild-research-node:is(.is-press-hover, :hover:where([data-mouse-input] *)) .guild-research-icon, .guild-research-node:focus-visible .guild-research-icon { border-color: #ffe0a0; box-shadow: 0 0 0 3px rgb(255 224 160 / 15%), 0 4px 12px #000; }
+.guild-research-tooltip { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); z-index: 10; width: 300px; padding: 16px 18px; border: 1px solid #bca774; border-radius: 8px; background: rgb(10 18 25 / 97%); box-shadow: 0 8px 24px rgb(0 0 0 / 55%); color: #ecf0f4; text-align: left; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.guild-research-tooltip > strong { display: block; color: #f2cd8f; font: 700 20px/1.4 var(--serif); }
+.guild-research-tooltip p { margin: 10px 0 0; font-size: 17px; line-height: 1.65; }
+.guild-research-node:is(.is-press-hover, :hover:where([data-mouse-input] *)) .guild-research-tooltip, .guild-research-node:focus-visible .guild-research-tooltip { visibility: visible; opacity: 1; }
+
+.guild-research-node.is-unaffordable { cursor: not-allowed; }
+.guild-research-node.is-unaffordable > .guild-research-icon,
+.guild-research-node.is-unaffordable > strong,
+.guild-research-node.is-unaffordable > .guild-research-cost { opacity: .4; }
+.guild-research-node.is-unaffordable .guild-research-icon { border-color: #778087; }
+.guild-research-tooltip .guild-research-shortage { color: #ffa0a0; }
+
+#game .guild-layout-main.is-research { overflow: visible; z-index: 5; }

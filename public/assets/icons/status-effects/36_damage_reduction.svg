@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">36 피해 감소</title>
+<desc id="desc">파란 정사각형 바탕에 하향 화살표를 위쪽에, 압축된 타격 모양을 아래쪽에 배치. 두 모양 사이에 명확한 간격.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="down_arrow" fill="#FFFFFF" d="M28 6H36Q37 6 37 7V24H44Q45.5 24 44.5 25.2L33 37Q32 38 31 37L19.5 25.2Q18.5 24 20 24H27V7Q27 6 28 6Z"/>
+<path id="impact" fill="#FFFFFF" d="M32 5 38.5 19 52 12 45 25.5 59 32 45 38.5 52 52 38.5 45 32 59 25.5 45 12 52 19 38.5 5 32 19 25.5 12 12 25.5 19Z" transform="translate(0 41) scale(1 .29)"/>
+</svg>

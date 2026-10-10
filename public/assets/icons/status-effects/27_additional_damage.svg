@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">27 추가 피해</title>
+<desc id="desc">파란 정사각형 위 큰 타격 모양과 작은 타격 모양을 왼쪽 위에서 오른쪽 아래로 대각선 배치.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="large_impact" fill="#FFFFFF" transform="translate(1.6 1.6) scale(.74)" d="M32 5 38.5 19 52 12 45 25.5 59 32 45 38.5 52 52 38.5 45 32 59 25.5 45 12 52 19 38.5 5 32 19 25.5 12 12 25.5 19Z"/>
+<path id="small_impact" fill="#FFFFFF" transform="translate(37.12 37.12) scale(.37)" d="M32 5 38.5 19 52 12 45 25.5 59 32 45 38.5 52 52 38.5 45 32 59 25.5 45 12 52 19 38.5 5 32 19 25.5 12 12 25.5 19Z"/>
+</svg>

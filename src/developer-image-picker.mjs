@@ -8,7 +8,7 @@ export function createDeveloperImagePicker(container, config) {
     let page = 0;
     const pageSize = 9;
     const pageCount = Math.ceil(config.files.length / pageSize);
-    const asset = (file, type) => `/assets/art/2D/${type === 'portrait' ? 'Character' : 'Character_thumnail'}/${file}`;
+    const asset = config.asset || ((file, type) => `/assets/art/2D/${type === 'portrait' ? 'Character' : 'Character_thumnail'}/${file}`);
     container.innerHTML = `<div class="developer-image-pair">${Object.entries(labels).map(([type, label]) => `<section class="developer-image-card"><h3>${label}</h3><img class="developer-image-preview is-${type}" data-image-preview="${type}" alt="${label} 미리보기"><div><button type="button" data-image-gallery="${type}" aria-pressed="${type === kind}">이미지 선택</button><label class="developer-upload-button">업로드<input type="file" data-image-upload="${type}" accept="image/png,image/jpeg,image/webp"></label></div><button type="button" class="developer-image-reset" data-image-reset="${type}">기본 이미지</button></section>`).join('')}</div><section class="developer-image-gallery"><h3 data-gallery-title></h3><div class="developer-image-grid" role="group" aria-label="이미지 선택"></div><div class="developer-image-pagination"><button type="button" data-image-page="-1" aria-label="이전 이미지 페이지">←</button><span aria-live="polite"></span><button type="button" data-image-page="1" aria-label="다음 이미지 페이지">→</button></div></section><small>PNG·JPEG·WebP · 썸네일과 전체 이미지는 각각 저장됩니다.</small>`;
     const preview = (type) => {
         container.querySelector(`[data-image-preview="${type}"]`).src = values[type] || config.defaults[type];

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">03 방어력 증가</title>
+<desc id="desc">파란 정사각형 바탕 위 어깨 보호대와 흉갑으로 구성된 흰색 갑옷. 이로운 효과.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<g id="armor" fill="#FFFFFF">
+<path id="left_pauldron" d="M19 8Q20 7.5 21 8.5L23 12 17 23 7 26Q5 26.5 5.5 24.5L9 15Q9.5 14 11 13Z"/>
+<path id="right_pauldron" d="M45 8Q44 7.5 43 8.5L41 12 47 23 57 26Q59 26.5 58.5 24.5L55 15Q54.5 14 53 13Z"/>
+<path id="breastplate" d="M25.5 10Q32 18 38.5 10L44 23 43 35Q42.7 39 40 43H24Q21.3 39 21 35L20 23Z"/>
+<path id="left_fauld" d="M23.5 46H30.5V51L27 57H18.5Q17 57 17.5 55.5Z"/>
+<path id="right_fauld" d="M40.5 46H33.5V51L37 57H45.5Q47 57 46.5 55.5Z"/>
+</g>
+</svg>

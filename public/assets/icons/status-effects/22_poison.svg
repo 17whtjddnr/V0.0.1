@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">22 중독</title>
+<desc id="desc">빨간 정사각형 바탕 위 둥근 포션병. 병의 아래쪽 절반에 흰색 액체가 채워져 있다.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#E83D36"/>
+<g id="potion" fill="#FFFFFF">
+<rect id="stopper" x="25" y="5" width="14" height="7" rx="1.5"/>
+<path id="bottle_outline" fill-rule="evenodd" d="M24 15H40Q42 15 42 17Q42 19 39.5 19V25C48 29 53 35 53 43C53 53 45 59 32 59C19 59 11 53 11 43C11 35 16 29 24.5 25V19Q22 19 22 17Q22 15 24 15Z M29 19V27.5L27.5 28.2C20 31.5 15.5 36.5 15.5 43C15.5 50.5 22 54.5 32 54.5C42 54.5 48.5 50.5 48.5 43C48.5 36.5 44 31.5 36.5 28.2L35 27.5V19Z"/>
+<path id="half_filled_liquid" d="M14.8 41C21 38 26 44 32 41C38 38 43 44 49.2 41V43C49.2 51 42 55.2 32 55.2C22 55.2 14.8 51 14.8 43Z"/>
+</g>
+</svg>

@@ -1,0 +1,8 @@
+/* Only the background grows from 16:9 to 20:9; artwork and UI stay on the original canvas. */
+body { min-width: 0; position: fixed; left: 50%; top: 50%; transform-origin: center; }
+#viewport-stage { position: absolute; }
+#scene-background { position: absolute; left: 50%; top: 50%; height: 1080px; pointer-events: none; background-position: center; background-size: cover; background-repeat: no-repeat; clip-path: inset(0); }
+#stage-canvas { background: transparent; }
+#game[data-viewport-background-host], [data-viewport-background] { background-image: none !important; background-color: transparent !important; }
+.title-screen[data-viewport-background]::before { background-image: none; }
+dialog.popup-preset-panel { position: fixed; left: 50%; top: 50%; right: auto; bottom: auto; margin: 0; }

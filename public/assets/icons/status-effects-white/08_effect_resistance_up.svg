@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">08 효과저항 증가</title>
+<desc id="desc">파란 정사각형 바탕 위 흰색 원. 중앙의 오목한 사방 십자 빛 모양은 실제 벡터 구멍으로 처리.</desc>
+
+<path id="circle_with_cross_light_cutout" fill="#FFFFFF" fill-rule="evenodd" d="M59 32A27 27 0 1 1 5 32A27 27 0 1 1 59 32Z M32 12C35.5 25 39 28.5 52 32C39 35.5 35.5 39 32 52C28.5 39 25 35.5 12 32C25 28.5 28.5 25 32 12Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

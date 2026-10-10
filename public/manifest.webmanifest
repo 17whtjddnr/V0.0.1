@@ -1,0 +1,9 @@
+{
+  "name": "HELLO GUILD MASTER",
+  "short_name": "GUILD MASTER",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#171614",
+  "theme_color": "#366887"
+}

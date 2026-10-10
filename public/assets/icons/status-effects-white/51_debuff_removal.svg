@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">51 약화효과 해제</title>
+<desc id="desc">파란 정사각형 바탕 위 대각선 캡슐형 알약. 한쪽은 흰색으로 채우고 다른 쪽은 테두리로 표현.</desc>
+
+<g id="capsule" transform="rotate(45 32 32)" fill="#FFFFFF">
+<path id="capsule_outline" fill-rule="evenodd" d="M19 19A13 13 0 0 1 45 19V45A13 13 0 0 1 19 45Z M23.5 19V45A8.5 8.5 0 0 0 40.5 45V19A8.5 8.5 0 0 0 23.5 19Z"/>
+<path id="filled_half" d="M23 30.5V19A9 9 0 0 1 41 19V30.5Z"/>
+</g>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">38 피해 반사</title>
+<desc id="desc">파란 정사각형 바탕 위 세로로 긴 흰색 직사각형. 내부의 평행한 대각선 두 줄은 빛반사를 나타내는 벡터 구멍.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="reflective_rectangle" fill="#FFFFFF" fill-rule="evenodd" d="M17 6H47Q49 6 49 8V56Q49 58 47 58H17Q15 58 15 56V8Q15 6 17 6Z M21 29L39 11H44L21 34Z M21 42L43 20V27L21 49Z"/>
+</svg>

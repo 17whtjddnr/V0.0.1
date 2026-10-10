@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">37 피해 분담</title>
+<desc id="desc">파란 정사각형 안에 크게 배치한 두 사람과 상단의 연결 곡선. 대칭 배치와 균일한 여백.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="connection" d="M16 17Q32 3 48 17" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+<g id="people" fill="#FFFFFF">
+<circle id="left_head" cx="17" cy="29" r="6"/>
+<path id="left_body" d="M7 43C7 38 11 37 17 37C23 37 27 38 27 43V54Q27 56 25 56H9Q7 56 7 54Z"/>
+<circle id="right_head" cx="47" cy="29" r="6"/>
+<path id="right_body" d="M37 43C37 38 41 37 47 37C53 37 57 38 57 43V54Q57 56 55 56H39Q37 56 37 54Z"/>
+</g>
+</svg>

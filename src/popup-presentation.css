@@ -1,0 +1,6 @@
+/* Presentation only: existing popup dimensions, contents and layout are retained. */
+.popup-preset-panel { transform-origin: center; will-change: transform; z-index: 1; }
+.popup-preset-fx { position: absolute; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+[data-popup-ghost] { pointer-events: none !important; }
+.popup-native-exit { position: fixed; inset: 0; z-index: 190; background: #000b; }
+.popup-notice-overlay { z-index: 210; }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>몬스터</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path fill-rule="evenodd" d="M22 19c9 5 15 11 20 20 14-7 30-7 44 0 5-9 11-15 20-20 3 16 1 29-7 39l5 12c3 22-14 41-40 41S21 92 24 70l5-12c-8-10-10-23-7-39ZM35 61c1 9 7 15 17 15h6V67l-23-6Zm35 6v9h6c10 0 16-6 17-15l-23 6ZM44 87l5 10h30l5-10H73l-4 6H59l-4-6H44Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

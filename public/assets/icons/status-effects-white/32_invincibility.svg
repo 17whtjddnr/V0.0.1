@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><title id="title">32 무적</title><g id="wings" fill="#FFFFFF">
+<path d="M21 28C14 25 9 20 5 12C3 24 8 31 18 35L7 32C9 40 14 44 21 44Z"/>
+<path d="M43 28C50 25 55 20 59 12C61 24 56 31 46 35L57 32C55 40 50 44 43 44Z"/>
+</g>
+<circle id="head" cx="32" cy="18" r="6.5" fill="#FFFFFF"/>
+<path id="body" fill="#FFFFFF" d="M24 34C24 29 27 28 32 28C37 28 40 29 40 34V53Q40 55 38 55H26Q24 55 24 53Z"/></mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

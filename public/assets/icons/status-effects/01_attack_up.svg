@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">01 공격력 증가</title>
+<desc id="desc">파란 정사각형 바탕 위 오른쪽 위를 향한 흰색 검. 이로운 효과.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<g id="sword" transform="translate(32 32) scale(1.2) translate(-32 -32) rotate(45 32 32)" fill="#FFFFFF">
+<path id="blade" d="M32 6.5 36.5 13.5V37H27.5V13.5Z"/>
+<path id="guard" d="M22.5 36.5H41.5Q43 36.5 43 38V40Q43 41.5 41.5 41.5H22.5Q21 41.5 21 40V38Q21 36.5 22.5 36.5Z"/>
+<path id="grip" d="M29 41H35V51H29Z"/>
+<path id="pommel" d="M28.5 50H35.5Q37 50 37 51.5V53.5Q37 55 35.5 55H28.5Q27 55 27 53.5V51.5Q27 50 28.5 50Z"/>
+</g>
+</svg>

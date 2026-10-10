@@ -33,10 +33,16 @@ export function createScenePresentation(playSound) {
             } else reveal(element, sceneStarted, index);
         });
         information.forEach((element, index) => reveal(element, contentStarted, index));
-        game.querySelectorAll('.codex-character-art-mask img, .enemy-mark').forEach((image, index) => {
+        game.querySelectorAll('.codex-character-art-mask img:not(.plaza-encounter-additive), .enemy-mark').forEach((image, index) => {
             if (image.closest('.is-listener, .defeated, .acting, .hit')) return;
             image.classList.add('full-body-idle');
             image.style.setProperty('--idle-delay', `${-((now - idleStarted + index * 260) % 3200)}ms`);
+            const additiveImage = image.parentElement.querySelector('.plaza-encounter-additive');
+            if (additiveImage) {
+                additiveImage.classList.add('full-body-idle');
+                additiveImage.style.setProperty('--idle-delay', image.style.getPropertyValue('--idle-delay'));
+                additiveImage.style.setProperty('--encounter-glow-delay', `${-((now - idleStarted) % 6000)}ms`);
+            }
         });
     };
 }

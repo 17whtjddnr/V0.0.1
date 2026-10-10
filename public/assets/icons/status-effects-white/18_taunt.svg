@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">18 도발</title>
+<desc id="desc">빨간 정사각형 바탕, 원본과 유사한 뿔 달린 흰색 얼굴과 날카로운 눈.</desc>
+
+<path id="horned_face" fill="#FFFFFF" fill-rule="evenodd" d="M16 24C6 22 4 12 11 5C9 15 16 18 24 18H40C48 18 55 15 53 5C60 12 58 22 48 24L47 42Q47 44 45 46L38 54Q37 55 35 55H29Q27 55 26 54L19 46Q17 44 17 42Z M21 29L29 33 23 38Q21 35 21 29Z M43 29L35 33 41 38Q43 35 43 29Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

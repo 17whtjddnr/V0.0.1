@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">14 속도 감소</title>
+<desc id="desc">기존 아이콘 형태를 유지하고 배경색만 빨간색으로 변경한 해로운 효과.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#E83D36" />
+<g id="boot" fill="#FFFFFF">
+<path id="shaft_and_foot" d="M28 20H49.6L47 33Q46.5 36 48.5 39L53 46Q54 48 54 51V55Q54 57 52 57H43Q41 57 41 55V52H32Q27 56 19 56H10Q6 56 6 52V48Q6 43 12 42L20 40Q25 38 26 33Z" />
+<path id="folded_cuff" d="M30 7H52Q54 7 53.5 9L52 16Q51.7 17.5 50 17.5H28Q26.5 17.5 27 16L28 9Q28.3 7 30 7Z" />
+
+
+</g>
+</svg>

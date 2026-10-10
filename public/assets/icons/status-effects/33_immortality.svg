@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">33 불사</title>
+<desc id="desc">파란 정사각형 바탕 위 오른쪽 위로 향하는 흰색 깃털. 중앙 깃대와 간결한 깃털 결.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="feather" fill="#FFFFFF" d="M55 7C43 5 30 10 21 19C13 27 10 38 15 47C24 52 36 48 45 39C53 30 58 17 55 7Z"/>
+<g id="feather_details" fill="none" stroke="#087CF0" stroke-linecap="round" stroke-linejoin="round">
+<path d="M15 47 47 15" stroke-width="3"/>
+<path d="M26 36 24 21M35 27 34 12M26 36 43 38M35 27 53 28" stroke-width="2.6"/>
+</g>
+<path id="quill" d="M9 55 25 39" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+</svg>

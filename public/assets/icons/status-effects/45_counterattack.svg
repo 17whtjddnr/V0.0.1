@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">45 반격</title>
+<desc id="desc">파란 정사각형 바탕, 두꺼운 몸통과 평평한 반사 지점, 납작한 화살촉으로 구성된 흰색 반사 화살표.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="rebound_body" d="M14.33 13.5L29 38.9 41.3 18.2 49.9 23.3 33.4 52H24.6L5.67 18.5A5 5 0 0 1 14.33 13.5Z" fill="#FFFFFF"/>
+<path id="arrowhead" d="M53.5 7.5 55.3 29.2 34.7 17Z" fill="#FFFFFF"/>
+</svg>

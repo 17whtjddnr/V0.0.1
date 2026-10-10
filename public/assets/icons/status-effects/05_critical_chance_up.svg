@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">05 치명확률 증가</title>
+<desc id="desc">파란 정사각형 바탕, 흰색 타격 섬광 내부에 파란 퍼센트 기호.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="impact" fill="#FFFFFF" d="M32 5 38.5 19 52 12 45 25.5 59 32 45 38.5 52 52 38.5 45 32 59 25.5 45 12 52 19 38.5 5 32 19 25.5 12 12 25.5 19Z"/>
+<g id="percent" transform="translate(4.8 4.8) scale(.85)" fill="none" stroke="#087CF0" stroke-width="3.2" stroke-linecap="round">
+<circle cx="25" cy="24" r="3.8"/>
+<circle cx="39" cy="40" r="3.8"/>
+<path d="M24 42 40 22"/>
+</g>
+</svg>

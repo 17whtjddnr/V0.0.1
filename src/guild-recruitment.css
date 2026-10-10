@@ -1,0 +1,22 @@
+.guild-recruitment-overlay { z-index: 1000; }
+#game .guild-recruitment-dialog { width: min(720px, 1728px); max-height: 950.4px; overflow-y: auto; text-align: left; padding: 32px 38px; }
+.guild-recruitment-dialog h2 { text-align: center; margin: 8px 0 20px; }
+.guild-recruitment-dialog .section-kicker { display: block; text-align: center; }
+.guild-recruitment-dialog p { font-size: 18px; line-height: 1.65; word-break: keep-all; }
+.guild-recruitment-summary { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border: 1px solid rgb(229 203 128 / 50%); background: rgb(0 0 0 / 24%); margin: 20px 0; font-size: 21px; }
+.guild-recruitment-summary strong { color: #e5cb80; }
+.guild-recruitment-rates { width: 100%; border-collapse: collapse; margin: 18px 0 24px; font-size: 17px; }
+.guild-recruitment-rates th, .guild-recruitment-rates td { padding: 9px 16px; border-bottom: 1px solid rgb(255 255 255 / 12%); }
+.guild-recruitment-rates th { color: rgb(255 255 255 / 60%); font-weight: normal; }
+.guild-recruitment-rates td:last-child, .guild-recruitment-rates th:last-child { text-align: right; }
+.guild-recruitment-rates .is-current { background: rgb(86 143 113 / 32%); color: #aff0c7; font-weight: bold; }
+.guild-recruitment-rates small { margin-left: 12px; font-size: 13px; }
+.level-up-number { display: block; text-align: center; font-size: 52px; color: #e5cb80; margin: 20px 0; }
+
+#game .guild-recruitment-overlay { background: rgb(16 43 60 / 82%); }
+#game .guild-recruitment-dialog { background: linear-gradient(180deg, #315d78, #284c63); border-color: #8db5c4; color: #e2edf3; }
+#game .guild-recruitment-dialog p { color: #d2e1e8; font-size: 18px; }
+#game .guild-recruitment-dialog button { display: flex; align-items: center; justify-content: center; background: #365f76; color: #edf4f7; border-color: #8db5c4; }
+#game .guild-recruitment-dialog button:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled) { background: #467c96; }
+#game .guild-recruitment-dialog .plaza-dialog-cancel { background: rgb(0 0 0 / 20%); }
+#game .guild-recruitment-dialog .gold-amount, #game .guild-recruitment-dialog .gold-icon { float: none; color: #e5cb80; }

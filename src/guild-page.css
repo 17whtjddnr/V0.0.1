@@ -1,0 +1,738 @@
+.player-test-unlock { display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; padding: 0; margin: 0; align-self: center; }
+#game .player-test-unlock input { width: 20px; height: 20px; margin: 0; padding: 0; accent-color: #79d693; cursor: pointer; }
+.guild-destination-detail {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: var(--destination-background, url('/assets/backgrounds/meadow.webp')) center / cover no-repeat;
+    color: #ffffff;
+    isolation: isolate;
+}
+.guild-destination-detail::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, transparent 25%, rgb(9 22 17 / 16%) 45%, rgb(9 22 17 / 80%) 68%, rgb(9 22 17 / 94%) 100%);
+    pointer-events: none;
+}
+.guild-destination-detail .guild-map-world-return { text-shadow: 0 2px 6px #000000; }
+.guild-destination-info {
+    position: absolute;
+    inset: 12px 26px 12px auto;
+    width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    padding: 0 6px;
+    text-shadow: 0 2px 5px rgb(0 0 0 / 65%);
+}
+.guild-destination-info h2 { margin: 0; color: #ffffff; font: 700 28px/34px var(--serif); }
+.guild-destination-info h3 { margin: 0 0 4px; color: #ffffff; font: 600 20px/26px var(--sans); }
+.guild-destination-atmosphere { margin: 0; font-size: 18px; line-height: 24px; color: #e2eadb; }
+.guild-destination-subregions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#game .guild-destination-subregion {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 5px 12px;
+    border: 1px solid rgb(255 255 255 / 35%);
+    background: rgb(255 255 255 / 8%);
+    color: #ffffff;
+    font-size: 18px;
+    text-align: left;
+}
+.guild-destination-subregion > span:first-child { display: flex; align-items: center; gap: 8px; }
+.guild-destination-subregion img { width: 24px; height: 24px; }
+#game .guild-destination-subregion.is-active { background: rgb(255 255 255 / 18%); border-color: #fffbd6; }
+#game .guild-destination-subregion.is-locked { color: #aeb8b0; cursor: help; }
+.guild-lock-symbol { font-size: 18px; filter: grayscale(1); }
+.guild-destination-lock-tooltip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    z-index: 8;
+    padding: 10px 14px;
+    width: max-content;
+    max-width: 340px;
+    background: rgb(7 17 14 / 96%);
+    border: 1px solid rgb(255 255 255 / 50%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 45%);
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 24px;
+    pointer-events: none;
+}
+.guild-destination-lock-tooltip strong { display: block; color: #fffbd6; }
+.guild-destination-subregion:is(.is-press-hover, :hover:where([data-mouse-input] *)) .guild-destination-lock-tooltip,
+.guild-destination-subregion:focus-visible .guild-destination-lock-tooltip { display: block; }
+.guild-destination-monsters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#game .guild-destination-monster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 2px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #ffffff;
+}
+#game .guild-destination-monster:is(.is-press-hover, :hover:where([data-mouse-input] *)) { background: transparent; color: #fffbd6; }
+.guild-destination-monster-art { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
+.guild-destination-monster-art .roster-avatar-frame { width: 100%; height: 100%; border-width: 3px; border-radius: 10px; overflow: hidden; }
+.guild-destination-monster-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 85%));
+    pointer-events: none;
+}
+.guild-destination-monster-thumbnail { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: cover; }
+.guild-destination-monster > span { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; gap: 4px; font-size: 16px; line-height: 21px; }
+.guild-destination-monster > span img { width: 18px; height: 18px; flex: 0 0 auto; }
+.guild-destination-monster strong { font-weight: 500; white-space: nowrap; flex: 0 0 auto; }
+.guild-destination-power { display: flex; align-items: center; justify-content: space-between; font-size: 20px; line-height: 28px; }
+.guild-destination-power strong { font-size: 24px; color: #fffbd6; }
+#game .guild-destination-select {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: auto;
+    border: 1px solid rgb(255 255 255 / 65%);
+    background: rgb(255 255 255 / 16%);
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 600;
+}
+.guild-destination-select img { width: 26px; height: 26px; }
+#game .guild-destination-select.is-cancel {
+    border-color: #ffa0a0;
+    background: rgb(177 44 44 / 20%);
+    color: #ffa0a0;
+}
+#game .guild-destination-select.is-cancel:is(.is-press-hover, :hover:where([data-mouse-input] *)) { background: rgb(177 44 44 / 32%); }
+#game .guild-destination-select:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled) { background: rgb(255 255 255 / 26%); }
+#game .guild-destination-select:disabled { opacity: .65; cursor: default; }
+/* Guild pages use the plaza's 1920x1080 scene and lower-panel geometry. */
+#game:has(> .guild-page) { padding: 36px 50px 44px; background: #233d62; }
+#game:has(> .guild-page) > .guild-topbar {
+    height: 120px;
+    align-items: flex-start;
+    padding-top: 0;
+    border-bottom: 0;
+    background: transparent;
+    color: #e2edf3;
+}
+.guild-topbar .player-profile-name strong,
+.guild-topbar .player-profile-name > span { font-size: 24px; }
+.guild-topbar .topbar-menu-actions { padding-top: 20px; }
+#game .guild-menu-button:disabled { opacity: .35; cursor: default; }
+.guild-page-background {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background: linear-gradient(rgb(38 75 126 / 78%),rgb(38 75 126 / 78%)),url('/assets/backgrounds/title-bg.webp') center / cover no-repeat;
+    filter: blur(12px);
+    clip-path: inset(0);
+}
+.guild-page { color: #e2edf3; }
+.guild-scene { padding-top: 0; }
+.guild-scene .scene-heading {
+    height: 50px;
+    min-height: 50px;
+    border-block: 1px solid var(--line);
+}
+#game .guild-scene .scene-heading h1 { font-size: 24px; }
+.guild-scene .scene-heading p { font-size: 20px; color: #d3e5ec; }
+#game .guild-layout-main {
+    height: 490px;
+    margin-top: 0;
+    background: linear-gradient(rgb(0 0 0 / 12%),rgb(0 0 0 / 12%)),var(--guild-background) center / cover no-repeat;
+    border: 1px solid var(--control-border);
+}
+.guild-layout-main::before,
+.guild-layout-main::after { display: none; }
+.guild-expedition-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(0 0 0 / 80%);
+    isolation: isolate;
+}
+.guild-expedition-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgb(255 255 255 / 12%) 1px,transparent 1px),
+        linear-gradient(90deg,rgb(255 255 255 / 12%) 1px,transparent 1px);
+    background-size: 120px 120px;
+    background-position: center;
+}
+#game .guild-expedition-map {
+    position: relative;
+    z-index: 1;
+    display: block;
+    height: 100%;
+    width: auto;
+    aspect-ratio: 3 / 2;
+    max-width: none;
+    max-height: none;
+    flex: 0 0 auto;
+    object-fit: contain;
+    transform-origin: center;
+    transition: transform .7s cubic-bezier(.22,.68,0,1);
+}
+.guild-expedition-map-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.guild-map-focused-image {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+}
+.guild-expedition-overlay.is-focused .guild-map-overview-image { visibility: hidden; }
+.guild-expedition-overlay.is-focused .guild-map-focused-image { visibility: visible; }
+.guild-expedition-overlay.is-returning .guild-map-overview-image { visibility: visible; }
+.guild-expedition-overlay.is-returning .guild-map-focused-image { visibility: hidden; }
+.guild-map-focused-vector {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    shape-rendering: geometricPrecision;
+}
+#game .guild-expedition-overlay.is-vector-ready .guild-expedition-map-image { visibility: hidden; }
+.guild-map-camera-focus { display: none; }
+.guild-map-location-marker[data-action] { pointer-events: all; cursor: pointer; outline: none; }
+.guild-map-location-marker[data-action]:is(.is-press-hover, :hover:where([data-mouse-input] *)) text,
+.guild-map-location-marker[data-action]:focus-visible text { fill: #fffbd6; }
+.guild-map-location-marker.is-locked { cursor: help; }
+.guild-map-location-marker.is-locked > image:first-child { opacity: .35; }
+.guild-map-location-marker.is-locked > text,
+.guild-map-location-marker.is-locked:is(.is-press-hover, :hover:where([data-mouse-input] *)) > text,
+.guild-map-location-marker.is-locked:focus-visible > text { fill: #a0aaa4; }
+.guild-map-location-tooltip { display: none; pointer-events: none; }
+.guild-map-location-marker.is-tooltip-visible .guild-map-location-tooltip { display: inline; }
+.guild-expedition-overlay.is-returning .guild-map-location-marker { pointer-events: none; }
+.guild-expedition-overlay.is-focused:not(.is-returning) .guild-map-camera-world { display: none; }
+.guild-expedition-overlay.is-focused:not(.is-returning) .guild-map-camera-focus { display: inline; }
+.guild-expedition-overlay.is-vector-ready .guild-map-land-extension { visibility: hidden; }
+.guild-map-focused-title {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    z-index: 3;
+    margin: 0;
+    color: #ffffff;
+    font: 700 24px/1.4 var(--serif);
+    pointer-events: none;
+}
+#game .guild-map-world-return {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font: 700 24px/1.4 var(--serif);
+}
+#game .guild-map-world-return[hidden] { display: none; }
+.guild-map-world-return img { width: 28px; height: 28px; }
+#game .guild-map-world-return:is(.is-press-hover, :hover:where([data-mouse-input] *)) { color: #fffbd6; }
+.guild-map-hit-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    animation: guild-map-hit-ready 0s linear 2.775s both;
+}
+.guild-map-hit-layer [data-map-region] {
+    fill: transparent;
+    stroke: none;
+    pointer-events: fill;
+    cursor: pointer;
+    outline: none;
+}
+.guild-map-hit-layer [data-map-region]:focus-visible {
+    stroke: none;
+    outline: none;
+}
+.guild-expedition-overlay.is-focused .guild-map-hit-layer {
+    animation: none;
+    visibility: hidden;
+}
+.guild-expedition-overlay.has-returned:not(.is-focused) .guild-map-hit-layer {
+    animation: none;
+    visibility: visible;
+}
+@keyframes guild-map-hit-ready {
+    from { visibility: hidden; }
+    to { visibility: visible; }
+}
+.guild-map-sea-spacer,
+.guild-map-land-extension {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+}
+.guild-map-land-extension {
+    position: relative;
+    z-index: 1;
+    background: rgb(255 255 255 / 16%);
+}
+.guild-expedition-overlay.is-focused:not(.is-returning) .guild-map-land-extension { background: transparent; }
+.guild-expedition-overlay::before,
+#game .guild-expedition-map,
+.guild-map-land-extension { animation: guild-map-reveal 1.2s ease-out both; }
+@keyframes guild-map-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .guild-expedition-overlay::before,
+    #game .guild-expedition-map,
+    .guild-map-land-extension { animation: none; }
+    .guild-map-hit-layer { animation: none; }
+    #game .guild-expedition-map { transition: none; }
+}
+.guild-page > .guild-lower-grid {
+    height: 270px;
+    display: grid;
+    grid-template-columns: minmax(0,1030fr) minmax(0,760fr);
+    gap: 30px;
+    margin-top: 20px;
+    padding-top: 0;
+}
+.guild-lower-grid > * { min-width: 0; }
+.guild-summary { padding: 16px 24px 0 50px; }
+.guild-summary p { margin: 0 0 18px; font: 24px/1.6 var(--serif); }
+.guild-summary > span { color: #bed1da; font-size: 20px; }
+#game .guild-lower-grid .guild-room-actions {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    grid-template-rows: repeat(2,100px);
+    gap: 10px;
+    margin: 0;
+}
+#game .guild-room-button,
+#game .plaza-page .plaza-action-panel .combat-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--control-fill);
+    color: #ffffff;
+    border: 1px solid var(--control-border);
+    border-radius: 0;
+    box-shadow: none;
+    font: 600 20px/1.5 'Noto Sans KR',sans-serif;
+    text-align: left;
+}
+#game .guild-room-button::after { display: none; }
+#game .guild-room-button > span,
+#game .plaza-page .plaza-action-panel .combat-action .plaza-action-label {
+    color: inherit;
+    font: inherit;
+}
+#game .plaza-page .plaza-action-panel .combat-action > span { color: inherit; }
+#game .guild-room-button:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled),
+#game .guild-room-button:focus-visible,
+#game .plaza-page .plaza-action-panel .combat-action:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled),
+#game .plaza-page .plaza-action-panel .combat-action:focus-visible {
+    background: var(--control-hover);
+    border-color: var(--control-focus);
+}
+.guild-action-icon { width: 32px; height: 32px; flex: 0 0 32px; object-fit: contain; }
+#game .guild-room-button.is-destination-selected,
+#game .guild-room-button.is-destination-selected:is(.is-press-hover, :hover:where([data-mouse-input] *)),
+#game .guild-room-button.is-destination-selected:focus-visible {
+    color: #a6efb5;
+    border-color: #79d693;
+    opacity: 1;
+}
+#game .guild-room-button.is-destination-selected:disabled {
+    color: #78a683;
+    border-color: rgb(121 214 147 / 35%);
+    background: rgb(255 255 255 / 3%);
+}
+#game .guild-room-button.is-destination-selected:disabled .guild-action-icon { opacity: .4; }
+.guild-destination-action-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guild-room-intro {
+    position: absolute;
+    inset: 70px auto auto 70px;
+    max-width: 720px;
+    padding: 28px 36px;
+    background: rgb(0 0 0 / 60%);
+    border: 1px solid var(--control-border);
+}
+.guild-room-intro h2 { margin: 0 0 18px; font: 700 36px/1.4 var(--serif); }
+.guild-room-intro p { margin: 0 0 20px; font-size: 22px; line-height: 1.6; }
+.guild-room-intro > span { color: #f2cd8f; font-size: 24px; }
+.guild-lobby-return {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 62px;
+    margin-top: 20px;
+    padding: 10px 20px;
+    border: 1px solid var(--control-border);
+    background: var(--control-fill);
+    color: #ffffff;
+    font-size: 20px;
+}
+.guild-lobby-return img { width: 28px; height: 28px; }
+.guild-lobby-return:is(.is-press-hover, :hover:where([data-mouse-input] *)),.guild-lobby-return:focus-visible { background: var(--control-hover); }
+#game:has(> .guild-page) > .bottom-note {
+    height: 30px;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 0;
+}
+
+/* Reuse the plaza's map heading and current gold display. */
+
+#game .guild-current-info > span { color: #d3e5ec; }
+#game .guild-current-info strong { color: #f2cd8f; }
+#game .guild-page .guild-lower-grid .guild-summary-panel > .panel-heading::before {
+    -webkit-mask: url('/assets/icons/royal_fleur_no_shadow.svg') center / contain no-repeat;
+    mask: url('/assets/icons/royal_fleur_no_shadow.svg') center / contain no-repeat;
+}
+#game .guild-page .guild-lower-grid .guild-work-heading::before {
+    content: '';
+    width: 33.6px;
+    height: 33.6px;
+    left: 8px;
+    top: 13px;
+    background-color: currentColor;
+    -webkit-mask: url('/assets/icons/royal_fleur_no_shadow.svg') center / contain no-repeat;
+    mask: url('/assets/icons/royal_fleur_no_shadow.svg') center / contain no-repeat;
+}
+
+
+.guild-dispatch-members {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 24px;
+    min-height: 0;
+    overflow: hidden;
+    background: rgb(9 22 38 / 42%);
+    color: #ffffff;
+}
+.guild-dispatch-members .codex-roster-heading {
+    flex: 0 0 28px;
+    min-height: 28px;
+    margin: 0 0 12px;
+    align-items: center;
+}
+.guild-dispatch-members .codex-roster-heading h2 { font-size: 18px; line-height: 28px; }
+.guild-dispatch-members .codex-roster-heading > span { font-size: 14px; line-height: 28px; }
+.guild-dispatch-member-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    grid-auto-rows: 180px;
+    align-content: start;
+    align-items: start;
+    gap: 20px 16px;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 12px 12px 4px;
+    scrollbar-gutter: stable;
+    scrollbar-color: #7297ad #284c63;
+    scrollbar-width: thin;
+}
+#game .guild-dispatch-member-card {
+    width: 100%;
+    min-width: 0;
+    height: 180px;
+    min-height: 180px;
+    display: grid;
+    grid-template-rows: 108px 22px 34px;
+    justify-items: center;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    cursor: default;
+}
+#game .guild-dispatch-member-card.active,
+#game .guild-dispatch-member-card:is(.is-press-hover, :hover:where([data-mouse-input] *)),
+#game .guild-dispatch-member-card:focus-within:where([data-mouse-input] *) {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+#game .guild-dispatch-select {
+    width: min(144px, 100%);
+    height: 34px;
+    min-height: 34px;
+    margin: 0;
+    padding: 4px 3px;
+    line-height: 24px;
+    border: 1px solid #a6d7e8;
+    background: rgb(255 255 255 / 12%);
+    color: #ffffff;
+    font: 600 14px var(--sans);
+    cursor: pointer;
+}
+#game .guild-dispatch-member-card .codex-character-name {
+    position: static;
+    inset: auto;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
+    text-align: center;
+}
+#game .guild-dispatch-select:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled) { background: rgb(255 255 255 / 24%); }
+#game .guild-dispatch-select.is-cancel { border-color: #ffa0a0; background: rgb(177 44 44 / 30%); color: #ffa0a0; }
+#game .guild-dispatch-select.is-cancel:is(.is-press-hover, :hover:where([data-mouse-input] *)) { background: rgb(177 44 44 / 45%); }
+#game .guild-dispatch-select:disabled { opacity: .4; cursor: default; }
+
+#game .guild-dispatch-thumbnail {
+    position: relative;
+    display: block;
+    width: 108px;
+    height: 108px;
+    flex: 0 0 108px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+#game .guild-dispatch-thumbnail:focus-visible { outline: 2px solid #a6d7e8; outline-offset: 4px; border-radius: 11px; }
+.guild-dispatch-selected-flag {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 3px 4px rgb(0 0 0 / 85%));
+    pointer-events: none;
+}
+#game .guild-dispatch-party .panel-heading { gap: 16px; }
+.guild-dispatch-party .panel-heading h2 { white-space: nowrap; line-height: 32px; }
+.guild-dispatch-power {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    color: #ffffff;
+    font: 700 24px/32px var(--serif);
+    text-align: right;
+    white-space: nowrap;
+}
+.guild-dispatch-power img { display: block; width: 32px; height: 32px; flex: 0 0 32px; object-fit: contain; }
+
+#game .guild-dispatch-thumbnail .codex-character-frame {
+    position: static;
+    inset: auto;
+    width: 108px;
+    height: 108px;
+    border-width: 4px;
+    border-radius: 11px;
+}
+
+
+#game .guild-room-button.is-members-selected,
+#game .guild-room-button.is-members-selected:disabled {
+    color: #a6efb5;
+    border-color: #79d693;
+    background: rgb(48 135 75 / 22%);
+    opacity: 1;
+}
+#game .guild-room-button.is-members-selected:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled) { background: rgb(48 135 75 / 35%); }
+#game .guild-dispatch-select.is-away:disabled {
+    color: #ffe3a0;
+    border-color: rgb(255 227 160 / 45%);
+    background: rgb(42 35 19 / 55%);
+    opacity: 1;
+}
+.guild-dispatch-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 40px;
+    background: rgb(5 12 22 / 78%);
+}
+.guild-dispatch-dialog {
+    width: 1120px;
+    max-width: 100%;
+    max-height: 920px;
+    overflow-y: auto;
+    padding: 30px;
+    border: 1px solid #91afc9;
+    background: #203c59;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 50%);
+    color: #ffffff;
+}
+.guild-dispatch-dialog h2 { margin: 0 0 12px; font: 700 32px var(--serif); }
+.guild-dispatch-dialog header p { margin: 0 0 24px; color: #d2e2ee; font-size: 18px; line-height: 1.6; }
+.guild-dispatch-dialog-content { display: grid; grid-template-columns: 1fr 1.15fr; gap: 26px; }
+.guild-dispatch-dialog h3 { margin: 16px 0 12px; font: 700 22px var(--serif); }
+.guild-dispatch-dialog h3 small { font: 500 16px var(--sans); color: #bcd6e7; }
+.guild-dispatch-destination-image { display: block; width: 100%; height: 240px; object-fit: cover; border: 1px solid rgb(255 255 255 / 30%); }
+.guild-dispatch-destination-summary p { margin: 0 0 18px; color: #d2e2ee; font-size: 17px; line-height: 1.6; }
+.guild-dispatch-summary-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid rgb(255 255 255 / 22%); font-size: 19px; }
+.guild-dispatch-summary-line > span { display: inline-flex; align-items: center; gap: 8px; }
+.guild-dispatch-summary-line img { width: 26px; height: 26px; }
+.guild-dispatch-summary-line strong { color: #fff0bd; font-size: 24px; }
+.guild-dispatch-dialog-members { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-bottom: 20px; }
+.guild-dispatch-dialog-members article { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 5px 10px; align-items: center; }
+.guild-dispatch-dialog-thumb { grid-row: span 2; width: 64px; height: 64px; overflow: hidden; border-radius: 10px; border: 2px solid #91afc9; background: #142334; }
+#game .guild-dispatch-dialog-thumb .codex-character-thumb { width: 100%; height: 100%; object-fit: contain; }
+.guild-dispatch-dialog-members strong { min-width: 0; font-size: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.guild-dispatch-dialog-members article > span:last-child { font-size: 14px; color: #bcd6e7; }
+.guild-dispatch-highlights { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+.guild-dispatch-highlights > div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px 8px; border: 1px solid #d4b772; background: rgb(212 183 114 / 12%); text-align: center; }
+.guild-dispatch-highlights > div > span { color: #f2dfb2; font-size: 17px; }
+.guild-dispatch-highlights strong { color: #ffe29a; font-size: 24px; }
+.guild-dispatch-highlights small { font-size: 13px; color: #d2e2ee; }
+.guild-dispatch-dialog footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 26px; }
+#game .guild-dispatch-dialog footer button { min-width: 160px; padding: 14px 24px; border: 1px solid #91afc9; background: rgb(255 255 255 / 10%); color: #ffffff; font: 600 20px var(--sans); }
+#game .guild-dispatch-dialog footer button:is(.is-press-hover, :hover:where([data-mouse-input] *)) { background: rgb(255 255 255 / 20%); }
+#game .guild-dispatch-dialog footer .guild-dispatch-approve { color: #b8f3c3; border-color: #79d693; background: rgb(48 135 75 / 30%); }
+#game .guild-dispatch-dialog footer .guild-dispatch-approve:is(.is-press-hover, :hover:where([data-mouse-input] *)) { background: rgb(48 135 75 / 45%); }
+
+
+.guild-destination-dispatch-panel {
+    position: absolute;
+    left: 26px;
+    bottom: 24px;
+    width: min(680px, calc(100% - 840px));
+    max-height: calc(100% - 96px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 22px;
+    border: 1px solid rgb(255 255 255 / 40%);
+    background: rgb(9 22 24 / 76%);
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    box-shadow: 0 6px 22px rgb(0 0 0 / 25%);
+    text-shadow: 0 2px 4px rgb(0 0 0 / 65%);
+}
+.guild-destination-dispatch-duration { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 20px; }
+.guild-destination-dispatch-duration strong { font-size: 26px; color: #fff0bd; }
+.guild-destination-dispatch-rewards,
+.guild-destination-dispatch-bonuses { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 19px; }
+.guild-destination-dispatch-rewards > span,
+.guild-destination-dispatch-bonuses > span { display: inline-flex; align-items: center; gap: 7px; }
+.guild-destination-dispatch-panel img { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 65%)); }
+.guild-destination-dispatch-rewards .guild-dispatch-gold-reward,
+.guild-dispatch-highlights .guild-dispatch-gold-reward { color: #f2cd8f; font-weight: 700; }
+.guild-destination-dispatch-rewards .guild-dispatch-fame-reward,
+.guild-dispatch-highlights .guild-dispatch-fame-reward { color: #ffb7df; font-weight: 700; }
+.guild-dispatch-fame-reward img { filter: brightness(0) saturate(100%) invert(85%) sepia(21%) saturate(832%) hue-rotate(287deg) brightness(103%) contrast(102%) drop-shadow(0 2px 3px rgb(0 0 0 / 65%)); }
+.guild-destination-dispatch-panel p { margin: 0; padding-top: 12px; border-top: 1px solid rgb(255 255 255 / 20%); font-size: 17px; line-height: 1.6; color: #dce7e1; }
+
+.guild-dispatch-highlights .guild-dispatch-gold-reward,
+.guild-dispatch-highlights .guild-dispatch-fame-reward {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.guild-dispatch-highlights .guild-dispatch-gold-reward img,
+.guild-dispatch-highlights .guild-dispatch-fame-reward img {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    object-fit: contain;
+}
+
+.guild-dispatch-job-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
+}
+.guild-dispatch-member-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guild-dispatch-power-label { opacity: .6; }
+
+
+.guild-dispatch-card-actions {
+    position: absolute;
+    left: 163px;
+    top: 20px;
+    display: grid;
+    grid-template-rows: repeat(2, 56px);
+    gap: 8px;
+    width: 56px;
+    height: 120px;
+}
+#game .guild-dispatch-card-actions button {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    padding: 8px;
+    border: 1px solid rgb(255 255 255 / 45%);
+    border-radius: 5px;
+    background: rgb(0 0 0 / 30%);
+    color: #ffffff;
+}
+#game .guild-dispatch-card-actions button:is(.is-press-hover, :hover:where([data-mouse-input] *)):not(:disabled) { background: rgb(255 255 255 / 18%); border-color: #a6d7e8; }
+#game .guild-dispatch-card-actions button:focus-visible { outline: 2px solid #a6d7e8; outline-offset: 2px; }
+#game .guild-dispatch-card-actions button:disabled { opacity: .4; cursor: default; }
+.guild-dispatch-card-actions img { display: block; width: 32px; height: 32px; object-fit: contain; }
+
+#game .guild-destination-select.is-dispatched:disabled { color: #e5cb80; border-color: #bba35f; background: rgb(145 119 45 / 28%); opacity: 1; }
+
+#game .guild-room-button.is-dispatch-full:disabled { color: #ffa0a0; border-color: #e17878; background: rgb(177 44 44 / 22%); opacity: 1; }
+#game .guild-room-button.is-dispatch-full .guild-action-icon { filter: brightness(0) saturate(100%) invert(76%) sepia(21%) saturate(1144%) hue-rotate(311deg) brightness(102%) contrast(101%); }
+
+#game .guild-dispatch-select.is-dispatch-full:disabled,
+#game .guild-destination-select.is-dispatch-full:disabled { color: #ffa0a0; border-color: #e17878; background: rgb(177 44 44 / 22%); opacity: 1; }
+#game .guild-destination-select.is-dispatch-full img { filter: brightness(0) saturate(100%) invert(76%) sepia(21%) saturate(1144%) hue-rotate(311deg) brightness(102%) contrast(101%); }

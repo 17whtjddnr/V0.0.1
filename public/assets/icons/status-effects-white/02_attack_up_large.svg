@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">02 공격력 증가(대)</title>
+<desc id="desc">파란 정사각형 바탕 위 대각선 흰색 검과 상승 화살표.</desc>
+
+<g id="sword" transform="translate(-10.89 -9.89) scale(1.34)" fill="#FFFFFF">
+<g transform="rotate(45 32 32)">
+<path id="blade" d="M32 6.5 36.5 13.5V37H27.5V13.5Z"/>
+<path id="guard" d="M22.5 36.5H41.5Q43 36.5 43 38V40Q43 41.5 41.5 41.5H22.5Q21 41.5 21 40V38Q21 36.5 22.5 36.5Z"/>
+<path id="grip" d="M29 41H35V51H29Z"/>
+<path id="pommel" d="M28.5 50H35.5Q37 50 37 51.5V53.5Q37 55 35.5 55H28.5Q27 55 27 53.5V51.5Q27 50 28.5 50Z"/>
+</g></g>
+<path id="increase_arrow" transform="translate(14.88 18.48) scale(.72)" fill="#FFFFFF" d="M45.2 26.1Q46 25.1 46.8 26.1L56.2 37Q57.4 38.5 55.5 38.5H50.5V53Q50.5 54 49.5 54H42.5Q41.5 54 41.5 53V38.5H36.5Q34.6 38.5 35.8 37Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>던전 입구</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path fill-rule="evenodd" d="m46 23 24-5 21 12 14 23 4 25 9 29H10l8-27 3-24 12-19 13-14Zm18 24c-14 0-23 12-23 27v33h46V74c0-15-9-27-23-27Z"/>
+    <rect x="45" y="101" width="38" height="6" rx="1"/>
+    <rect x="49" y="90" width="30" height="5" rx="1"/>
+    <rect x="53" y="80" width="22" height="4" rx="1"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">09 회피 증가</title>
+<desc id="desc">참고 이미지의 앞으로 숙인 달리기 자세를 반영한 흰색 인물. 파란 정사각형 바탕.</desc>
+
+<g id="runner" transform="translate(4 4) scale(.37)" fill="#FFFFFF">
+<circle id="head" cx="103" cy="16" r="14"/>
+<path id="rear_arm_and_shoulder" d="M89 34 64 22Q60 20 56 23L31 36C23 40 29 51 36 47L61 34 77 41Z"/>
+<path id="body_and_front_leg" d="M80 36Q85 31 92 35L98 39Q102 42 99 49L77 78 93 91Q99 96 96 103L81 141C78 150 64 144 68 136L80 101 58 84Q51 79 56 70Z"/>
+<path id="front_arm" d="M95 45 104 66 130 73" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="rear_leg" d="M46 84 57 94 47 106Q45 108 41 108H10C0 108 0 94 10 94H38Z"/>
+</g>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

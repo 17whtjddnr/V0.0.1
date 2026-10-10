@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">34 면역</title>
+<desc id="desc">파란 정사각형 바탕 위 흰색 방패 테두리와 중앙 십자. 원본과 유사한 구성.</desc>
+
+<path id="shield_outline" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round" d="M10 10Q32 18 54 10V29C54 42 44 52 32 58C20 52 10 42 10 29Z"/>
+<path id="cross" fill="#FFFFFF" d="M29 22H35Q36 22 36 23V29H42Q43 29 43 30V36Q43 37 42 37H36V43Q36 44 35 44H29Q28 44 28 43V37H22Q21 37 21 36V30Q21 29 22 29H28V23Q28 22 29 22Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

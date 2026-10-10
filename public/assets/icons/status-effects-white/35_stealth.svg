@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">35 은신</title>
+<desc id="desc">파란 정사각형 바탕에 곡선형 흰색 후드. 어두운 얼굴 안에 두 눈이 보이는 은신 아이콘.</desc>
+
+<path id="curved_hood" fill="#FFFFFF" fill-rule="evenodd" d="M32 6C43 12 47 20 50 29C53 37 57 44 59 49C55 54 48 57 42 56C38 55 35 52 32 52C29 52 26 55 22 56C16 57 9 54 5 49C7 44 11 37 14 29C17 20 21 12 32 6Z M32 22C26 23 21 27 17 33C19 41 23 48 32 49C41 48 45 41 47 33C43 27 38 23 32 22Z"/>
+<path id="eyes" fill="#FFFFFF" d="M22 33Q27 34 30 37Q26 41 23.5 38Q22 36 22 33Z M42 33Q37 34 34 37Q38 41 40.5 38Q42 36 42 33Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

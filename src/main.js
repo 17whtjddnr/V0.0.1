@@ -1,33 +1,94 @@
+import { configureCombatPower } from './combat-power.mjs';
+import { createCombatEngine } from './combat-engine.mjs';
+import { createBattleEffects } from './battle-effects.mjs';
+import { createPopupPresentation } from './popup-presentation.mjs';
+import { createGameViewport, logicalPoint, logicalRect } from './game-viewport.mjs';
+import { createPressHover } from './press-hover.mjs';
+import './game-viewport.css';
+import './press-hover.css';
+import './popup-presentation.css';
+import { normalizedCombatEffect as normalizeCombatEffect, resolvedEffectTarget, battleTargetFor } from './combat-rules.mjs';
+import { tutorialExpeditionDestination, startRegularExpeditionDestination, finishRegularExpeditionDestination, migrateRegularExpeditionDestination, regularExpeditionPreparation } from './regular-expedition.mjs';
+import { guildRelationshipStages, guildRecruitmentRelationship, guildRecruitmentWage, canInviteGuildMember, recruitGuildMember, levelUpAtWeekStart } from './guild-recruitment.mjs';
+import './guild-recruitment.css';
+import { tutorialPrologue, tutorialDialogues, tutorialGuides, tutorialActionAllowed, completeTutorialRental, confirmTutorialMilestone, restoreTutorialState, TUTORIAL_COMPANION_ID, syncTutorialCompanion } from './tutorial.mjs';
+import './tutorial.css';
+import { dialoguePanelMarkup } from './dialogue-panel.mjs';
+import { typeDialogueText } from './dialogue-typewriter.mjs';
+import { resetTemporaryGuildRoster } from './guild-roster.mjs';
+import { togglePlazaGuildMember, hasAvailablePlazaGuildMember } from './plaza-guild-party.mjs';
+import { characterPortraitFiles, buildCharacterPortraitFileAssignments, characterPortraitAsset, characterThumbnailAsset, playerThumbnailAsset } from './character-assets.mjs';
+import { guildPageMarkup, guildRooms } from './guild-page.mjs';
+import { MAX_ACTIVE_GUILD_DISPATCHES, guildDispatchPower, activeGuildDispatch, guildDestinationDispatchActive, guildDispatchPlan, approveGuildDispatch, completeGuildDispatches, pendingGuildDispatchResults, acknowledgeGuildDispatchResults } from './guild-dispatch.mjs';
+import { focusGuildMap, returnToGuildWorldMap } from './guild-map.mjs';
+import { guildDestinations, configureDestinationMonsterPower, guildDestinationUnlocked, fitDestinationMonsterNames, guildDestinationMonsterIds } from './guild-destination.mjs';
+import './guild-page.css';
+import { guildLobbyMarkup } from './guild-lobby.mjs';
+import './guild-lobby.css';
+import './guild-research.css';
+import { guildDispatchResultsMarkup } from './guild-dispatch-results.mjs';
+import './guild-dispatch-results.css';
+import { createLocationTransition } from './location-transition.mjs';
+import { playLocationSound } from './location-sound.mjs';
+import { createDeveloperCharacterSkillPicker } from './developer-character-skill-picker.mjs';
 import { createDeveloperSkillEditor } from './developer-skill-editor.mjs';
 import { statusEffectIcons } from './status-effect-icons.mjs';
 import * as XLSX from 'xlsx';
 import { rebalanceSkill } from './skill-balance.js';
-import { generateRosters as generateBaseRosters, applyRosterProfile } from './roster-generation.mjs';
+import { generateRosters as generateBaseRosters, applyRosterProfile, CHARACTER_COUNT } from './roster-generation.mjs';
 import { configureDeveloperSkills, effectiveSkill, activeSkills, skillEnabled, saveSkillSettings, saveSkillEdit, derivedSkill } from './developer-skills.mjs';
 import { createDeveloperImagePicker } from './developer-image-picker.mjs';
 import { createScenePresentation } from './scene-presentation.mjs';
-import { characterEnabled, developerCharacter, saveCharacterSettings, saveCharacterEdit, configureDeveloperCharacters } from './developer-characters.mjs';
+import { characterEnabled, developerCharacter, saveCharacterSettings, saveCharacterEdit, configureDeveloperCharacters, characterSkillIds, characterSkills } from './developer-characters.mjs';
+import { monsterEnabled, developerMonster, saveMonsterSettings, saveMonsterEdit, configureDeveloperMonsters } from './developer-monsters.mjs';
 import { initialAffinityFor, zodiacGlyphs, zodiacNames } from './zodiac-affinity.mjs';
 import { zodiacIcons, jobIcons as jobGlyphs, elementIcons as elementGlyphs, statIcons, gradeIcon, goldIcon } from './reference-icons.mjs';
 import plazaFirstVisitDialogue from '../data/dialogues/plaza-first-visit.json';
 import plazaFirstEncounterDialogue from '../data/dialogues/plaza-first-encounter.json';
 import plazaFirstConversationDialogue from '../data/dialogues/plaza-first-conversation.json';
 
-const game = document.querySelector('#game');
+import { MONSTER_COUNT, monsterDefinitions, monstersForStage } from './monster-catalog.mjs';
 
-// Keep the 1920x1080 design canvas scaled to fit the window while preserving
-// its 16:9 aspect ratio; leftover space is letterboxed by #viewport-stage.
+const game = document.querySelector('#game');
+game.addEventListener('keydown', (event) => {
+    if (!['Enter', ' '].includes(event.key) || !event.target.closest('[data-action="guild-map-focus"], .guild-map-location-marker[data-action], [data-action="tutorial-rent"]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
+const locationTransition = createLocationTransition(game, (duration) => playWebSound('travel', duration));
+
+// Content remains on the original design canvas; only its background extends.
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1080;
 const stageCanvas = document.querySelector('#stage-canvas');
-function applyStageScale() {
-    if (!stageCanvas) return;
-    const scale = Math.min(window.innerWidth / DESIGN_WIDTH, window.innerHeight / DESIGN_HEIGHT);
-    stageCanvas.style.transform = `scale(${scale})`;
-}
-applyStageScale();
-window.addEventListener('resize', applyStageScale);
-window.addEventListener('orientationchange', applyStageScale);
+const gameViewport = createGameViewport(game, stageCanvas);
+createPressHover(game, {
+    show(target, touch) {
+        if (touch) playWebSound('hover');
+        const status = target.closest('.combat-status');
+        const skill = target.closest('.developer-skill-trigger');
+        if (status) showCombatStatusTooltip(status);
+        if (skill) showDeveloperSkillTooltip(skill);
+        target.closest('.guild-map-location-marker.is-locked')?.classList.add('is-tooltip-visible');
+        const titled = target.closest('[title]');
+        if (!titled || status || skill || target.closest('.hero, .plaza-skill-tooltip-trigger, .guild-research-node, .guild-destination-subregion, .guild-map-location-marker') || target.closest('.combat-action')?.querySelector('.skill-tooltip')) return;
+        const tip = document.createElement('div');
+        tip.className = 'press-title-tooltip'; tip.setAttribute('role', 'tooltip');
+        tip.textContent = titled.getAttribute('title'); game.append(tip);
+        const rect = logicalRect(titled), canvas = logicalRect(game), scale = canvas.width / DESIGN_WIDTH;
+        tip.style.left = `${Math.max(12, Math.min((rect.left - canvas.left) / scale, DESIGN_WIDTH - tip.offsetWidth - 12))}px`;
+        const below = (rect.bottom - canvas.top) / scale + 8;
+        tip.style.top = `${Math.max(12, below + tip.offsetHeight < DESIGN_HEIGHT ? below : (rect.top - canvas.top) / scale - tip.offsetHeight - 8)}px`;
+    },
+    hide(target, touch) {
+        game.querySelector('.press-title-tooltip')?.remove();
+        if (touch) {
+            hideCombatStatusTooltip(); hideDeveloperSkillTooltip();
+            target.closest('.guild-map-location-marker')?.classList.remove('is-tooltip-visible');
+        }
+    },
+});
 
 let loadingProgress = 4;
 let loadingDotCount = 1;
@@ -79,6 +140,7 @@ async function finishInitialLoading() {
 }
 
 let party = [];
+let guildTestUnlock = false;
 
 const defaultSkills = [
     { id: 'strike', name: '무기 공격', target: 'enemy', icon: '⚔', damageCoefficient: 0.85, cooldown: 0, description: '선택한 적에게 기본 피해를 줍니다.' },
@@ -88,6 +150,7 @@ const defaultSkills = [
 ];
 
 function battleSkillsFor(actor) {
+    if (actor?.id?.startsWith('CHAR-')) return characterSkills(actor, defaultSkills);
     return activeSkills(actor?.skills?.length ? actor.skills : defaultSkills);
 }
 
@@ -95,10 +158,7 @@ function generateRosters(rows, level, skills) {
     return generateBaseRosters(rows, level, activeSkills(skills || []));
 }
 
-function battleTargetFor(skill) {
-    const targets = { 적: 'enemy', 적전체: 'enemyAll', 아군: 'ally', 아군전체: 'allyAll', 자신: 'self', '아군과 자신': 'selfAndAllies' };
-    return targets[skill?.target] || skill?.target || 'enemy';
-}
+
 
 const rooms = [
     { name: '잊힌 회랑', type: '탐색', icon: '⌂' },
@@ -112,6 +172,9 @@ const rooms = [
 
 const state = {
     view: 'lobby',
+    prologueIndex: 0,
+    tutorial: null,
+    guildFounded: false,
     lobbyDialog: '',
     lobbyMessage: '',
     playerSetupStep: 'name',
@@ -122,8 +185,32 @@ const state = {
     userLevel: 1,
     experience: 0,
     experienceToNextLevel: 100,
+    pendingLevelUp: null,
+    guildRecruitmentDialog: null,
     week: 1,
     guildMembers: [],
+    guildRosterResetVersion: 0,
+    guildSecretaryId: null,
+    guildDispatchMemberIds: [],
+    guildDispatches: [],
+    fame: 0,
+    guildRoom: 'lobby',
+    plazaGuildSelectionOpen: false,
+    guildResearchOpen: false,
+    guildExpeditionPreparation: false,
+    guildExpeditionStep: 'destination',
+    guildMapFocusedRegion: '',
+    guildDestinationDetail: '',
+    guildDestinationSubregion: '',
+    guildSelectedDestination: null,
+    regularSelectedDestination: null,
+    regularMapFocusedRegion: '',
+    regularDestinationDetail: '',
+    regularDestinationSubregion: '',
+    expeditionDestination: null,
+    expeditionDestinationVersion: 0,
+    guildClearedDestinations: [],
+    guildLobbyBackground: 1,
     affinityByCharacterId: {},
     fixedCostNoticeShown: false,
     plazaDialog: '',
@@ -188,12 +275,14 @@ const saveSlots = [
 const musicVolumeStorageKey = 'alpha-guild-master-volume-v1';
 const soundEffectsVolumeStorageKey = 'alpha-guild-master-sfx-volume-v1';
 let gameMenuOpen = false;
+let retreatDialogOpen = false;
 let gameMenuMode = 'menu';
 let gameMenuNotice = '';
 const backgroundMusicTracks = {
     lobby: 'Loby.mp3',
     playerSetup: 'Loby.mp3',
     plaza: 'Town.mp3',
+    guild: 'Loby.mp3',
     catalog: 'Town.mp3',
     expedition: 'Dungeon.mp3',
 };
@@ -209,11 +298,14 @@ function readStoredVolume(storageKey, fallback, maximum = 1) {
         return fallback;
     }
 }
-backgroundMusic.volume = readStoredVolume(musicVolumeStorageKey, 0.4);
-let soundEffectsVolume = readStoredVolume(soundEffectsVolumeStorageKey, 0.4);
+const backgroundMusicMasterVolume = 0.15;
+let backgroundMusicVolume = readStoredVolume(musicVolumeStorageKey, 0.5);
+backgroundMusic.volume = backgroundMusicVolume * backgroundMusicMasterVolume;
+let soundEffectsVolume = readStoredVolume(soundEffectsVolumeStorageKey, 0.5);
 backgroundMusic.preload = 'auto';
 
 function tryPlayBackgroundMusic() {
+    if (state.view === 'prologue' || !backgroundMusic.getAttribute('src')) return;
     if (!backgroundMusic.paused || backgroundMusic.volume === 0) return;
     backgroundMusic.play().catch((error) => {
         if (error.name !== 'NotAllowedError') console.warn('Background music playback failed.', error);
@@ -225,6 +317,10 @@ document.addEventListener('pointerdown', tryPlayBackgroundMusic, { capture: true
 document.addEventListener('keydown', tryPlayBackgroundMusic, true);
 
 function syncBackgroundMusic() {
+    if (state.view === 'prologue') {
+        backgroundMusic.pause();
+        return;
+    }
     const filename = backgroundMusicTracks[state.view] || backgroundMusicTracks.lobby;
     const source = `/assets/sound/Bgm/${filename}`;
     if (backgroundMusic.getAttribute('src') !== source) {
@@ -234,17 +330,90 @@ function syncBackgroundMusic() {
     tryPlayBackgroundMusic();
 }
 
-syncBackgroundMusic();
-
 let webSoundContext;
+let typingSoundBuffer;
+let combatEndTimer = null;
+const battleEffects = createBattleEffects({
+    isAlly: target => party.includes(target),
+    isActive: () => state.view === 'expedition' && state.mode === 'combat',
+    volume: () => soundEffectsVolume,
+    audioContext: () => {
+        webSoundContext ||= new (window.AudioContext || window.webkitAudioContext)();
+        return webSoundContext;
+    },
+    findImage: target => {
+        const heroIndex = party.indexOf(target);
+        if (heroIndex >= 0) { const card = game.querySelectorAll('.party-panel .hero')[heroIndex]; return card?.querySelector('.hero-thumbnail img') || card?.querySelector('.hero-thumbnail'); }
+        const enemyIndex = state.enemies.indexOf(target);
+        const enemy = enemyIndex >= 0 ? game.querySelector(`.enemy[data-target="${enemyIndex}"]`) : null;
+        return enemy?.querySelector('.enemy-art:not(.enemy-art-highlight)') || enemy?.querySelector('.enemy-mark');
+    },
+});
 
-function playWebSound(kind) {
+const popupPresentation = createPopupPresentation(game, {
+    volume: () => soundEffectsVolume,
+    audioContext: () => {
+        webSoundContext ||= new (window.AudioContext || window.webkitAudioContext)();
+        return webSoundContext;
+    },
+});
+
+function showPopupNotice(message) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'end-overlay popup-notice-overlay';
+    backdrop.innerHTML = `<section class="end-dialog" role="alertdialog" aria-modal="true" data-popup-kind="negative" aria-label="안내"><h2>안내</h2><p>${escapeHtml(message)}</p><button type="button">확인</button></section>`;
+    const previousFocus = document.activeElement;
+    const siblings = [...game.children].map(node => [node, node.inert]);
+    siblings.forEach(([node]) => { node.inert = true; });
+    game.append(backdrop);
+    const close = () => {
+        backdrop.remove();
+        siblings.forEach(([node, inert]) => { if (node.isConnected) node.inert = inert; });
+        if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+    const button = backdrop.querySelector('button');
+    button.addEventListener('click', close);
+    backdrop.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+        if (event.key === 'Tab') { event.preventDefault(); button.focus(); }
+    });
+    button.focus();
+}
+
+function playWebSound(kind, duration) {
     if (soundEffectsVolume === 0) return;
+    if (kind === 'typing' && !navigator.userActivation?.hasBeenActive) return;
     const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextConstructor) return;
     try {
         webSoundContext ||= new AudioContextConstructor();
         if (webSoundContext.state === 'suspended') void webSoundContext.resume();
+        if (kind === 'typing') {
+            // Do not queue typing sounds while browser audio is still locked.
+            if (webSoundContext.state !== 'running') return;
+            if (!typingSoundBuffer) {
+                typingSoundBuffer = webSoundContext.createBuffer(1, Math.ceil(webSoundContext.sampleRate * .035), webSoundContext.sampleRate);
+                const samples = typingSoundBuffer.getChannelData(0);
+                for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * Math.exp(-i / samples.length * 6);
+            }
+            const source = webSoundContext.createBufferSource();
+            const filter = webSoundContext.createBiquadFilter();
+            const gain = webSoundContext.createGain();
+            source.buffer = typingSoundBuffer;
+            source.playbackRate.value = .9 + Math.random() * .2;
+            filter.type = 'bandpass';
+            filter.frequency.value = 1800 + Math.random() * 700;
+            filter.Q.value = .7;
+            gain.gain.value = .16 * soundEffectsVolume;
+            source.connect(filter).connect(gain).connect(webSoundContext.destination);
+            source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+            source.start();
+            return;
+        }
+        if (kind === 'travel') {
+            playLocationSound(webSoundContext, soundEffectsVolume, duration);
+            return;
+        }
         const profiles = {
             hover: { frequency: 720 + Math.random() * 90, endFrequency: 910, duration: 0.055, volume: 0.14, type: 'sine' },
             click: { frequency: 470 + Math.random() * 40, endFrequency: 310, duration: 0.075, volume: 0.24, type: 'triangle' },
@@ -456,22 +625,6 @@ const effectTargetNames = {
     ko: { 자신: '시전자', '사망 아군': '사망한 아군', 아군: '선택한 아군', '이번 주공격': '이번 공격의 대상' },
     en: { 자신: 'caster', '사망 아군': 'fallen ally', 아군: 'selected ally', '이번 주공격': 'target of this attack' },
 };
-const buffEffectCodes = new Set([
-    'ATTACK_UP', 'ATTACK_UP_GREATER', 'DEFENSE_UP', 'SPEED_UP', 'CRITICAL_CHANCE_UP', 'CRITICAL_DAMAGE_UP',
-    'EFFECTIVENESS_UP', 'EFFECT_RESISTANCE_UP', 'EVASION_UP', 'CRITICAL_RESISTANCE_UP', 'HIT_CHANCE_UP',
-    'CONTINUOUS_HEAL', 'LIFESTEAL', 'BARRIER', 'INVINCIBILITY', 'IMMORTALITY', 'IMMUNITY', 'STEALTH',
-    'DAMAGE_REDUCTION', 'DAMAGE_SHARING', 'DAMAGE_REFLECTION', 'AUTO_REVIVE', 'COUNTERATTACK',
-    'EXTRA_TURN', 'DEFENSE_PENETRATION', 'BUFF_DURATION_UP', 'SKILL_COOLDOWN_DOWN', 'SKILL_COOLDOWN_RESET',
-]);
-
-function resolvedEffectTarget(skill, effect) {
-    const effectTarget = effect.effectTarget || '대상';
-    const skillTarget = skill.target;
-    const enemyTargeted = ['적', '적전체', 'enemy', 'enemyAll'].includes(skillTarget);
-    if (buffEffectCodes.has(effect.code) && enemyTargeted && ['대상', '아군'].includes(effectTarget)) return '자신';
-    if (effectTarget === '아군' && !['아군', '아군전체', '아군과 자신', 'ally', 'allyAll', 'selfAndAllies'].includes(skillTarget)) return '자신';
-    return effectTarget;
-}
 
 function describeEffectTarget(skill, effect, language = 'ko') {
     const effectTarget = resolvedEffectTarget(skill, effect);
@@ -604,7 +757,7 @@ async function loadCatalogData() {
         const expectedSkillCategories = { 공격: 250, 회복: 250, 버프: 250, 디버프: 250, '공격|버프': 334, '공격|디버프': 333, '회복|버프': 333 };
         const categoryCounts = Object.fromEntries(Object.keys(expectedSkillCategories).map((category) => [category, skills.filter((skill) => skill.category === category).length]));
         const basicAttackCount = skills.filter((skill) => skill.isBasicAttack).length;
-        if (skills.length !== 2000 || basicAttackCount !== 100 || Object.entries(expectedSkillCategories).some(([category, count]) => categoryCounts[category] !== count) || effects.length !== 55 || stats.length !== 72 || characters.length !== 200 || monsters.length !== 30) {
+        if (skills.length !== 2000 || basicAttackCount !== 100 || Object.entries(expectedSkillCategories).some(([category, count]) => categoryCounts[category] !== count) || effects.length !== 55 || stats.length !== 72 || characters.length !== CHARACTER_COUNT || monsters.length !== MONSTER_COUNT) {
             throw new Error(`Unexpected workbook totals: ${skills.length} skills, ${effects.length} effects, ${stats.length} stat profiles, ${characters.length} characters, ${monsters.length} monsters`);
         }
         return { skills, effects, stats, characters, monsters, growthRows };
@@ -617,6 +770,27 @@ async function loadCatalogData() {
 const catalogData = await loadCatalogData();
 configureDeveloperSkills(catalogData.skills, skillTooltips);
 configureDeveloperCharacters(catalogData.growthRows, catalogData.skills);
+configureDeveloperMonsters(catalogData.growthRows, catalogData.skills);
+configureCombatPower({ resolveProfile(actor) {
+    if (actor.id?.startsWith('CHAR-')) {
+        const profile = developerCharacter(actor);
+        return { ...profile, skills: characterSkills(profile, defaultSkills) };
+    }
+    return actor.id?.startsWith('MON-') ? developerMonster(actor) : actor;
+} });
+let powerRosterCache = null;
+function powerRosters() {
+    const key = JSON.stringify([state.userLevel, ...['game-developer-skills-v1', 'game-developer-characters-v1', 'game-developer-monsters-v1'].map((storageKey) => localStorage.getItem(storageKey))]);
+    if (powerRosterCache?.key !== key) {
+        const roster = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills);
+        powerRosterCache = { key,
+            monsters: roster.monsters.filter((actor) => monsterEnabled(actor.id)).map(developerMonster),
+            characters: roster.characters.filter((actor) => characterEnabled(actor.id)).map(developerCharacter),
+        };
+    }
+    return powerRosterCache;
+}
+configureDestinationMonsterPower(() => powerRosters().monsters, () => powerRosters().characters);
 updateLoadingProgress(96);
 await finishInitialLoading();
 
@@ -657,7 +831,7 @@ function hasSavedGame() {
 
 function savedGameSummary(saved) {
     const savedState = saved.state;
-    const location = savedState.view === 'expedition' ? '던전' : '광장';
+    const location = savedState.view === 'expedition' ? '던전' : savedState.view === 'guild' ? '아지트' : '광장';
     const savedAt = Number(saved.savedAt);
     const time = savedAt ? new Date(savedAt).toLocaleString('ko-KR') : '저장 기록';
     return `${Number(savedState.week) || 1}주차 · ${location} · ${Number(savedState.gold) || 0}G · 용병 ${savedState.recruits.length}명 · ${time}`;
@@ -670,11 +844,16 @@ function saveSlotMarkup(slot, action) {
     return `<button class="save-slot ${saved ? 'has-save' : 'empty-save'}" type="button" data-action="${action}" data-slot="${slot.id}" ${disabled ? 'disabled' : ''}><span class="save-slot-copy"><strong>${slot.label}</strong><small>${goldTextMarkup(status)}</small></span><span class="save-slot-state">${saved ? action === 'load-save' ? '불러오기' : '덮어쓰기' : '빈 슬롯'}</span></button>`;
 }
 
+function retreatDialogMarkup() {
+    return '<div class="game-menu-backdrop retreat-dialog-backdrop"><section class="game-menu-popup retreat-dialog" role="alertdialog" aria-modal="true" aria-labelledby="retreat-dialog-title" aria-describedby="retreat-dialog-warning"><h2 id="retreat-dialog-title">원정 포기</h2><p id="retreat-dialog-warning">원정을 포기하면 이번 원정에서 얻은 골드와 경험치를 포함한 보상을 얻을 수 없습니다.</p><div class="retreat-dialog-actions"><button type="button" data-action="retreat-cancel">취소</button><button type="button" class="retreat-confirm" data-action="retreat-confirm">원정 포기</button></div></section></div>';
+}
+
 function gameMenuMarkup() {
+    if (retreatDialogOpen && state.view === 'expedition' && !state.ended) return retreatDialogMarkup();
     if (!gameMenuOpen) return '';
     const content = gameMenuMode === 'save-slots'
         ? `<p class="game-menu-description">저장할 슬롯을 선택하세요.</p><div class="save-slot-list">${saveSlots.filter((slot) => slot.id !== 'autosave').map((slot) => saveSlotMarkup(slot, 'save-slot')).join('')}</div><button class="game-menu-back" type="button" data-action="game-menu-back">메뉴로 돌아가기</button>`
-        : `${state.view === 'characterCodex' ? `<button class="game-menu-back" type="button" data-action="view-expedition">돌아가기</button><label class="codex-menu-level">도감 레벨<select data-catalog-filter="level">${[1, 2, 3, 4, 5].map((value) => `<option value="${value}" ${state.catalogLevel === value ? 'selected' : ''}>Lv.${value}</option>`).join('')}</select></label>` : '<button class="game-menu-catalog" type="button" data-action="catalog">도감</button>'}${import.meta.env.DEV ? '<button class="game-menu-catalog" type="button" data-action="developer-catalog">개발자 자료실</button>' : ''}${state.view === 'expedition' ? '<button class="game-menu-back" type="button" data-action="retreat">원정 포기</button>' : ''}<button class="game-menu-save" type="button" data-action="game-menu-save">저장하기 <span>슬롯 선택</span></button><label class="volume-control"><span>BGM 음량 <output data-volume-label="bgm">${Math.round(backgroundMusic.volume * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${backgroundMusic.volume}" data-volume-control="bgm" aria-label="BGM 음량"></label><label class="volume-control"><span>효과음 음량 <output data-volume-label="sfx">${Math.round(soundEffectsVolume * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${soundEffectsVolume}" data-volume-control="sfx" aria-label="효과음 음량"></label>`;
+        : `${state.view === 'characterCodex' ? `<button class="game-menu-back" type="button" data-action="view-expedition">돌아가기</button><label class="codex-menu-level">도감 레벨<select data-catalog-filter="level">${[1, 2, 3, 4, 5].map((value) => `<option value="${value}" ${state.catalogLevel === value ? 'selected' : ''}>Lv.${value}</option>`).join('')}</select></label>` : '<button class="game-menu-catalog" type="button" data-action="catalog">도감</button>'}${import.meta.env.DEV ? '<button class="game-menu-catalog" type="button" data-action="developer-catalog">개발자 자료실</button>' : ''}${state.view === 'expedition' ? '<button class="game-menu-back" type="button" data-action="retreat">원정 포기</button>' : ''}<button class="game-menu-save" type="button" data-action="game-menu-save">저장하기 <span>슬롯 선택</span></button><label class="volume-control"><span>BGM 음량 <output data-volume-label="bgm">${Math.round(backgroundMusicVolume * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${backgroundMusicVolume}" data-volume-control="bgm" aria-label="BGM 음량"></label><label class="volume-control"><span>효과음 음량 <output data-volume-label="sfx">${Math.round(soundEffectsVolume * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${soundEffectsVolume}" data-volume-control="sfx" aria-label="효과음 음량"></label>`;
     return `<div class="game-menu-backdrop"><section class="game-menu-popup" role="dialog" aria-modal="true" aria-labelledby="game-menu-title"><header class="game-menu-heading"><h2 id="game-menu-title">메뉴</h2><button type="button" data-action="game-menu-close" aria-label="메뉴 닫기">×</button></header>${content}${gameMenuNotice ? `<p class="game-menu-notice" role="status">${escapeHtml(gameMenuNotice)}</p>` : ''}</section></div>`;
 }
 
@@ -685,7 +864,7 @@ function expeditionResultMarkup(result) {
             || { ...member, mark: jobGlyphs[member.job] || '✦' };
         return `<article class="expedition-affinity-row"><div class="expedition-affinity-heading"><span class="expedition-member-label">${characterThumbnailMarkup(character, 'expedition-member-thumbnail')}<span class="expedition-member-name">${escapeHtml(member.name)} <small>${escapeHtml(member.job)}</small></span></span><strong class="${member.change > 0 ? 'affinity-up' : member.change < 0 ? 'affinity-down' : ''}">${member.change > 0 ? '+' : ''}${member.change}</strong></div><div class="expedition-affinity-track"><span class="expedition-animated-bar" data-bar-start="${member.before}" data-bar-end="${member.after}" style="width:${member.before}%"></span></div><small class="expedition-affinity-value"><span class="expedition-animated-count" data-count-start="${member.before}" data-count-end="${member.after}">${member.before}</span> / 100</small></article>`;
     }).join('');
-    return `<div class="end-overlay expedition-result-overlay"><section class="end-dialog expedition-result-dialog" role="dialog" aria-modal="true" aria-labelledby="expedition-result-title"><span class="section-kicker">원정 결과</span><h2 id="expedition-result-title">${result.completed ? '원정 성공' : '원정 실패'}</h2><p>${goldTextMarkup(state.message)}</p><div class="expedition-result-rewards"><article class="expedition-reward-item"><div><span>획득 경험치</span><strong><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardExperience}">0</span> EXP</strong></div><div class="expedition-reward-track"><span class="expedition-animated-bar" data-bar-start="${result.experienceBefore}" data-bar-end="${result.experienceAfter}" style="width:${result.experienceBefore}%"></span></div></article><article class="expedition-reward-item expedition-gold-reward"><div><span>획득 골드</span><strong class="gold-amount"><span class="gold-icon" style="--gold-icon-url:url('${goldIcon}')" aria-hidden="true"></span><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardGold}">0</span> G</strong></div></article></div><section class="expedition-affinity-list"><h3>원정대원 호감도</h3>${affinityRows}</section><button class="expedition-result-confirm" type="button" data-action="expedition-result-confirm" disabled>광장으로 복귀하기</button></section></div>`;
+    return `<div class="end-overlay expedition-result-overlay"><section class="end-dialog expedition-result-dialog" data-popup-kind="${result.completed ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="expedition-result-title"><span class="section-kicker">원정 결과</span><h2 id="expedition-result-title">${result.completed ? '원정 성공' : '원정 실패'}</h2><p>${goldTextMarkup(state.message)}</p><div class="expedition-result-rewards"><article class="expedition-reward-item"><div><span>획득 경험치</span><strong><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardExperience}">0</span> EXP</strong></div><div class="expedition-reward-track"><span class="expedition-animated-bar" data-bar-start="${result.experienceBefore}" data-bar-end="${result.experienceAfter}" style="width:${result.experienceBefore}%"></span></div></article><article class="expedition-reward-item expedition-gold-reward"><div><span>획득 골드</span><strong class="gold-amount"><span class="gold-icon" style="--gold-icon-url:url('${goldIcon}')" aria-hidden="true"></span><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardGold}">0</span> G</strong></div></article></div><section class="expedition-affinity-list"><h3>원정대원 호감도</h3>${affinityRows}</section><button class="expedition-result-confirm" type="button" data-action="expedition-result-confirm" disabled>광장으로 복귀하기</button></section></div>`;
 }
 
 function animateExpeditionResults() {
@@ -733,7 +912,7 @@ function continueGame(slotId = 'autosave') {
     const saved = readSavedGame(slotId);
     if (!saved) return;
     party = Array.isArray(saved.party) ? saved.party : [];
-    Object.assign(state, saved.state, {
+    Object.assign(state, JSON.parse(JSON.stringify(initialState)), saved.state, {
         view: 'plaza',
         catalogReturnView: 'plaza',
         developerCatalogReturnView: 'plaza',
@@ -754,8 +933,22 @@ function continueGame(slotId = 'autosave') {
         expeditionResult: null,
         expeditionRewardBaseline: null,
     });
+    if (restoreTutorialState(state, saved.state) && state.tutorial.stage === 'battle' && !state.expeditionResult) {
+        void activateNextCombatant();
+        return;
+    }
     render();
 }
+
+// Stable positions keep dust from jumping when a lobby dialog opens.
+const lobbyDustMarkup = Array.from({ length: 240 }, (_, index) => {
+    const height = 10 + ((index * 37) % 76);
+    const angle = [177, 198, 219][index % 3];
+    const left = 70 - (height + 4) * (1080 / 1920) * Math.tan((angle - 180) * Math.PI / 180);
+    const direction = index % 2 ? 1 : -1;
+    const duration = 14 + ((index * 7) % 13);
+    return `<span class="lobby-dust-particle" style="--dust-x:${left.toFixed(2)}%;--dust-y:${height}%;--dust-size:${(1.2 + (index % 5) * .4).toFixed(1)}px;--dust-dx:${direction * (55 + (index * 13) % 65)}px;--dust-dy:${-18 - (index * 11) % 38}px;--dust-duration:${duration}s;--dust-delay:${-((index * 5.73) % duration).toFixed(2)}s"></span>`;
+}).join('');
 
 function renderLobby() {
     const savedGame = hasSavedGame();
@@ -767,7 +960,7 @@ function renderLobby() {
     } else if (state.lobbyDialog === 'delete-save') {
         dialog = '<div class="lobby-overlay"><section class="lobby-dialog" role="dialog" aria-modal="true" aria-labelledby="lobby-dialog-title"><span class="lobby-dialog-kicker">GUILD ARCHIVE</span><h2 id="lobby-dialog-title">저장 데이터를 삭제할까요?</h2><p>삭제한 진행 상황은 복구할 수 없습니다.</p><button class="lobby-dialog-delete" data-action="lobby-confirm-delete">삭제</button><button class="lobby-dialog-close" data-action="lobby-open-settings">취소</button></section></div>';
     }
-    game.innerHTML = `<section class="title-screen"><div class="lobby-architecture" aria-hidden="true"><span class="lobby-arch-outer"></span><span class="lobby-arch-inner"></span><span class="lobby-light"></span><span class="lobby-stone-floor"></span></div><div class="lobby-brand"><span class="lobby-seal" aria-hidden="true"><span class="guild-emblem-icon"></span></span><p class="lobby-kicker">GUILD RECORD · CHAPTER 01</p><h1>HELLO<br><span>GUILD MASTER</span></h1><p class="lobby-tagline">던전 너머의 사랑, 명예, 부 그리고 이야기</p></div><nav class="lobby-menu" aria-label="메인 메뉴"><button class="lobby-menu-item lobby-menu-primary" type="button" data-action="lobby-new-game"><span class="lobby-menu-number">01</span><span class="lobby-menu-label">새 게임<small>NEW CHRONICLE</small></span><span class="lobby-menu-arrow" aria-hidden="true">↗</span></button>${savedGame ? '<button class="lobby-menu-item" type="button" data-action="lobby-continue"><span class="lobby-menu-number">02</span><span class="lobby-menu-label">이어하기<small>CONTINUE RECORD</small></span><span class="lobby-menu-arrow" aria-hidden="true">→</span></button>' : ''}<button class="lobby-menu-item" type="button" data-action="lobby-open-settings"><span class="lobby-menu-number">${savedGame ? '03' : '02'}</span><span class="lobby-menu-label">설정<small>DATA MANAGEMENT</small></span><span class="lobby-menu-arrow" aria-hidden="true">⚙</span></button><button class="lobby-menu-item lobby-menu-exit" type="button" data-action="lobby-exit"><span class="lobby-menu-number">${savedGame ? '04' : '03'}</span><span class="lobby-menu-label">종료<small>QUIT GAME</small></span><span class="lobby-menu-arrow" aria-hidden="true">×</span></button>${state.lobbyMessage ? `<p class="lobby-feedback" role="status">${escapeHtml(state.lobbyMessage)}</p>` : ''}<p class="lobby-menu-footnote">ALPHA GUILD · EST. 01</p></nav></section>${dialog}`;
+    game.innerHTML = `<section class="title-screen"><div class="lobby-light-effects" aria-hidden="true"><div class="lobby-light-rays"></div><div class="lobby-light-bloom"></div><div class="lobby-lens-flares"><span class="lobby-lens-flare lobby-lens-flare-top"></span><span class="lobby-lens-flare lobby-lens-flare-bottom"></span></div><div class="lobby-light-dust">${lobbyDustMarkup}</div></div><div class="lobby-brand"><span class="lobby-seal" aria-hidden="true"><span class="guild-emblem-icon"></span></span><p class="lobby-kicker">GUILD RECORD · CHAPTER 01</p><h1>HELLO<br><span>GUILD MASTER</span></h1><p class="lobby-tagline">던전 너머의 사랑, 명예, 부 그리고 이야기</p><nav class="lobby-menu" aria-label="메인 메뉴"><button class="lobby-menu-item lobby-menu-primary" type="button" data-action="lobby-new-game"><span class="lobby-menu-label">새 게임</span><span class="lobby-menu-arrow" aria-hidden="true">↗</span></button>${savedGame ? '<button class="lobby-menu-item" type="button" data-action="lobby-continue"><span class="lobby-menu-label">이어하기</span><span class="lobby-menu-arrow" aria-hidden="true">→</span></button>' : ''}<button class="lobby-menu-item" type="button" data-action="lobby-open-settings"><span class="lobby-menu-label">설정</span><span class="lobby-menu-arrow" aria-hidden="true">⚙</span></button><button class="lobby-menu-item lobby-menu-exit" type="button" data-action="lobby-exit"><span class="lobby-menu-label">종료</span><span class="lobby-menu-arrow" aria-hidden="true">×</span></button>${state.lobbyMessage ? `<p class="lobby-feedback" role="status">${escapeHtml(state.lobbyMessage)}</p>` : ''}</nav></div></section>${dialog}`;
 }
 
 function renderPlayerSetup() {
@@ -779,21 +972,17 @@ function renderPlayerSetup() {
 
 function plazaOfferWithCurrentProfile(offer) {
     const updated = developerCharacter(offer);
-    return { ...updated, price: hirePrices[updated.grade] ?? 30 };
+    return { ...updated, price: hirePrices[updated.grade] ?? 30, weeklyWage: hirePrices[updated.grade] ?? 30 };
 }
 
 function drawPlazaOffers() {
     try {
-        const candidates = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters.filter((entry) => characterEnabled(entry.id)).map(developerCharacter);
-        const jobs = [...new Set(candidates.map((candidate) => candidate.job))];
-        const offers = jobs.map((job) => {
-            const jobCandidates = candidates.filter((candidate) => candidate.job === job);
-            const candidate = jobCandidates[Math.floor(Math.random() * jobCandidates.length)];
-            return { ...candidate, price: hirePrices[candidate.grade] ?? 30 };
-        });
-        for (let index = offers.length - 1; index > 0; index -= 1) {
-            const swapIndex = Math.floor(Math.random() * (index + 1));
-            [offers[index], offers[swapIndex]] = [offers[swapIndex], offers[index]];
+        const candidates = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters.filter((entry) => characterEnabled(entry.id) && !(state.guildMembers || []).some(member => member.id === entry.id)).map(developerCharacter);
+        const pool = [...candidates];
+        const offers = [];
+        while (offers.length < 3 && pool.length) {
+            const candidate = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+            offers.push({ ...candidate, price: hirePrices[candidate.grade] ?? 30, weeklyWage: hirePrices[candidate.grade] ?? 30 });
         }
         return offers;
     } catch (error) {
@@ -819,12 +1008,17 @@ function confirmPlayerName() {
 }
 
 const plazaDialogues = {
+    ...Object.fromEntries(tutorialDialogues.map(dialogue => [dialogue.id, dialogue])),
     [plazaFirstVisitDialogue.id]: plazaFirstVisitDialogue,
     [plazaFirstEncounterDialogue.id]: plazaFirstEncounterDialogue,
     [plazaFirstConversationDialogue.id]: plazaFirstConversationDialogue,
 };
 let plazaTransitionPhase = '';
 let plazaDialogueExitPending = false;
+let stopDialogueTypewriter = () => {};
+function playDialogueTypingSound(character, index) {
+    if (index % 2 === 0 && /\S/u.test(character)) playWebSound('typing');
+}
 
 function getActivePlazaDialogue() {
     const progress = state.activePlazaDialogue;
@@ -834,7 +1028,7 @@ function getActivePlazaDialogue() {
         return null;
     }
     const node = dialogue?.nodes?.[progress?.nodeId];
-    return dialogue && node ? { dialogue, node, bubbleSide: progress.bubbleSide } : null;
+    return dialogue && node ? { dialogue: { ...dialogue, presentation: node.presentation || dialogue.presentation }, node, bubbleSide: progress.bubbleSide } : null;
 }
 
 function startPlazaDialogue(dialogueId) {
@@ -856,6 +1050,7 @@ function finishPlazaDialogue(nextDialogueId) {
     const finishExit = () => {
         if (!plazaDialogueExitPending) return;
         plazaDialogueExitPending = false;
+        if (finishTutorialStory()) { render(); return; }
         if (!nextDialogueId || !startPlazaDialogue(nextDialogueId)) {
             state.activePlazaDialogue = null;
             plazaTransitionPhase = 'enter';
@@ -912,7 +1107,10 @@ function confirmPlayerZodiac() {
     state.plazaOffers = drawPlazaOffers();
     state.plazaCurrentOffer = null;
     state.plazaMessage = '';
-    startPlazaDialogue('plaza.first-visit');
+    state.tutorial = { stage: 'meeting' };
+    state.guildRosterResetVersion = 1;
+    state.plazaOffers = [];
+    startPlazaDialogue('tutorial.meeting');
     render();
 }
 
@@ -932,72 +1130,20 @@ const rosterStatColumns = [
 
 const elementTints = { 불: '#d76b50', 물: '#568fb2', 풀: '#759763', 빛: '#e2c578', 어둠: '#786c8d' };
 const elementBorderClasses = { 불: 'fire', 물: 'water', 풀: 'nature', 빛: 'light', 어둠: 'dark' };
-const characterPortraitFiles = [
-    '0001_M_N.webp', '0002_M_A.webp', '0003_M_T.webp', '0004_M_T.webp', '0005_M_H.webp',
-    '0006_M_N.webp', '0007_M_N.webp', '0008_M_A.webp', '0009_M_N.webp', '0010_M_H.webp',
-    '0011_M_M.webp', '0012_M_M.webp', '0013_M_W.webp', '0014_M_W.webp', '0015_M_N.webp',
-    '0016_M_A.webp', '0017_M_M.webp', '0018_M_N.webp', '0019_M_A.webp', '0020_M_W.webp',
-    '0021_M_M.webp', '0022_M_T.webp', '0023_M_W.webp', '0024_M_T.webp', '0025_M_W.webp',
-    '0026_M_A.webp', '0027_M_W.webp', '0028_M_T.webp', '0029_M_N.webp', '0030_M_A.webp',
-    '0031_M_N.webp', '0032_M_W.webp', '0033_M_H.webp', '0034_M_H.webp', '0035_M_M.webp',
-    '0036_M_M.webp', '0037_M_W.webp', '0038_M_M.webp', '0039_M_H.webp', '0040_M_M.webp',
-    '0041_M_W.webp', '0042_M_A.webp', '0043_M_A.webp', '0044_M_W.webp', '0045_M_N.webp',
-    '0046_M_W.webp', '0047_M_M.webp', '0048_M_N.webp', '0049_M_H.webp', '0050_M_H.webp',
-    '0051_M_W.webp', '0052_M_A.webp', '0053_M_N.webp', '0054_M_M.webp', '0055_M_H.webp',
-    '0056_M_W.webp', '0057_M_A.webp', '0058_M_H.webp', '0059_M_W.webp', '0060_M_A.webp',
-    '0061_M_H.webp', '0062_M_T.webp', '0063_M_A.webp', '0064_M_A.webp', '0065_M_A.webp',
-    '0066_M_H.webp', '0067_M_M.webp', '0068_M_A.webp', '0069_M_T.webp', '0070_M_N.webp',
-    '0071_M_T.webp', '0072_M_W.webp', '0073_M_W.webp', '0074_M_T.webp', '0075_M_M.webp',
-    '0076_M_T.webp', '0077_M_N.webp', '0078_M_W.webp', '0079_M_W.webp', '0080_M_H.webp',
-    '0081_M_W.webp', '0082_M_H.webp', '0083_M_A.webp', '0084_M_M.webp', '0085_M_W.webp',
-    '0086_M_M.webp', '0087_M_T.webp', '0088_M_A.webp', '0089_M_H.webp', '0090_M_M.webp',
-    '0091_M_N.webp', '0092_M_M.webp', '0093_M_W.webp', '0094_M_H.webp', '0095_M_N.webp',
-    '0096_M_H.webp', '0097_M_M.webp', '0098_M_A.webp', '0099_M_H.webp', '0100_M_N.webp',
-    '0101_M_T.webp', '0102_M_H.webp', '0103_M_W.webp', '0104_M_M.webp', '0105_M_A.webp',
-    '0106_M_W.webp', '0107_M_N.webp', '0108_M_W.webp', '0109_M_A.webp', '0110_M_H.webp',
-    '0111_M_H.webp', '0112_M_M.webp', '0113_M_N.webp', '0114_M_N.webp', '0115_M_M.webp',
-    '0116_M_M.webp', '0117_M_W.webp', '0118_M_T.webp', '0119_M_T.webp', '0120_M_M.webp',
-    '0121_M_W.webp', '0122_M_W.webp', '0123_M_H.webp', '0124_M_A.webp',
-];
-
-function createSeededRandom(seed) {
-    let state = seed >>> 0;
-    return () => {
-        state = (state + 0x6D2B79F5) >>> 0;
-        let t = state;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-function shuffleWithSeed(items, random) {
-    const shuffled = [...items];
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(random() * (index + 1));
-        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-    }
-    return shuffled;
-}
-
-function buildCharacterPortraitFileAssignments(characters) {
-    const random = createSeededRandom(20240501);
-    const shuffledCharacters = shuffleWithSeed(characters, random);
-    const shuffledFiles = shuffleWithSeed(characterPortraitFiles, random);
-    const assignments = {};
-    shuffledCharacters.forEach((character, index) => {
-        if (index < shuffledFiles.length) assignments[character.id] = shuffledFiles[index];
-    });
-    return assignments;
-}
-
 const characterPortraitFileAssignments = buildCharacterPortraitFileAssignments(catalogData.characters);
-const characterPortraitAssets = Object.fromEntries(Object.entries(characterPortraitFileAssignments).map(([id, file]) => [id, `/assets/art/2D/Character/${file}`]));
-const characterThumbnailAssets = Object.fromEntries(Object.entries(characterPortraitFileAssignments).map(([id, file]) => [id, `/assets/art/2D/Character_thumnail/${file}`]));
+const characterPortraitAssets = Object.fromEntries(Object.entries(characterPortraitFileAssignments).map(([id, file]) => [id, characterPortraitAsset(file)]));
+const characterThumbnailAssets = Object.fromEntries(Object.entries(characterPortraitFileAssignments).map(([id, file]) => [id, characterThumbnailAsset(file)]));
 function characterImageSource(character, thumbnail = false) {
     if (!character) return '';
+    if (character.id?.startsWith('MON-EXP-')) {
+        const entry = developerMonster(character);
+        return thumbnail ? entry.thumbnailSrc : entry.portraitSrc;
+    }
     const entry = developerCharacter(character);
-    return thumbnail ? entry.thumbnailSrc || characterThumbnailAssets[entry.id] : entry.portraitSrc || characterPortraitAssets[entry.id];
+    if (thumbnail) return entry.thumbnailSrc || characterThumbnailAssets[entry.id];
+    const portrait = entry.portraitSrc || characterPortraitAssets[entry.id];
+    return portrait?.startsWith('/assets/art/2D/Character/')
+        ? characterPortraitAsset(portrait.split('/').pop().split('?')[0]) : portrait;
 }
 const plazaJobOrder = ['기사', '전사', '마도사', '사수', '정령사', '도적'];
 
@@ -1016,7 +1162,7 @@ function plazaJobCountsMarkup() {
 
 function catalogIconMarkup(symbol, tint, label, className = 'catalog-icon', title = '', inlineStyle = '') {
     if (className === 'plaza-action-icon') return plazaActionIconMarkup(symbol, tint);
-    if (symbol?.startsWith('/assets/icons/')) return `<img class="${className}" src="${escapeHtml(symbol)}" alt="${escapeHtml(label)}"${title ? ` title="${escapeHtml(title)}"` : ''}${inlineStyle ? ` style="${escapeHtml(inlineStyle)}"` : ''}>`;
+    if (symbol?.startsWith('/assets/')) return `<img class="${className}" src="${escapeHtml(symbol)}" alt="${escapeHtml(label)}"${title ? ` title="${escapeHtml(title)}"` : ''}${inlineStyle ? ` style="${escapeHtml(inlineStyle)}"` : ''}>`;
     const unframedIcons = ['catalog-icon', 'combat-skill-icon', 'roster-skill-icon', 'roster-job-icon', 'hero-job-icon', 'plaza-hired-icon', 'plaza-encounter-job-icon', 'plaza-skill-icon', 'plaza-affinity-icon'];
     const background = className === 'codex-character-thumb' || unframedIcons.includes(className) ? '' : `<rect x="1" y="1" width="38" height="38" rx="8" fill="#211e19" stroke="${tint}" stroke-opacity=".7"/>`;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">${background}<text x="20" y="27" text-anchor="middle" font-family="serif" font-size="23" fill="${tint}">${symbol}</text></svg>`;
@@ -1029,6 +1175,11 @@ function statLabelMarkup(key, label) {
 
 function goldAmountMarkup(amount, unit = '골드') {
     return `<span class="gold-amount"><span class="gold-icon" style="--gold-icon-url:url('${goldIcon}')" aria-hidden="true"></span>${escapeHtml(amount)} ${escapeHtml(unit)}</span>`;
+}
+
+function fameAmountMarkup(amount = 0) {
+    const value = Math.max(0, Number(amount) || 0).toLocaleString('ko-KR');
+    return `<span class="fame-amount"><span class="gold-icon" style="--gold-icon-url:url('/assets/icons/fame_icon.svg')" aria-hidden="true"></span>${value} 명성</span>`;
 }
 
 function goldTextMarkup(text) {
@@ -1083,14 +1234,16 @@ function statCatalogRowMarkup(profile) {
 
 function rosterRowMarkup(entry) {
     entry = { ...entry, skills: activeSkills(entry.skills) };
-    const editable = import.meta.env.DEV && state.catalogTab === 'characters';
+    const editable = import.meta.env.DEV;
+    const editKind = state.catalogTab === 'monsters' ? 'monster' : 'character';
+    const enabled = editKind === 'monster' ? monsterEnabled : characterEnabled;
     const stats = rosterStatColumns.map(([key]) => key);
     const skills = entry.skills.map((skill) => {
         const [glyph, tint] = skillGlyph(skill);
         return `<button type="button" class="developer-skill-trigger" data-developer-character="${escapeHtml(entry.id)}" data-developer-skill="${escapeHtml(skill.id)}" aria-label="${escapeHtml(skill.name)}">${skillIconMarkup(skill, 'roster-skill-icon')}</button>`;
     }).join('');
     const jobIcon = catalogIconMarkup(jobGlyphs[entry.job] || '✦', '#c2a767', entry.job, 'roster-job-icon', entry.job);
-    return `<tr><td class="roster-avatar-cell"><span class="roster-avatar-frame element-border-${elementBorderClasses[entry.element] || 'light'}">${characterThumbnailMarkup(entry, 'roster-avatar')}</span></td><td class="roster-name-cell"><strong class="roster-name">${escapeHtml(entry.name)}</strong>${jobIcon}</td><td><span class="roster-grade grade-${entry.grade}">${entry.grade}등급</span></td><td class="roster-skills">${skills}</td>${stats.map((stat) => `<td>${entry.stats[stat]}</td>`).join('')}${editable ? `<td class="developer-character-actions"><button type="button" data-character-edit="${escapeHtml(entry.id)}">편집</button><label><input type="checkbox" data-character-enabled="${escapeHtml(entry.id)}" ${characterEnabled(entry.id) ? 'checked' : ''} aria-label="${escapeHtml(entry.name)} 활성화">활성화</label></td>` : ''}</tr>`;
+    return `<tr><td class="roster-avatar-cell"><span class="roster-avatar-frame element-border-${elementBorderClasses[entry.element] || 'light'}">${characterThumbnailMarkup(entry, 'roster-avatar')}</span></td><td class="roster-name-cell"><strong class="roster-name">${escapeHtml(entry.name)}</strong>${jobIcon}</td><td><span class="roster-grade grade-${entry.grade}">${entry.grade}등급</span></td><td class="roster-skills">${skills}</td>${stats.map((stat) => `<td>${entry.stats[stat]}</td>`).join('')}${editable ? `<td class="developer-character-actions"><button type="button" data-${editKind}-edit="${escapeHtml(entry.id)}">편집</button><label><input type="checkbox" data-${editKind}-enabled="${escapeHtml(entry.id)}" ${enabled(entry.id) ? 'checked' : ''} aria-label="${escapeHtml(entry.name)} 활성화">활성화</label></td>` : ''}</tr>`;
 }
 
 function rosterStatHeadersMarkup() {
@@ -1134,9 +1287,9 @@ function catalogMarkup() {
         content = `<div class="catalog-table-wrap"><table class="catalog-table effect-table"><thead><tr><th>아이콘</th><th>효과</th><th>값 단위</th><th>설명</th></tr></thead><tbody>${rows.map(effectCatalogRowMarkup).join('')}</tbody></table></div>`;
     } else if (state.catalogTab === 'characters' || state.catalogTab === 'monsters') {
         const isMonster = state.catalogTab === 'monsters';
-        const roster = isMonster ? catalogData.monsters : catalogData.characters.map(developerCharacter);
+        const roster = isMonster ? catalogData.monsters.map(developerMonster) : catalogData.characters.map(developerCharacter);
         rows = roster.filter((entry) => {
-            const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level].join(' ').toLocaleLowerCase().includes(query);
+            const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level, entry.stageName, entry.concept].join(' ').toLocaleLowerCase().includes(query);
             return matchesQuery
                 && (!state.catalogElement || entry.element === state.catalogElement)
                 && (!state.catalogJob || entry.job === state.catalogJob)
@@ -1150,7 +1303,7 @@ function catalogMarkup() {
         const pageCount = Math.max(1, Math.ceil(total / catalogPageSize));
         state.catalogPage = Math.min(state.catalogPage, pageCount - 1);
         const pageRows = rows.slice(state.catalogPage * catalogPageSize, (state.catalogPage + 1) * catalogPageSize);
-        content = `<div class="catalog-table-wrap"><table class="catalog-table roster-table"><thead><tr><th>초상</th><th>이름</th><th>등급</th><th>스킬</th>${rosterStatHeadersMarkup()}${!isMonster && import.meta.env.DEV ? '<th>편집 / 활성화</th>' : ''}</tr></thead><tbody>${pageRows.map(rosterRowMarkup).join('')}</tbody></table></div><div class="catalog-pagination"><span>${total ? `${state.catalogPage * catalogPageSize + 1}–${Math.min((state.catalogPage + 1) * catalogPageSize, total)} / ${total}` : '검색 결과 없음'}</span><div><button data-action="catalog-prev" ${state.catalogPage === 0 ? 'disabled' : ''} aria-label="이전 페이지">←</button><button data-action="catalog-next" ${state.catalogPage >= pageCount - 1 ? 'disabled' : ''} aria-label="다음 페이지">→</button></div></div>`;
+        content = `<div class="catalog-table-wrap"><table class="catalog-table roster-table"><thead><tr><th>초상</th><th>이름</th><th>등급</th><th>스킬</th>${rosterStatHeadersMarkup()}${import.meta.env.DEV ? '<th>편집 / 활성화</th>' : ''}</tr></thead><tbody>${pageRows.map(rosterRowMarkup).join('')}</tbody></table></div><div class="catalog-pagination"><span>${total ? `${state.catalogPage * catalogPageSize + 1}–${Math.min((state.catalogPage + 1) * catalogPageSize, total)} / ${total}` : '검색 결과 없음'}</span><div><button data-action="catalog-prev" ${state.catalogPage === 0 ? 'disabled' : ''} aria-label="이전 페이지">←</button><button data-action="catalog-next" ${state.catalogPage >= pageCount - 1 ? 'disabled' : ''} aria-label="다음 페이지">→</button></div></div>`;
     } else {
         rows = catalogData.stats.filter((profile) => {
             const matchesQuery = !query || [profile.id, profile.zodiac, profile.job, profile.notes].join(' ').toLocaleLowerCase().includes(query);
@@ -1176,9 +1329,9 @@ function catalogMarkup() {
     const characterGradeCounts = [3, 4, 5].map((grade) => catalogData.characters.filter((entry) => entry.grade === grade).length).join('/');
     const monsterGradeCounts = [1, 2, 3, 4, 5].map((grade) => catalogData.monsters.filter((entry) => entry.grade === grade).length).join('/');
     const rosterSummary = state.catalogTab === 'characters'
-        ? `200명 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 40명 · 직업별 33–34명 · 등급 3→5 ${characterGradeCounts}`
+        ? `${catalogData.characters.length}명 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 52–53명 · 직업별 43–44명 · 등급 3→5 ${characterGradeCounts}`
         : state.catalogTab === 'monsters'
-            ? `30마리 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 6마리 · 직업별 5마리 · 등급 1→5 ${monsterGradeCounts}`
+            ? `${catalogData.monsters.length}마리 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 33–34마리 · 직업별 28마리 · 별자리별 14마리 · 등급 1→5 ${monsterGradeCounts}`
             : '';
     const summary = state.catalogTab === 'skills'
         ? `<p class="catalog-balance-summary">개별 균형 목표 ±2%p · ${balancedSkillCount}/${catalogData.skills.length}개 도달 · 지속턴 반영</p>`
@@ -1187,6 +1340,7 @@ function catalogMarkup() {
 }
 
 let developerEditingSkillId = null;
+let developerCharacterEditorReturn = null;
 function renderDeveloperSkillEditor() {
     const original = catalogData.skills.find((skill) => skill.id === developerEditingSkillId);
     if (!original) { state.view = 'catalog'; return renderCatalog(); }
@@ -1196,6 +1350,13 @@ function renderDeveloperSkillEditor() {
     wrapper.innerHTML = catalogIconMarkup(glyph, tint, original.name, 'catalog-icon');
     const iconChoices = [...new Set([...Object.values(statIcons), ...Object.values(jobGlyphs), ...Object.values(elementGlyphs), ...Object.values(zodiacIcons)])].filter((src) => src.startsWith('/'));
     const close = () => {
+        if (developerCharacterEditorReturn) {
+            const context = developerCharacterEditorReturn;
+            developerCharacterEditorReturn = null;
+            state.view = 'catalog'; state.catalogTab = 'characters'; render();
+            openDeveloperCharacterEditor(context.id, false, context.draft);
+            return;
+        }
         state.view = 'catalog'; state.catalogTab = 'skills'; render();
         game.querySelector(`[data-skill-edit="${CSS.escape(original.id)}"]`)?.focus();
     };
@@ -1218,7 +1379,7 @@ function characterCodexMarkup() {
     const query = state.catalogSearch.trim().toLocaleLowerCase();
     const isMonster = state.characterCodexTab === 'monsters';
     const rosterLabel = isMonster ? '몬스터' : '캐릭터';
-    const entries = catalogData[isMonster ? 'monsters' : 'characters'].map((entry) => isMonster ? entry : developerCharacter(entry)).filter((entry) => {
+    const entries = catalogData[isMonster ? 'monsters' : 'characters'].map((entry) => isMonster ? developerMonster(entry) : developerCharacter(entry)).filter((entry) => {
         const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level].join(' ').toLocaleLowerCase().includes(query);
         return matchesQuery
             && (!state.catalogElement || entry.element === state.catalogElement)
@@ -1234,7 +1395,7 @@ function characterCodexMarkup() {
         const active = entry.id === selected?.id;
         const border = elementBorderClasses[entry.element] || 'light';
         const title = `${entry.name} · ${entry.element} · ${entry.job} · ${entry.grade}등급`;
-        const thumbnailSrc = isMonster ? '' : characterImageSource(entry, true);
+        const thumbnailSrc = characterImageSource(entry, true);
         const thumbnail = thumbnailSrc
             ? `<img class="codex-character-thumb" src="${thumbnailSrc}" alt="${escapeHtml(entry.name)}" draggable="false">`
             : catalogIconMarkup(entry.mark, elementTints[entry.element] || '#a6d7e8', entry.name, 'codex-character-thumb');
@@ -1242,7 +1403,7 @@ function characterCodexMarkup() {
     }).join('');
     const tabs = `<nav class="codex-tabs" aria-label="도감 종류"><button class="codex-tab ${isMonster ? '' : 'active'}" type="button" data-codex-tab="characters" aria-pressed="${!isMonster}">캐릭터 도감</button><button class="codex-tab ${isMonster ? 'active' : ''}" type="button" data-codex-tab="monsters" aria-pressed="${isMonster}">몬스터 도감</button><button class="codex-tab" type="button" disabled title="아이템 도감 준비 중">아이템 도감</button><button class="codex-tab" type="button" disabled title="던전 도감 준비 중">던전 도감</button></nav>`;
     const panel = selected
-        ? plazaEncounterMarkup(isMonster ? selected : { ...selected, price: hirePrices[selected.grade] ?? 30, portraitSrc: characterImageSource(selected) })
+        ? plazaEncounterMarkup(isMonster ? selected : { ...selected, price: hirePrices[selected.grade] ?? 30, weeklyWage: hirePrices[selected.grade] ?? 30, portraitSrc: characterImageSource(selected) })
         : `<div class="codex-empty-state">조건에 맞는 ${rosterLabel}가 없습니다.</div>`;
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
     return `<header class="topbar plaza-topbar codex-topbar">${playerProfileMarkup()}<div class="codex-topbar-actions"><button class="game-menu-button codex-back-button" type="button" data-action="view-expedition" aria-label="돌아가기" title="돌아가기"><img src="/assets/icons/back_icon.svg" alt="" aria-hidden="true"></button></div></header><main class="character-codex-page plaza-page">${tabs}<div class="character-codex-heading"><div><h1 class="${isMonster ? 'codex-monster-heading' : ''}">도감 - ${rosterLabel} 도감</h1></div></div><section class="catalog-browser codex-browser"><section class="codex-feature-panel" aria-label="선택한 ${rosterLabel} 상세 정보">${panel}</section><div class="catalog-tools"><label class="catalog-search"><span>검색</span><input type="search" data-catalog-search value="${escapeHtml(state.catalogSearch)}" placeholder="이름, 속성, 직업 검색" autocomplete="off"></label>${filters}</div><section class="codex-roster" aria-label="${rosterLabel} 목록"><div class="codex-roster-heading"><h2>${rosterLabel} 목록</h2><span>${entries.length}/${catalogData[isMonster ? 'monsters' : 'characters'].length}</span></div><div class="codex-roster-viewport" tabindex="0" aria-label="${rosterLabel}를 좌우로 스크롤하여 선택">${portraits || '<p class="codex-empty-roster">표시할 항목이 없습니다.</p>'}</div></section></section></main>${gameFooterMarkup()}${gameMenuMarkup()}`;
@@ -1260,11 +1421,12 @@ function renderCharacterCodex() {
     }
     const portraitSrc = state.characterCodexTab === 'characters'
         ? characterImageSource(catalogData.characters.find((entry) => entry.id === state.catalogSelectedRosterId))
-        : '';
+        : characterImageSource(catalogData.monsters.find((entry) => entry.id === state.catalogSelectedRosterId) || {});
     const panel = game.querySelector('.codex-feature-panel');
     if (!portraitSrc || !panel) return;
     const mask = document.createElement('div');
-    mask.className = `codex-character-art-mask${animatePortrait ? ' is-entering' : ''}`;
+    const isMonster = state.characterCodexTab === 'monsters';
+    mask.className = `codex-character-art-mask${isMonster ? ' codex-monster-art-mask' : ''}${animatePortrait && !isMonster ? ' is-entering' : ''}`;
     mask.setAttribute('aria-hidden', 'true');
     const image = document.createElement('img');
     image.src = portraitSrc;
@@ -1272,6 +1434,15 @@ function renderCharacterCodex() {
     image.draggable = false;
     mask.append(image);
     panel.prepend(mask);
+    if (isMonster) {
+        const info = panel.querySelector('.plaza-encounter-info') ? logicalRect(panel.querySelector('.plaza-encounter-info')) : null;
+        const skills = panel.querySelector('.plaza-encounter-skills') ? logicalRect(panel.querySelector('.plaza-encounter-skills')) : null;
+        const bounds = logicalRect(mask);
+        if (info && skills && bounds.width) {
+            const center = (info.right + skills.left) / 2;
+            mask.style.setProperty('--monster-art-center', `${(center - bounds.left) / bounds.width * 100}%`);
+        }
+    }
 }
 
 function plazaEncounterMarkup(offer) {
@@ -1302,7 +1473,7 @@ function plazaEncounterMarkup(offer) {
         ? goldAmountMarkup(Math.max(0, Number(weeklyWage)))
         : '미정';
     const priceMarkup = offer.price === undefined ? '' : `<span class="plaza-encounter-price">영입가 <strong>${goldAmountMarkup(offer.price)}</strong></span><span class="plaza-encounter-price plaza-encounter-wage">주급 <strong>${wageLabel}</strong></span>`;
-    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span></div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span>${gradeMarkup}</h2><div class="plaza-encounter-stats">${statRows.map(([key, label, value]) => `<span><small>${statLabelMarkup(key, label)}</small><strong>${value}</strong></span>`).join('')}</div>${priceMarkup}</section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">스킬 정보</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
+    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span></div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span>${gradeMarkup}</h2>${offer.stageName ? `<p class="monster-stage-info">${escapeHtml(offer.stageName)} · ${offer.isBoss ? '보스' : '일반'} · ${escapeHtml(offer.size)}형</p><p class="monster-concept">${escapeHtml(offer.concept)}</p>` : ''}<div class="plaza-encounter-stats">${statRows.map(([key, label, value]) => `<span><small>${statLabelMarkup(key, label)}</small><strong>${value}</strong></span>`).join('')}</div>${priceMarkup}</section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">스킬 정보</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
 }
 
 function combatStatsFromProfile(stats) {
@@ -1329,6 +1500,8 @@ function hireMercenary(characterId) {
         effects: [],
     });
     state.plazaCurrentOffer = null;
+    if (state.tutorial?.stage === 'hire-first') state.tutorial.stage = 'look-second';
+    else if (state.tutorial?.stage === 'hire-second') state.tutorial.stage = 'depart';
     state.plazaMessage = `${offer.name}을(를) 고용했습니다.`;
     render();
 }
@@ -1337,14 +1510,16 @@ function releaseMercenary(characterId) {
     const index = state.recruits.findIndex((candidate) => candidate.id === characterId);
     if (index < 0) return;
     const [character] = state.recruits.splice(index, 1);
-    state.gold += character.price;
-    state.plazaOffers.push(character);
-    state.plazaMessage = `${character.name}의 고용을 취소했습니다.`;
+    if (!character.isGuildMember) {
+        state.gold += character.price;
+        state.plazaOffers.push(character);
+    }
+    state.plazaMessage = `${character.name}의 ${character.isGuildMember ? '선발' : '고용'}을 취소했습니다.`;
     render();
 }
 
 function encounterNextMercenary() {
-    state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id)).map(plazaOfferWithCurrentProfile);
+    state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id) && !state.guildMembers.some(member => member.id === entry.id)).map(plazaOfferWithCurrentProfile);
     if (!state.plazaOffers.length) {
         state.plazaCurrentOffer = null;
         state.plazaMessage = '더 이상 제안할 용병이 없는 듯 하다';
@@ -1353,6 +1528,8 @@ function encounterNextMercenary() {
     }
     const index = Math.floor(Math.random() * state.plazaOffers.length);
     state.plazaCurrentOffer = state.plazaOffers.splice(index, 1)[0];
+    if (state.tutorial?.stage === 'look-first') state.tutorial.stage = 'hire-first';
+    else if (state.tutorial?.stage === 'look-second') state.tutorial.stage = 'hire-second';
     state.plazaMessage = '';
     render();
 }
@@ -1379,10 +1556,48 @@ function giftCurrentMercenary() {
 
 function inviteCurrentMercenaryToGuild() {
     const offer = state.plazaCurrentOffer;
-    if (!offer) return;
-    if (!state.plazaGuildInvitedIds.includes(offer.id)) state.plazaGuildInvitedIds.push(offer.id);
-    state.plazaMessage = `${offer.name}에게 길드원 가입을 제안했습니다. 대답을 기다리는 동안 광장을 둘러볼 수 있습니다.`;
+    if (!offer || !characterEnabled(offer.id) || !canInviteGuildMember(state, offer)) return;
+    state.guildRecruitmentDialog = { type: 'proposal', memberId: offer.id };
     render();
+}
+
+function confirmGuildRecruitment() {
+    const dialog = state.guildRecruitmentDialog;
+    const offer = state.plazaCurrentOffer;
+    if (dialog?.type !== 'proposal' || offer?.id !== dialog.memberId) return;
+    const result = recruitGuildMember(state, offer);
+    if (!result) {
+        state.guildRecruitmentDialog = null;
+        render();
+        return;
+    }
+    state.guildRecruitmentDialog = { type: 'result', ...result };
+    state.plazaMessage = result.success ? `${result.name}이(가) 길드에 합류했습니다.` : `${result.name}이(가) 길드원 제안을 거절했습니다.`;
+    render();
+}
+
+function renderGuildProgressPopup() {
+    if (['lobby', 'playerSetup', 'prologue'].includes(state.view)) return;
+    let content = '';
+    if (state.pendingLevelUp) {
+        const level = state.pendingLevelUp;
+        content = `<span class="section-kicker">새로운 주 · 새로운 성장</span><h2 id="guild-progress-title">레벨 업!</h2><strong class="level-up-number">Lv.${level.previousLevel} → Lv.${level.level}</strong><p>경험치가 0으로 초기화되었습니다. 다음 레벨에 필요한 경험치는 ${level.maximumExperience.toLocaleString('ko-KR')}입니다.</p>${level.level === 2 ? '<div class="guild-recruitment-summary"><strong>길드원 제안 해금</strong><span>광장에서 동료를 영입하세요.</span></div>' : ''}<div class="plaza-dialog-actions single-action"><button type="button" data-action="level-up-confirm">확인</button></div>`;
+    } else if (!pendingGuildDispatchResults(state).length && state.guildRecruitmentDialog) {
+        const dialog = state.guildRecruitmentDialog;
+        if (dialog.type === 'proposal') {
+            const offer = state.plazaCurrentOffer;
+            if (!offer || offer.id !== dialog.memberId) return;
+            const relationship = guildRecruitmentRelationship(state, offer);
+            const wage = guildRecruitmentWage(offer);
+            content = `<span class="section-kicker">새로운 동료</span><h2 id="guild-progress-title">${escapeHtml(offer.name)} · 길드원 제안</h2><p>길드원으로 영입되면 즉시 첫 주차 주급이 차감됩니다. 이후 매주 시작될 때마다 주급을 지급합니다.</p><p>친밀도가 낮으면 상대방이 제안을 거절할 수 있습니다. 거절 시 골드는 차감되지 않으며, 이번 주에는 다시 제안할 수 없습니다.</p><div class="guild-recruitment-summary"><span>첫 주차 주급 / 매주</span><strong>${goldAmountMarkup(wage, 'G')}</strong></div><table class="guild-recruitment-rates"><thead><tr><th scope="col">관계 단계</th><th scope="col">영입 성공률</th></tr></thead><tbody>${guildRelationshipStages.map(stage => `<tr class="${stage === relationship ? 'is-current' : ''}"><td>${stage.label}${stage === relationship ? '<small>현재 관계</small>' : ''}</td><td>${stage.chance}%</td></tr>`).join('')}</tbody></table><div class="plaza-dialog-actions"><button type="button" class="plaza-dialog-cancel" data-action="guild-recruitment-cancel">취소</button><button type="button" data-action="guild-recruitment-confirm" ${canInviteGuildMember(state, offer) ? '' : 'disabled'}>길드원 제안 · ${relationship.chance}%</button></div>`;
+        } else {
+            content = `<span class="section-kicker">길드원 제안 결과</span><h2 id="guild-progress-title">${dialog.success ? '영입 성공' : '영입 실패'}</h2><p>${escapeHtml(dialog.name)}${dialog.success ? '이(가) 길드에 합류했습니다. 길드원 목록에서 원정대에 선발할 수 있습니다.' : '이(가) 아직 함께할 준비가 되지 않았다며 제안을 거절했습니다.'}</p><div class="guild-recruitment-summary"><span>${dialog.success ? '첫 주차 주급 지급' : '골드 차감 없음'}</span><strong>${goldAmountMarkup(dialog.success ? dialog.wage : 0, 'G')}</strong></div><div class="plaza-dialog-actions single-action"><button type="button" data-action="guild-recruitment-result-confirm">확인</button></div>`;
+        }
+    }
+    if (!content) return;
+    game.insertAdjacentHTML('beforeend', `<div class="end-overlay guild-recruitment-overlay"><section class="end-dialog guild-recruitment-dialog" data-popup-kind="${state.pendingLevelUp || state.guildRecruitmentDialog?.success ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="guild-progress-title">${content}</section></div>`);
+    for (const child of game.children) if (!child.classList.contains('guild-recruitment-overlay')) child.inert = true;
+    game.querySelector('.guild-recruitment-overlay button:not(:disabled)')?.focus({ preventScroll: true });
 }
 
 function requestPlazaRest() {
@@ -1398,16 +1613,24 @@ function weeklyMaintenanceCost() {
     return 100 + weeklyGuildWages();
 }
 
-function advanceWeekWithFixedCost(message = '') {
-    state.week += 1;
-    const guildWages = weeklyGuildWages();
-    const fixedCost = 100 + guildWages;
-    state.gold -= fixedCost;
-    state.plazaOffers = drawPlazaOffers();
+function resetPlazaEncounters() {
     state.plazaCurrentOffer = null;
     state.plazaGiftedIds = [];
     state.plazaGuildInvitedIds = [];
+    state.plazaGuildSelectionOpen = false;
+    state.plazaOffers = drawPlazaOffers();
+}
+
+function advanceWeekWithFixedCost(message = '', { resetEncounters = true } = {}) {
+    state.week += 1;
+    levelUpAtWeekStart(state);
+    const returnedDispatches = completeGuildDispatches(state);
+    const guildWages = weeklyGuildWages();
+    const fixedCost = 100 + guildWages;
+    state.gold -= fixedCost;
+    if (resetEncounters) resetPlazaEncounters();
     state.plazaMessage = `${message ? `${message} ` : ''}${state.week}주차 고정비 ${fixedCost}골드(생활비 100 + 길드 주급 ${guildWages})를 차감했습니다.`;
+    if (returnedDispatches.length) state.plazaMessage += ' ' + returnedDispatches.map((dispatch) => `${dispatch.destination.name} 파견 복귀: ${dispatch.status === 'success' ? `성공 · 골드 ${dispatch.gold}, 명성 ${dispatch.fame}` : '실패 · 보수 없음'}`).join(' / ');
     if (!state.fixedCostNoticeShown) {
         state.fixedCostNoticeShown = true;
         state.plazaDialog = 'maintenance';
@@ -1440,13 +1663,28 @@ function returnToPlaza(completed, defeated = false) {
     } else {
         addLog(defeated ? '원정대가 전멸해 보상 없이 광장으로 돌아왔습니다.' : '원정을 포기하고 광장으로 돌아왔습니다.');
     }
+    finishRegularExpeditionDestination(state, completed, guildDestinations);
     state.expeditionRewardBaseline = null;
-    advanceWeekWithFixedCost(completed ? '원정을 완수했습니다.' : defeated ? '원정대가 전멸했습니다.' : '원정에서 복귀했습니다.');
+    if (state.tutorial?.stage === 'battle' && completed) {
+        advanceWeekWithFixedCost('첫 원정을 마쳤습니다.');
+        state.plazaDialog = '';
+        state.fixedCostNoticeShown = true;
+        state.tutorial.stage = 'founding-story';
+        startPlazaDialogue('tutorial.founding');
+        render();
+        return;
+    }
+    if (state.tutorial?.stage === 'battle' && !completed) state.tutorial.stage = 'select-open';
+    advanceWeekWithFixedCost(completed ? '원정을 완수했습니다.' : defeated ? '원정대가 전멸했습니다.' : '원정에서 복귀했습니다.', { resetEncounters: false });
+    // Every regular expedition return starts a fresh encounter pool, regardless of outcome.
+    state.activePlazaDialogue = null;
+    resetPlazaEncounters();
     render();
 }
 
 function showExpeditionResult(completed, defeated = false) {
     if (state.expeditionResult) return;
+    retreatDialogOpen = false;
     if (!completed && state.expeditionRewardBaseline) {
         state.gold = state.expeditionRewardBaseline.gold;
         state.experience = state.expeditionRewardBaseline.experience;
@@ -1478,7 +1716,7 @@ function showExpeditionResult(completed, defeated = false) {
     state.ended = true;
     state.mode = completed ? 'victory' : 'defeat';
     state.message = completed
-        ? '보스를 처치하고 회랑을 정복했습니다.'
+        ? state.tutorial?.stage === 'battle' ? '온바람 평야 북부의 첫 원정을 무사히 마쳤습니다.' : '보스를 처치하고 회랑을 정복했습니다.'
         : defeated ? '원정대가 전멸했습니다.' : '원정을 포기했습니다.';
     gameMenuOpen = false;
     render();
@@ -1494,7 +1732,8 @@ function confirmExpeditionResult() {
 }
 
 function requestExpedition() {
-    if (!state.recruits.length) return;
+    if (!regularDepartureStatus().canDepart) return;
+    if (state.tutorial?.stage === 'depart') return startExpedition();
     if (state.recruits.length < maxPartySize) {
         state.plazaDialog = 'expedition';
         render();
@@ -1538,7 +1777,9 @@ function cancelPlazaDialog() {
 }
 
 function startExpedition() {
-    if (!state.recruits.length) return;
+    if (!regularDepartureStatus().canDepart) return;
+    state.plazaGuildSelectionOpen = false;
+    startRegularExpeditionDestination(state, state.tutorial?.stage === 'depart' ? tutorialExpeditionDestination : regularDepartureStatus().destination);
     party = state.recruits.map((character) => {
         const stats = character.stats;
         return {
@@ -1557,6 +1798,10 @@ function startExpedition() {
         message: '고용한 용병들이 원정대에 합류했습니다.',
         log: [`${party.length}명의 용병이 원정을 시작했습니다.`],
     });
+    if (state.tutorial?.stage === 'depart') {
+        state.tutorial.stage = 'battle';
+        return startEncounter();
+    }
     render();
 }
 
@@ -1568,26 +1813,26 @@ function renderPlazaLegacy() {
     const giftUsed = offer && state.plazaGiftedIds.includes(offer.id);
     const guildInvited = offer && state.plazaGuildInvitedIds.includes(offer.id);
     const choices = offer
-        ? `<div class="plaza-choice-grid"><button data-action="plaza-hire" data-character-id="${escapeHtml(offer.id)}" ${state.recruits.length >= maxPartySize || state.gold < offer.price ? 'disabled' : ''}>용병 제안 · ${goldAmountMarkup(offer.price, 'G')}</button><button data-action="plaza-guild" disabled>${guildInvited ? '길드 제안 완료' : '길드원 제안'}</button><button data-action="plaza-gift" disabled>${giftUsed ? '선물 전달 완료' : `선물 주기 · ${goldAmountMarkup(giftPrice, 'G')}`}</button><button data-action="plaza-pass">지나가기 <span>→</span></button></div><p class="plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`
+        ? `<div class="plaza-choice-grid"><button data-action="plaza-hire" data-character-id="${escapeHtml(offer.id)}" ${state.recruits.length >= maxPartySize || state.gold < offer.price ? 'disabled' : ''}>용병 제안 · ${goldAmountMarkup(offer.price, 'G')}</button><button data-action="plaza-guild" ${canInviteGuildMember(state, offer) ? '' : 'disabled'}>${guildInvited ? '길드원 제안 완료' : '길드원 제안'} · ${goldAmountMarkup(guildRecruitmentWage(offer), 'G')}</button><button data-action="plaza-gift" disabled>${giftUsed ? '선물 전달 완료' : `선물 주기 · ${goldAmountMarkup(giftPrice, 'G')}`}</button><button data-action="plaza-pass">지나가기 <span>→</span></button></div><p class="plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`
         : `<button class="plaza-look-around" data-action="plaza-look-around" ${state.plazaOffers.length === 0 ? 'disabled' : ''}>광장을 둘러본다 <span>→</span></button><p class="plaza-feedback">${escapeHtml(state.plazaMessage || (state.plazaOffers.length === 0 ? '더 이상 제안할 용병이 없는 듯 하다' : ''))}</p>`;
-    game.innerHTML = `<header class="topbar plaza-topbar"><a class="wordmark" href="#" aria-label="검은 회랑 광장"><span class="wordmark-sigil">✠</span><span>검은 회랑<small>모험가 광장</small></span></a><div class="plaza-player-meta"><span>플레이어 Lv.${state.userLevel}</span><strong>${goldAmountMarkup(state.gold)}</strong><button class="catalog-open" data-action="catalog">도감</button></div></header><main class="plaza-page"><section class="scene plaza-scene"><div class="scene-heading"><span class="section-kicker">모험가 광장</span><h1>${offer ? '새로운 만남' : '광장을 둘러보다'}</h1><p>${offer ? '광장에 한 명의 모험가가 다가왔습니다.' : `${remaining}명의 용병을 만날 수 있습니다.`}</p></div><div class="dungeon-art plaza-encounter-stage"><div class="art-haze haze-one"></div><div class="art-haze haze-two"></div><div class="arch arch-outer"><div class="arch arch-inner"><div class="arch-opening"><div class="distant-light"></div><div class="distant-floor"></div></div></div></div><div class="wall wall-left"><i></i><i></i><i></i><i></i><i></i></div><div class="wall wall-right"><i></i><i></i><i></i><i></i><i></i></div><div class="floor-stone"></div>${offer ? plazaEncounterMarkup(offer) : `<div class="plaza-empty-stage"><span class="plaza-stage-sigil">✦</span><p>${escapeHtml(state.plazaMessage || (state.plazaOffers.length === 0 ? '더 이상 제안할 용병이 없는 듯 하다' : '광장에는 여러 모험가가 오갑니다.'))}</p></div>`}</div></section><section class="lower-grid plaza-lower-grid"><section class="party-panel plaza-roster"><div class="panel-heading"><div><span class="section-kicker">원정 준비</span><h2>용병단 <small>${state.recruits.length}/${maxPartySize}</small></h2></div><span class="formation-label">Lv.${state.userLevel}</span></div><div class="plaza-hired-list">${recruits}${vacantSlots}</div><div class="plaza-depart-row"><button class="plaza-depart" data-action="plaza-depart" ${state.recruits.length === 0 ? 'disabled' : ''}>원정 출발 <span>→</span></button></div></section><aside class="action-panel plaza-action-panel"><div class="panel-heading"><div><span class="section-kicker">${offer ? '선택' : '다음 조우'}</span><h2>${offer ? `${offer.name}과의 대화` : '광장을 살펴본다'}</h2></div><span class="turn-indicator">${remaining}명 남음</span></div>${choices}</aside></section></main><footer class="bottom-note"><span>검은 회랑 <i>·</i> 광장</span><span>직업별 용병 제안 · 최대 ${maxPartySize}명</span></footer>`;
+    game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div><header class="topbar plaza-topbar"><a class="wordmark" href="#" aria-label="검은 회랑 광장"><span class="wordmark-sigil">✠</span><span>검은 회랑<small>모험가 광장</small></span></a><div class="plaza-player-meta"><span>플레이어 Lv.${state.userLevel}</span><strong>${goldAmountMarkup(state.gold)}</strong><strong class="current-fame">${fameAmountMarkup(state.fame)}</strong><button class="catalog-open" data-action="catalog">도감</button></div></header><main class="plaza-page"><section class="scene plaza-scene"><div class="scene-heading"><span class="section-kicker">모험가 광장</span><h1>${offer ? '새로운 만남' : '광장을 둘러보다'}</h1><p>${offer ? '광장에 한 명의 모험가가 다가왔습니다.' : `${remaining}명의 용병을 만날 수 있습니다.`}</p></div><div class="dungeon-art plaza-encounter-stage"><div class="art-haze haze-one"></div><div class="art-haze haze-two"></div><div class="arch arch-outer"><div class="arch arch-inner"><div class="arch-opening"><div class="distant-light"></div><div class="distant-floor"></div></div></div></div><div class="wall wall-left"><i></i><i></i><i></i><i></i><i></i></div><div class="wall wall-right"><i></i><i></i><i></i><i></i><i></i></div><div class="floor-stone"></div>${offer ? plazaEncounterMarkup(offer) : `<div class="plaza-empty-stage"><span class="plaza-stage-sigil">✦</span><p>${escapeHtml(state.plazaMessage || (state.plazaOffers.length === 0 ? '더 이상 제안할 용병이 없는 듯 하다' : '광장에는 여러 모험가가 오갑니다.'))}</p></div>`}</div></section><section class="lower-grid plaza-lower-grid"><section class="party-panel plaza-roster"><div class="panel-heading"><div><span class="section-kicker">원정 준비</span><h2>용병단 <small>${state.recruits.length}/${maxPartySize}</small></h2></div><span class="formation-label">Lv.${state.userLevel}</span></div><div class="plaza-hired-list">${recruits}${vacantSlots}</div><div class="plaza-depart-row"><button class="plaza-depart" data-action="plaza-depart" ${state.recruits.length === 0 ? 'disabled' : ''}>원정 출발 <span>→</span></button></div></section><aside class="action-panel plaza-action-panel"><div class="panel-heading"><div><span class="section-kicker">${offer ? '선택' : '다음 조우'}</span><h2>${offer ? `${offer.name}과의 대화` : '광장을 살펴본다'}</h2></div><span class="turn-indicator">${remaining}명 남음</span></div>${choices}</aside></section></main><footer class="bottom-note"><span>검은 회랑 <i>·</i> 광장</span><span>직업별 용병 제안 · 최대 ${maxPartySize}명</span></footer>`;
 }
 
 function renderPlaza() {
-    state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id)).map(plazaOfferWithCurrentProfile);
+    state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id) && !state.guildMembers.some(member => member.id === entry.id)).map(plazaOfferWithCurrentProfile);
     if (state.plazaCurrentOffer && !characterEnabled(state.plazaCurrentOffer.id)) state.plazaCurrentOffer = null;
     if (state.plazaCurrentOffer) state.plazaCurrentOffer = plazaOfferWithCurrentProfile(state.plazaCurrentOffer);
     const transitionClass = plazaTransitionPhase ? ` plaza-transition-${plazaTransitionPhase}` : '';
     plazaTransitionPhase = '';
-    const offer = state.plazaCurrentOffer
+    const offer = !state.plazaGuildSelectionOpen && state.plazaCurrentOffer
         ? { ...state.plazaCurrentOffer, portraitSrc: characterImageSource(state.plazaCurrentOffer) }
         : null;
-    const activeDialogue = getActivePlazaDialogue();
+    const activeDialogue = state.plazaGuildSelectionOpen ? null : getActivePlazaDialogue();
     const isMonologue = activeDialogue?.dialogue.presentation === 'monologue';
     const isOneOnOne = activeDialogue?.dialogue.presentation === 'oneOnOne';
     const isTwoPerson = activeDialogue?.dialogue.presentation === 'twoPerson';
     const dialogueCharacter = isOneOnOne
-        ? catalogData.characters.find((character) => character.id === activeDialogue.dialogue.characterId)
+        ? developerCharacter(catalogData.characters.find((character) => character.id === activeDialogue.dialogue.characterId))
         : null;
     const dialogueCharacterName = dialogueCharacter?.name || '모험가';
     const dialogueParticipants = activeDialogue?.dialogue.participants || [];
@@ -1604,13 +1849,16 @@ function renderPlaza() {
         : state.plazaOffers.length
             ? '원정대원을 모으고 다음 여정을 준비합니다.'
             : '더 이상 제안할 용병이 없는 듯 하다';
-    const recruits = state.recruits.map((hero, index) => heroMarkup(hero, index)).join('');
-    const vacantSlots = Array.from({ length: maxPartySize - state.recruits.length }, emptyPartySlotMarkup).join('');
+    const recruits = state.recruits.map((hero, index) => heroMarkup(hero, index, { plazaControls: true })).join('');
+    const vacantSlots = Array.from({ length: maxPartySize - state.recruits.length }, () => emptyPartySlotMarkup().replace('</article>', `<button class="plaza-guild-select-open" type="button" data-action="plaza-guild-select-open" ${hasAvailablePlazaGuildMember(state, maxPartySize) ? '' : 'disabled'}><img src="/assets/icons/plus_icon.svg" alt="" aria-hidden="true">길드원 선발</button></article>`)).join('');
     const giftUsed = offer && state.plazaGiftedIds.includes(offer.id);
     const guildInvited = offer && state.plazaGuildInvitedIds.includes(offer.id);
-    const choices = offer
-        ? `<div class="action-buttons plaza-choice-grid plaza-action-buttons"><button class="combat-action" data-action="plaza-hire" data-character-id="${escapeHtml(offer.id)}" ${state.recruits.length >= maxPartySize || state.gold < offer.price ? 'disabled' : ''}>${catalogIconMarkup('/assets/icons/party_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">용병 제안</span></button><button class="combat-action" data-action="plaza-guild" disabled>${catalogIconMarkup('/assets/icons/royal_fleur_no_shadow.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">${guildInvited ? '길드원 제안 완료' : '길드원 제안'}</span></button><button class="combat-action" data-action="plaza-gift" disabled>${catalogIconMarkup('/assets/icons/event_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">${giftUsed ? '선물 전달 완료' : `선물 주기 · ${goldAmountMarkup(giftPrice, 'G')}`}</span></button><button class="combat-action" data-action="plaza-pass">${catalogIconMarkup('/assets/icons/shoe_footprints_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">지나가기</span></button></div><p class="target-hint plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`
-        : `<div class="action-buttons plaza-town-actions plaza-action-buttons"><button class="combat-action" data-action="plaza-look-around" ${state.plazaOffers.length === 0 ? 'disabled' : ''}>${catalogIconMarkup('/assets/icons/shoe_footprints_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">광장을 살펴본다</span></button><button class="combat-action" data-action="plaza-rest">${catalogIconMarkup('◷', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">한 주 쉬기</span></button><button class="combat-action" data-action="plaza-depart" ${state.recruits.length === 0 ? 'disabled' : ''}>${catalogIconMarkup('/assets/icons/flag_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">원정 출발</span></button></div><p class="target-hint plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`;
+    const departure = regularDepartureStatus();
+    const choices = state.plazaGuildSelectionOpen
+        ? '<div class="action-buttons plaza-action-buttons"><button class="combat-action" type="button" data-action="plaza-guild-select-close"><span class="plaza-action-label">광장으로 돌아가기</span></button></div>'
+        : offer
+        ? `<div class="action-buttons plaza-choice-grid plaza-action-buttons"><button class="combat-action" data-action="plaza-hire" data-character-id="${escapeHtml(offer.id)}" ${state.recruits.length >= maxPartySize || state.gold < offer.price ? 'disabled' : ''}>${catalogIconMarkup('/assets/icons/party_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">용병 제안</span></button><button class="combat-action" data-action="plaza-guild" ${canInviteGuildMember(state, offer) ? '' : 'disabled'}>${catalogIconMarkup('/assets/icons/royal_fleur_no_shadow.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">${guildInvited ? '길드원 제안 완료' : '길드원 제안'} · ${goldAmountMarkup(guildRecruitmentWage(offer), 'G')}</span></button><button class="combat-action" data-action="plaza-gift" disabled>${catalogIconMarkup('/assets/icons/event_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">${giftUsed ? '선물 전달 완료' : `선물 주기 · ${goldAmountMarkup(giftPrice, 'G')}`}</span></button><button class="combat-action" data-action="plaza-pass">${catalogIconMarkup('/assets/icons/shoe_footprints_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">지나가기</span></button></div><p class="target-hint plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`
+        : `<div class="action-buttons plaza-town-actions plaza-action-buttons"><button class="combat-action" data-action="plaza-look-around" ${state.plazaOffers.length === 0 ? 'disabled' : ''}>${catalogIconMarkup('/assets/icons/shoe_footprints_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">광장을 살펴본다</span></button>${departure.requiresDestination ? `<button class="combat-action regular-destination-button${departure.destination ? ' is-destination-selected' : ''}" type="button" data-action="regular-destination-open">${catalogIconMarkup('/assets/icons/map_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">원정지 선택${departure.destination ? ` - ${escapeHtml(departure.destination.name)}` : ''}</span></button>` : ''}<button class="combat-action" data-action="plaza-rest">${catalogIconMarkup('◷', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">한 주 쉬기</span></button><button class="combat-action${departure.canDepart ? ' is-departure-ready' : ''}" data-action="plaza-depart" ${departure.canDepart ? '' : 'disabled'}>${catalogIconMarkup('/assets/icons/flag_icon.svg', '#a6d7e8', '', 'plaza-action-icon')}<span class="plaza-action-label">${departure.label}</span></button></div><p class="target-hint plaza-feedback">${goldTextMarkup(state.plazaMessage)}</p>`;
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
     const guildWages = weeklyGuildWages();
     const maintenance = weeklyMaintenanceCost();
@@ -1623,11 +1871,11 @@ function renderPlaza() {
         : state.plazaDialog === 'expedition'
             ? { title: '원정 출발', label: '원정대 확인', message: `원정에는 4명의 용병을 고용하는 것을 추천합니다. 현재 ${state.recruits.length}명의 용병이 원정대에 참여한 상태입니다. 이대로 원정을 떠나시겠습니까?`, confirm: '이대로 출발' }
             : null;
-    const header = `<header class="topbar plaza-topbar${transitionClass}">${playerProfileMarkup()}<div class="plaza-player-meta"><button class="game-menu-button" type="button" data-action="game-menu-open" aria-label="메뉴" title="메뉴">☰</button></div></header>`;
+    const header = `<header class="topbar plaza-topbar${transitionClass}">${playerProfileMarkup()}<div class="plaza-player-meta">${gameMenuButtonsMarkup()}</div></header>`;
     const sceneContent = isOneOnOne || isTwoPerson ? '' : offer ? plazaEncounterMarkup(offer) : '<div class="plaza-empty-stage"></div>';
     const sceneTitle = dialogueContextLabel || (offer ? `${offer.name}과 조우` : '원정 준비 중');
-    const scene = `<section class="scene plaza-scene"><div class="scene-heading location-heading"><h1>모험가 광장 - ${escapeHtml(sceneTitle)}</h1><div class="plaza-current-info"><span>${state.week}주차 -</span><strong>${goldAmountMarkup(state.gold)}</strong></div></div><div class="dungeon-art plaza-encounter-stage">${sceneContent}</div></section>`;
-    const roster = `<section class="party-panel plaza-roster"><div class="panel-heading"><div><h2>원정대 <small>${state.recruits.length}/${maxPartySize}</small></h2></div></div><div class="party-list plaza-party-list">${recruits}${vacantSlots}</div></section>`;
+    const scene = `<section class="scene plaza-scene"><div class="scene-heading location-heading"><h1>모험가 광장 - ${state.plazaGuildSelectionOpen ? '길드원 선발' : escapeHtml(sceneTitle)}</h1><div class="plaza-current-info"><span>${state.week}주차 -</span><strong>${goldAmountMarkup(state.gold)}</strong><strong class="current-fame">${fameAmountMarkup(state.fame)}</strong></div></div><div class="dungeon-art plaza-encounter-stage">${state.plazaGuildSelectionOpen ? guildDispatchMembersMarkup({ normalParty: true }) : sceneContent}</div></section>`;
+    const roster = `<section class="party-panel plaza-roster"><div class="panel-heading"><div><h2>원정대 <small>${state.recruits.length}/${maxPartySize}</small></h2></div>${partyPowerMarkup(state.recruits)}</div><div class="party-list plaza-party-list">${recruits}${vacantSlots}</div></section>`;
     const dialogueNode = activeDialogue?.node;
     const dialogueText = dialogueNode?.text
         ?.replaceAll('{{playerName}}', state.playerName)
@@ -1646,11 +1894,11 @@ function renderPlaza() {
         ? `<div class="plaza-dialogue-copy" aria-live="polite"><span class="plaza-dialogue-speaker">${escapeHtml(dialogueSpeaker)}</span><p>${goldTextMarkup(dialogueText)}</p></div>${dialogueChoices}`
         : isMonologue ? '' : choices;
     const actionPanel = `<aside class="action-panel plaza-action-panel"><div class="panel-heading ${activeDialogue ? '' : offer ? 'contract-heading' : 'expedition-ready-heading'}"><div><h2>${activeDialogue ? '선택' : offer ? '계약' : '원정 준비'}</h2></div></div>${dialogueMarkup}</aside>`;
-    const modal = dialog ? `<div class="end-overlay plaza-confirm-overlay"><section class="end-dialog" role="dialog" aria-modal="true" aria-labelledby="plaza-dialog-title"><span class="section-kicker">${dialog.label}</span><h2 id="plaza-dialog-title">${dialog.title}</h2><p>${goldTextMarkup(dialog.message)}</p><div class="plaza-dialog-actions ${dialog.cancel === false ? 'single-action' : ''}">${dialog.cancel === false ? '' : '<button class="plaza-dialog-cancel" data-action="plaza-dialog-cancel">취소</button>'}<button data-action="plaza-dialog-confirm">${dialog.confirm}</button></div></section></div>` : '';
+    const modal = dialog && !state.pendingLevelUp && !state.guildRecruitmentDialog && !pendingGuildDispatchResults(state).length ? `<div class="end-overlay plaza-confirm-overlay"><section class="end-dialog" data-popup-kind="${state.plazaDialog === 'support' ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="plaza-dialog-title"><span class="section-kicker">${dialog.label}</span><h2 id="plaza-dialog-title">${dialog.title}</h2><p>${goldTextMarkup(dialog.message)}</p><div class="plaza-dialog-actions ${dialog.cancel === false ? 'single-action' : ''}">${dialog.cancel === false ? '' : '<button class="plaza-dialog-cancel" data-action="plaza-dialog-cancel">취소</button>'}<button data-action="plaza-dialog-confirm">${dialog.confirm}</button></div></section></div>` : '';
     const plazaJobSummary = !activeDialogue && !offer && state.plazaOffers.length
         ? `<p class="plaza-job-summary">광장에 <span class="plaza-job-counts">${plazaJobCountsMarkup()}</span>이 남아 있습니다. 광장을 탐색하여 그들과 조우해보세요.</p>`
         : '';
-    game.innerHTML = `${header}<main class="plaza-page${transitionClass}">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main>${gameFooterMarkup()}${modal}${gameMenuMarkup()}`;
+    game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div>${header}<main class="plaza-page${transitionClass}">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main>${gameFooterMarkup()}${modal}${gameMenuMarkup()}`;
     if (offer?.portraitSrc && !activeDialogue) {
         const mask = document.createElement('div');
         mask.className = 'codex-character-art-mask plaza-encounter-character-mask';
@@ -1659,17 +1907,23 @@ function renderPlaza() {
         image.src = offer.portraitSrc;
         image.alt = '';
         image.draggable = false;
-        mask.append(image);
+        const additiveImage = image.cloneNode();
+        additiveImage.className = 'plaza-encounter-additive';
+        additiveImage.setAttribute('aria-hidden', 'true');
+        mask.append(image, additiveImage);
         game.querySelector('.plaza-encounter-stage')?.prepend(mask);
     }
-    if (plazaJobSummary) game.querySelector('.plaza-empty-stage')?.insertAdjacentHTML('beforeend', plazaJobSummary);
+    if (!state.plazaGuildSelectionOpen && plazaJobSummary) game.querySelector('.plaza-empty-stage')?.insertAdjacentHTML('beforeend', plazaJobSummary);
     if (isMonologue) {
-        const stage = game.querySelector('.plaza-encounter-stage');
-        stage?.insertAdjacentHTML('beforeend', `<p class="plaza-job-summary plaza-monologue-text" aria-live="polite">${goldTextMarkup(dialogueText)}</p>`);
         const lowerGrid = game.querySelector('.plaza-lower-grid');
         if (lowerGrid) {
             lowerGrid.classList.add('plaza-lower-grid-monologue');
-            lowerGrid.innerHTML = '<div class="panel-heading"><h2>선택</h2></div><div class="plaza-monologue-controls"><button class="combat-action plaza-monologue-next" type="button" data-action="plaza-dialogue-advance">다음</button></div>';
+            lowerGrid.innerHTML = dialoguePanelMarkup(dialogueNode?.speaker === '' ? '' : '나', dialogueText);
+            stopDialogueTypewriter = typeDialogueText(lowerGrid.querySelector('.plaza-monologue-line'), dialogueText, {
+                immediate: plazaDialogueExitPending || window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+                onCharacter: playDialogueTypingSound,
+            });
+            if (!modal) lowerGrid.querySelector('.plaza-monologue-dialogue')?.focus({ preventScroll: true });
         }
     }
     if (isOneOnOne || isTwoPerson) {
@@ -1690,20 +1944,19 @@ function renderPlaza() {
                 ? `<div class="codex-character-art-mask plaza-dialogue-character-mask plaza-dialogue-character-${side}${listenerClass}" aria-hidden="true"><img src="${portraitSrc}" alt="" draggable="false"></div>`
                 : `<div class="plaza-dialogue-character-fallback plaza-dialogue-character-${side}${listenerClass}">${catalogIconMarkup(character?.mark || jobGlyphs[character?.job] || '✧', elementTints[character?.element] || '#a6d7e8', name, 'plaza-dialogue-character-icon')}</div>`;
         }).join('');
-        const bubbleSide = isTwoPerson
-            ? dialogueNode.speakerCharacterId === dialogueParticipants[0] ? 'center-left' : 'center-right'
-            : activeDialogue.bubbleSide;
-        stage?.insertAdjacentHTML('beforeend', `${portraitMarkup}<div class="plaza-dialogue-bubble is-${bubbleSide}" aria-live="polite"><p>${goldTextMarkup(dialogueText)}</p></div>`);
-        fitPlazaDialogueBubble(stage);
+        stage?.insertAdjacentHTML('beforeend', portraitMarkup);
         const lowerGrid = game.querySelector('.plaza-lower-grid');
         const choices = (dialogueNode?.choices || []).slice(0, 8);
         const choiceButtons = choices.map((choice) => `<button class="combat-action plaza-dialogue-choice" type="button" data-action="plaza-dialogue-advance" data-dialogue-next="${escapeHtml(choice.next)}">${escapeHtml(choice.text)}</button>`).join('');
         if (lowerGrid) {
-            lowerGrid.classList.add('plaza-lower-grid-one-on-one');
-            lowerGrid.innerHTML = `<div class="panel-heading"><h2>선택</h2></div><div class="plaza-dialogue-options" data-choice-count="${choices.length}" role="group" aria-label="대화 선택지">${choiceButtons}</div>`;
-        }
-        if (!choices.length) {
-            stage?.insertAdjacentHTML('beforeend', '<button class="plaza-dialogue-next-icon" type="button" data-action="plaza-dialogue-advance" aria-label="다음 대사"><span aria-hidden="true">⌄</span></button>');
+            lowerGrid.classList.add('plaza-lower-grid-dialogue');
+            lowerGrid.classList.toggle('has-dialogue-choices', choices.length > 0);
+            lowerGrid.innerHTML = `${dialoguePanelMarkup(dialogueSpeaker, dialogueText, !choices.length)}${choices.length ? `<div class="plaza-dialogue-choice-area"><div class="panel-heading"><h2>선택</h2></div><div class="plaza-dialogue-options" data-choice-count="${choices.length}" role="group" aria-label="대화 선택지">${choiceButtons}</div></div>` : ''}`;
+            stopDialogueTypewriter = typeDialogueText(lowerGrid.querySelector('.plaza-monologue-line'), dialogueText, {
+                immediate: plazaDialogueExitPending || window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+                onCharacter: playDialogueTypingSound,
+            });
+            if (!modal) lowerGrid.querySelector(choices.length ? '.plaza-dialogue-choice' : '.plaza-monologue-dialogue')?.focus({ preventScroll: true });
         }
     }
 }
@@ -1764,18 +2017,24 @@ function combatNumberMarkup(target) {
     return `<span class="damage-float ${number.type}" style="animation-delay:-${now - number.at}ms">${label}</span>`;
 }
 
-function heroMarkup(hero, index) {
+function guildDispatchCardActionsMarkup(member, normalParty = false) {
+    const canSwap = !normalParty || member.isGuildMember;
+    return `<div class="guild-dispatch-card-actions">${canSwap ? `<button type="button" data-action="${normalParty ? 'plaza-party-swap' : 'guild-dispatch-swap'}" data-member-id="${escapeHtml(member.id)}" aria-label="${escapeHtml(member.name)} 선발 취소 후 대원 선택" title="선발 취소 후 대원 선택"><img src="/assets/icons/swap_icon.svg" alt="" aria-hidden="true"></button>` : ''}<button type="button" disabled aria-label="스크롤 · 추후 개발" title="추후 개발"><img src="/assets/icons/scroll_icon.svg" alt="" aria-hidden="true"></button></div>`;
+}
+
+function heroMarkup(hero, index, { dispatchControls = false, plazaControls = false, readOnly = false } = {}) {
+    const preparationControls = dispatchControls || plazaControls || readOnly;
     const fallen = hero.hp <= 0;
     const hit = Date.now() - (hero.hitAt || 0) < 1500;
     const selectedSkill = battleSkillsFor(party[state.turn]).find((skill) => skill.id === state.selectedSkill);
     const canRevive = selectedSkill?.effects?.some((effect) => normalizedCombatEffect(effect).code === 'REVIVE');
-    const targetable = battleTargetFor(selectedSkill) === 'ally' && !state.enemyPhase && (!fallen || canRevive);
-    return `<article class="hero ${fallen ? 'fallen' : ''} ${hit ? 'hit' : ''} ${targetable ? 'targetable' : ''} ${state.mode === 'combat' && !state.enemyPhase && state.turn === index ? 'active' : ''}" ${targetable ? `data-ally-target="${index}" role="button" tabindex="0" aria-label="${hero.name}, 체력 ${hero.hp}/${hero.maxHp}"` : ''}>
+    const targetable = !preparationControls && battleTargetFor(selectedSkill) === 'ally' && !state.enemyPhase && (!fallen || canRevive);
+    return `<article class="hero ${fallen ? 'fallen' : ''} ${hit ? 'hit' : ''} ${targetable ? 'targetable' : ''} ${!preparationControls && state.mode === 'combat' && !state.enemyPhase && state.turn === index ? 'active' : ''}" ${targetable ? `data-ally-target="${index}" role="button" tabindex="0" aria-label="${hero.name}, 체력 ${hero.hp}/${hero.maxHp}"` : ''}>
         ${combatNumberMarkup(hero)}
         ${characterTooltip(hero)}
-        <span class="hero-thumbnail roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}">${characterThumbnailMarkup(hero, 'roster-avatar')}</span>
-        ${statusEffectsMarkup(hero, true)}
-        <div class="hero-name-row">${catalogIconMarkup(jobGlyphs[hero.job] || '✦', elementTints[hero.element] || '#a99060', hero.job, 'hero-job-icon')}<strong class="hero-name">${escapeHtml(hero.name)}</strong></div>
+        ${preparationControls ? `<button type="button" class="hero-thumbnail hero-codex-button roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}" data-action="party-character-codex" data-member-id="${escapeHtml(hero.id)}" aria-label="${escapeHtml(hero.name)} 도감 보기">${characterThumbnailMarkup(hero, 'roster-avatar')}</button>` : `<span class="hero-thumbnail roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}">${characterThumbnailMarkup(hero, 'roster-avatar')}</span>`}
+        ${preparationControls && !readOnly ? guildDispatchCardActionsMarkup(hero, plazaControls) : statusEffectsMarkup(hero, true)}
+        <div class="hero-name-row">${catalogIconMarkup(jobGlyphs[hero.job] || '✦', elementTints[hero.element] || '#a99060', hero.job, 'hero-job-icon')}<strong class="hero-name">${escapeHtml(hero.name)}</strong><span class="hero-level">Lv.${escapeHtml(hero.level || 1)}</span></div>
         <div class="hero-vitals"><strong class="hero-status ${hit ? 'hit-text' : ''}">${fallen ? '전투 불능' : `${hero.hp}<small>/${hero.maxHp}</small>`}</strong></div>
         ${combatHealthMarkup(hero, 'health')}
     </article>`;
@@ -1784,9 +2043,9 @@ function heroMarkup(hero, index) {
 function enemyMarkup(enemy, index) {
     const hit = Date.now() - (enemy.hitAt || 0) < 1500;
     const acting = state.enemyPhase && state.actingEnemy === index;
-    return `<button class="enemy ${enemy.hp <= 0 ? 'defeated' : ''} ${acting ? 'acting' : ''} ${acting && state.enemyAttackLanded ? 'settled' : ''} ${hit ? 'hit' : ''}" data-target="${index}" ${enemy.hp <= 0 || state.mode !== 'combat' || state.enemyPhase ? 'disabled' : ''} aria-label="${enemy.name}, 체력 ${enemy.hp}">
+    return `<button class="enemy ${enemy.hp <= 0 ? 'defeated' : ''} ${acting ? 'acting' : ''} ${acting && state.enemyAttackLanded ? 'settled' : ''} ${hit ? 'hit' : ''}" data-target="${index}" ${enemy.hp <= 0 || state.mode !== 'combat' || state.enemyPhase ? 'disabled' : ''} aria-label="${escapeHtml(enemy.name)}, 체력 ${enemy.hp}">
         ${combatNumberMarkup(enemy)}
-        <span class="enemy-mark">${enemy.mark}</span><span class="enemy-name">${enemy.name}</span>
+        <span class="enemy-mark" data-monster-size="${enemy.size || '중'}">${enemy.portraitSrc ? `<img class="enemy-art" src="${escapeHtml(enemy.portraitSrc)}" alt="" draggable="false"><img class="enemy-art enemy-art-highlight" src="${escapeHtml(enemy.portraitSrc)}" alt="" aria-hidden="true" draggable="false">` : escapeHtml(enemy.mark)}</span><span class="enemy-name">${escapeHtml(enemy.name)}</span>
         ${statusEffectsMarkup(enemy, true)}
         <span class="enemy-hp ${hit ? 'hit-text' : ''}">${enemy.hp > 0 ? `${enemy.hp}/${enemy.maxHp}` : '쓰러짐'}</span>${combatHealthMarkup(enemy, 'enemy-health')}
     </button>`;
@@ -1803,9 +2062,26 @@ function combatMonsterFromProfile(monster) {
     };
 }
 
+function migrateSavedMonsters() {
+    const definitions = new Map(catalogData.monsters.map(developerMonster).map((entry) => [entry.id, entry]));
+    if (!state.enemies?.some((enemy) => !definitions.has(enemy.id) || definitions.get(enemy.id).name !== enemy.name)) return;
+    const roster = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).monsters.map(developerMonster);
+    const regular = monstersForStage(roster, state.expeditionDestination, false);
+    const bosses = monstersForStage(roster, state.expeditionDestination, true);
+    state.enemies = state.enemies.map((enemy, index) => {
+        const candidates = enemy.isBoss || enemy.grade === 5 ? bosses : regular;
+        const profile = roster.find((entry) => entry.id === enemy.id) || candidates[index % candidates.length];
+        if (!profile) return null;
+        const replacement = combatMonsterFromProfile(profile);
+        replacement.hp = enemy.hp <= 0 ? 0 : Math.max(1, Math.round(replacement.maxHp * Math.min(1, enemy.hp / Math.max(1, enemy.maxHp))));
+        return replacement;
+    }).filter(Boolean);
+}
+
 function monstersForEncounter(boss) {
-    const roster = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).monsters;
-    const candidates = boss ? roster.filter((monster) => monster.grade === 5) : [...roster];
+    const roster = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).monsters.map(developerMonster);
+    const candidates = monstersForStage(roster, state.expeditionDestination, boss).filter((entry) => monsterEnabled(entry.id));
+    if (state.tutorial?.stage === 'battle') return candidates.slice(0, 1).map(combatMonsterFromProfile);
     const count = boss ? 1 : 2 + Math.floor(Math.random() * 3);
     const selected = [];
     while (selected.length < count && candidates.length) {
@@ -1817,13 +2093,132 @@ function monstersForEncounter(boss) {
 
 const updateScenePresentation = createScenePresentation(playWebSound);
 
+function tutorialCompanionProfile() {
+    const profile = developerCharacter(catalogData.characters.find(character => character.id === TUTORIAL_COMPANION_ID));
+    const stats = { ...profile.stats };
+    return { ...profile, stats, baseStats: { ...stats }, hp: stats.maxHp, maxHp: stats.maxHp,
+        color: ({ 불: 'red', 물: 'blue', 풀: 'green', 빛: 'ivory', 어둠: 'gold' })[profile.element] || 'ivory',
+        price: 0, weeklyWage: 0, wageExempt: true, tutorialCompanion: true, cooldowns: {}, effects: [] };
+}
+
+function finishTutorialStory() {
+    const id = state.activePlazaDialogue?.id;
+    if (id === 'tutorial.meeting' && state.tutorial?.stage === 'meeting') {
+        const companion = tutorialCompanionProfile();
+        state.recruits = [companion];
+        const pool = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters
+            .filter(character => character.id !== companion.id && characterEnabled(character.id) && character.grade === 3).map(developerCharacter);
+        state.plazaOffers = [];
+        while (state.plazaOffers.length < 2 && pool.length) {
+            const candidate = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+            state.plazaOffers.push({ ...candidate, price: hirePrices[candidate.grade] ?? 30, weeklyWage: hirePrices[candidate.grade] ?? 30 });
+        }
+        state.activePlazaDialogue = null;
+        state.plazaCurrentOffer = null;
+        state.tutorial.stage = 'look-first';
+        return true;
+    }
+    if (id === 'tutorial.founding' && state.tutorial?.stage === 'founding-story') {
+        if (!state.tutorial.donationReceived) {
+            state.gold += 5000;
+            state.tutorial.donationReceived = true;
+        }
+        state.activePlazaDialogue = null;
+        state.tutorial.stage = 'guild-open';
+        return true;
+    }
+    return false;
+}
+
+function renderTutorialPrologue() {
+    const scene = tutorialPrologue[state.prologueIndex];
+    game.innerHTML = `<main class="tutorial-prologue-page"><header><span>HELLO GUILD MASTER</span><h1>잊혀진 세계, 새로운 시대</h1></header><div class="tutorial-prologue-scene" style="background-image:url('/assets/backgrounds/${scene.background}')"><span class="tutorial-prologue-chapter">PROLOGUE · ${state.prologueIndex + 1} / ${tutorialPrologue.length}</span></div><div class="tutorial-prologue-dialogue">${dialoguePanelMarkup('서막', scene.text).replace('data-action="plaza-dialogue-advance"', 'data-action="tutorial-prologue-next"')}</div></main>`;
+    stopDialogueTypewriter = typeDialogueText(game.querySelector('.plaza-monologue-line'), scene.text, { immediate: window.matchMedia('(prefers-reduced-motion: reduce)').matches, onCharacter: playDialogueTypingSound });
+    game.querySelector('[data-action="tutorial-prologue-next"]')?.focus({ preventScroll: true });
+}
+
+function tutorialElementAllowed(element) {
+    const target = element.closest('[data-action], [data-target], [data-ally-target]');
+    const action = target?.dataset.action || (target?.hasAttribute('data-target') ? 'combat-target' : target?.hasAttribute('data-ally-target') ? 'combat-ally' : '');
+    return tutorialActionAllowed(state.tutorial, action, target?.dataset.memberId);
+}
+
+function applyTutorialGuide() {
+    const stage = state.tutorial?.stage;
+    if (!stage || stage === 'done') return;
+    const companionName = tutorialCompanionProfile().name;
+    const milestones = {
+        'rent-popup': ['1단계 아지트 임대 완료', '이제 동료들이 돌아올 자리가 생겼습니다.', '최대 길드원 4명 · 첫 아지트 마련', 'castle_icon.svg'],
+        'companion-popup': [`${escapeHtml(companionName)} 영입 완료`, `첫 길드원 ${escapeHtml(companionName)}이(가) 함께합니다. 그녀는 주급을 받지 않습니다.`, '길드 비서로 임명되었습니다.', 'party_icon.svg'],
+        'final-popup': ['길드와 함께하는 원정', '길드원은 주급 이외의 추가 비용 없이 원정대에 선발할 수 있습니다.', '파견 원정은 마스터가 직접 전투를 지휘하지 않아도 대원들이 임무를 수행하고 보상을 가져옵니다.', 'flag_icon.svg'],
+    };
+    const milestone = milestones[stage];
+    if (milestone) {
+        game.insertAdjacentHTML('beforeend', `<div class="tutorial-overlay"><section class="tutorial-milestone" data-popup-kind="positive" role="dialog" aria-modal="true" aria-labelledby="tutorial-milestone-title"><img src="/assets/icons/${milestone[3]}" alt="" aria-hidden="true"><h2 id="tutorial-milestone-title">${milestone[0]}</h2><p>${milestone[1]}</p><p>${milestone[2]}</p><button type="button" data-action="tutorial-confirm">확인</button></section></div>`);
+    }
+    const guide = tutorialGuides[stage];
+    if (guide && !milestone) game.insertAdjacentHTML('beforeend', `<div class="tutorial-guide" role="status"><span>첫걸음</span>${escapeHtml(guide[0].replaceAll('{{characterName}}', companionName))}</div>`);
+    const controls = [...game.querySelectorAll('button, input, select, a, [data-action], [data-target], [data-ally-target]')];
+    const enabled = [];
+    controls.forEach(control => {
+        const allowed = tutorialElementAllowed(control);
+        if (!allowed) {
+            if ('disabled' in control) control.disabled = true;
+            control.setAttribute('aria-disabled', 'true');
+            control.tabIndex = -1;
+        } else {
+            if (guide && control.dataset.action === guide[1] || control.dataset.action === 'expedition-result-confirm') control.classList.add('tutorial-highlight');
+            if (!control.disabled) enabled.push(control);
+        }
+    });
+    if (milestone) game.querySelector('[data-action="tutorial-confirm"]')?.focus({ preventScroll: true });
+    else if (guide && stage !== 'battle') enabled[0]?.focus({ preventScroll: true });
+}
+
+// Guard nested targets as well as native buttons throughout the guided sequence.
+game.addEventListener('click', event => {
+    if (!state.tutorial?.stage || state.tutorial.stage === 'done') return;
+    if (!tutorialElementAllowed(event.target)) { event.preventDefault(); event.stopImmediatePropagation(); }
+}, true);
+game.addEventListener('keydown', event => {
+    if (retreatDialogOpen) return;
+    if (!state.tutorial?.stage || state.tutorial.stage === 'done') return;
+    if (event.key === 'Escape' || ['Enter', ' '].includes(event.key) && !tutorialElementAllowed(event.target)) {
+        event.preventDefault(); event.stopImmediatePropagation();
+    }
+}, true);
+
 function render() {
+    stopDialogueTypewriter();
+    if (!['lobby', 'playerSetup', 'prologue'].includes(state.view)) {
+        migrateRegularExpeditionDestination(state);
+        migrateSavedMonsters();
+        resetTemporaryGuildRoster(state);
+    }
+    if (!['lobby', 'playerSetup', 'prologue'].includes(state.view)) {
+        syncTutorialCompanion(state, tutorialCompanionProfile(), party);
+        [...(state.guildMembers || []), ...(state.recruits || []), ...(state.plazaOffers || []), ...(state.plazaCurrentOffer ? [state.plazaCurrentOffer] : [])].forEach((member) => {
+            member.weeklyWage = member.wageExempt ? 0 : temporaryGuildWeeklyWage(member);
+        });
+    }
+    if (!['lobby', 'playerSetup', 'prologue'].includes(state.view)) completeGuildDispatches(state);
+    if (state.view === 'guild') {
+        ensureGuildMembers();
+        if (!state.guildMembers.some((member) => member.id === state.guildSecretaryId)) state.guildSecretaryId = state.guildMembers[0]?.id || null;
+    }
     renderScene();
-    const dialogue = state.view === 'plaza' ? getActivePlazaDialogue() : null;
+    renderGuildDispatchResults();
+    applyTutorialGuide();
+    renderGuildProgressPopup();
+    gameViewport.syncBackground();
+    popupPresentation.sync();
+    const dialogue = state.view === 'plaza' && !state.plazaGuildSelectionOpen ? getActivePlazaDialogue() : null;
     let sceneKey = '';
     let contentKey = '';
     let sound = 'appear';
-    if (dialogue) {
+    if (state.view === 'plaza' && state.plazaGuildSelectionOpen) {
+        sceneKey = 'plaza:guild-selection';
+    } else if (dialogue) {
         sceneKey = `dialogue:${dialogue.dialogue.id}`;
         contentKey = `${sceneKey}:${state.activePlazaDialogue.nodeId}`;
     } else if (state.view === 'plaza' && state.plazaCurrentOffer) {
@@ -1835,6 +2230,9 @@ function render() {
     } else if (state.view === 'characterCodex') {
         sceneKey = `codex:${state.characterCodexTab}:${state.catalogSelectedRosterId}`;
         contentKey = `${sceneKey}:${state.catalogLevel}`;
+    } else if (state.view === 'guild') {
+        sceneKey = `guild:${state.guildRoom}`;
+        sound = 'step';
     }
     updateScenePresentation(game, {
         sceneKey, contentKey: contentKey || sceneKey, sound,
@@ -1844,7 +2242,11 @@ function render() {
 }
 
 function renderScene() {
+    if (state.view !== 'expedition' || state.ended) retreatDialogOpen = false;
+    if (state.view === 'expedition' && state.mode === 'combat') void battleEffects.preload();
+    else { battleEffects.clear(); clearTimeout(combatEndTimer); combatEndTimer = null; }
     syncBackgroundMusic();
+    if (state.view === 'prologue') return renderTutorialPrologue();
     if (state.view === 'lobby') return renderLobby();
     if (state.view === 'playerSetup') return renderPlayerSetup();
     if (state.view === 'skillEditor' && import.meta.env.DEV) return renderDeveloperSkillEditor();
@@ -1860,9 +2262,18 @@ function renderScene() {
         saveGame();
         return renderPlaza();
     }
+    if (state.view === 'expeditionSelect') {
+        saveGame();
+        return renderRegularDestinationSelection();
+    }
+    if (state.view === 'guild') {
+        saveGame();
+        return renderGuild();
+    }
     normalizeCombatState();
     saveGame();
-    const room = rooms[Math.min(state.room, rooms.length - 1)];
+    const tutorialBattle = state.tutorial?.stage === 'battle';
+    const room = tutorialBattle ? { name: '북부', type: '전투' } : rooms[Math.min(state.room, rooms.length - 1)];
     const progress = (state.room / (rooms.length - 1)) * 100;
     const currentHero = party[state.turn] || party.find((hero) => hero.hp > 0) || party[0];
     const currentSkills = battleSkillsFor(currentHero);
@@ -1876,24 +2287,24 @@ function renderScene() {
     game.innerHTML = `
         <header class="topbar player-topbar">
             ${playerProfileMarkup()}
-            <button class="game-menu-button" type="button" data-action="game-menu-open" aria-label="메뉴" title="메뉴">☰</button>
+            <div class="topbar-menu-actions">${gameMenuButtonsMarkup()}</div>
         </header>
 
         <section class="journey-strip" aria-label="원정 진행도">
-            <div class="journey-label location-heading"><strong>지하 묘지 - ${room.name}${encounter ? ' - 전투' : ''}</strong></div>
-            <div class="journey-track"><div class="journey-fill" style="width:${progress}%"></div>${rooms.map((item, index) => `<span class="journey-node ${index < state.room ? 'passed' : ''} ${index === state.room ? 'current' : ''} ${item.type === '보스' ? 'boss-node' : ''}" style="left:${(index / (rooms.length - 1)) * 100}%" title="${item.name}"></span>`).join('')}</div>
+            <div class="journey-label location-heading"><strong>${tutorialBattle ? '온바람 평야' : escapeHtml(state.expeditionDestination?.name || '지하 묘지')} - ${room.name}${encounter ? ' - 전투' : ''}</strong></div>
+            <div class="journey-track"><div class="journey-fill" style="width:${tutorialBattle ? 0 : progress}%"></div>${(tutorialBattle ? [room] : rooms).map((item, index) => `<span class="journey-node ${index < state.room ? 'passed' : ''} ${index === state.room ? 'current' : ''} ${item.type === '보스' ? 'boss-node' : ''}" style="left:${tutorialBattle ? 0 : (index / (rooms.length - 1)) * 100}%" title="${item.name}"></span>`).join('')}</div>
         </section>
 
         <section class="scene ${encounter ? 'in-combat' : ''}" aria-label="던전 장면">
-            <div class="dungeon-art ${encounter ? 'battle-art' : ''}">
+            <div class="dungeon-art ${encounter ? 'battle-art' : ''}${tutorialBattle ? ' tutorial-battle-art' : ''}">
                 ${encounter ? `<div class="enemy-line ${state.enemyPhase ? 'enemy-phase' : ''} ${choosingEnemy ? 'choosing-target' : ''}">${state.enemies.map(enemyMarkup).join('')}</div>` : `<div class="scene-caption"><span>${goldTextMarkup(state.message)}</span></div>`}
                 ${state.skillNotice && Date.now() - state.skillNotice.startedAt < 1800 ? `<div class="skill-announce" style="animation-delay:-${Date.now() - state.skillNotice.startedAt}ms">${escapeHtml(state.skillNotice.name)}</div>` : ''}
             </div>
         </section>
 
         <section class="lower-grid">
-            <section class="party-panel"><div class="panel-heading"><div><h2>원정대 <small>${party.length}/${maxPartySize}</small></h2></div></div><div class="party-list ${choosingAlly ? 'choosing-ally' : ''}">${party.map(heroMarkup).join('')}${Array.from({ length: Math.max(0, maxPartySize - party.length) }, emptyPartySlotMarkup).join('')}</div></section>
-            <aside class="action-panel"><div class="panel-heading"><div><h2>${encounter ? '스킬' : '원정 일지'}</h2></div></div>
+            <section class="party-panel"><div class="panel-heading"><div><h2>원정대 <small>${party.length}/${maxPartySize}</small></h2></div>${partyPowerMarkup(party)}</div><div class="party-list ${choosingAlly ? 'choosing-ally' : ''}">${party.map(heroMarkup).join('')}${Array.from({ length: Math.max(0, maxPartySize - party.length) }, emptyPartySlotMarkup).join('')}</div></section>
+            <aside class="action-panel ${encounter && !state.enemyPhase ? 'is-hero-turn' : ''}"><div class="panel-heading"><div><h2>${encounter ? (!state.enemyPhase && currentHero ? `${escapeHtml(currentHero.name)}의 스킬` : '스킬') : '원정 일지'}</h2></div></div>
                 ${encounter ? `<div class="action-buttons ${state.enemyPhase ? '' : selectedTargetType === 'enemy' || selectedTargetType === 'ally' ? 'choosing-target' : 'choosing-skill'}">${currentSkills.map((skill) => { const cooldown = currentHero.cooldowns?.[skill.id] || 0; const [glyph, tint] = skillGlyph(skill); return `<button class="combat-action ${state.selectedSkill === skill.id ? 'selected' : ''} ${cooldown ? 'on-cooldown' : ''}" data-action="skill" data-skill="${skill.id}" aria-label="${escapeHtml(skill.name)}" ${currentHero.hp <= 0 || state.enemyPhase || cooldown > 0 ? 'disabled' : ''}>${skillIconMarkup(skill, 'combat-skill-icon')}<span class="combat-skill-name">${escapeHtml(skill.name)}</span>${cooldown ? '<small class="combat-skill-cooldown">대기</small>' : ''}${skillTooltip(skill, currentHero)}</button>`; }).join('')}${!currentSkills.length ? `<button data-action="combat-wait" ${state.enemyPhase ? 'disabled' : ''}>대기</button>` : ''}</div><p class="target-hint">${state.enemyPhase ? '적의 기술을 기다리십시오.' : selectedSkill && selectedTargetType === 'ally' ? `${selectedSkill.name} · 아군 대상을 선택하십시오.` : selectedSkill && selectedTargetType === 'enemy' ? `${selectedSkill.name} · 적 대상을 선택하십시오.` : '먼저 사용할 기술을 선택하십시오.'}</p>` : `<div class="journal-list"><p>${goldTextMarkup(state.message)}</p></div><button class="continue-button" data-action="advance" ${state.ended ? 'disabled' : ''}>${state.ended ? '원정 종료' : room.type === '보스' ? '최후의 문을 열기' : '다음 방으로 이동'}<span>→</span></button>`}
             </aside>
         </section>
@@ -1905,13 +2316,26 @@ function renderScene() {
 }
 
 function startEncounter(boss = false) {
+    const enemies = monstersForEncounter(boss);
+    if (!enemies.length) {
+        state.message = '이 구역에 활성화된 몬스터가 없습니다. 개발자 자료실에서 몬스터를 활성화해 주세요.';
+        render();
+        return;
+    }
     state.mode = 'combat';
     state.turn = -1;
     state.enemyPhase = false;
     state.actingEnemy = -1;
     state.enemyAttackLanded = false;
     state.selectedSkill = null;
-    state.enemies = monstersForEncounter(boss);
+    state.enemies = enemies;
+    if (state.tutorial?.stage === 'battle') {
+        const enemy = state.enemies[0];
+        enemy.stats = Object.fromEntries(Object.keys(enemy.stats).map(key => [key, 1]));
+        enemy.hp = enemy.maxHp = 1;
+        enemy.effects = [];
+        state.enemies = [enemy];
+    }
     state.turnOrder = [];
     state.turnOrderIndex = 0;
     state.message = boss ? '깊은 곳에서 무언가 깨어났습니다.' : '적들이 어둠 속에서 달려듭니다.';
@@ -1919,15 +2343,28 @@ function startEncounter(boss = false) {
     void activateNextCombatant();
 }
 
+function presentCombatEnd(action) {
+    if (combatEndTimer !== null) return;
+    if (!battleEffects.hasPending()) return action();
+    // Let the final impact play on its target before replacing the battle scene.
+    combatEndTimer = setTimeout(() => {
+        combatEndTimer = null;
+        if (state.view === 'expedition' && state.mode === 'combat') action();
+    }, 1100);
+    render();
+}
+
 function checkParty() {
     if (party.every((hero) => hero.hp <= 0)) {
-        showExpeditionResult(false, true);
+        presentCombatEnd(() => showExpeditionResult(false, true));
         return true;
     }
     return false;
 }
 
-function finishEncounter() {
+function finishEncounter(presented = false) {
+    if (!presented) return presentCombatEnd(() => finishEncounter(true));
+    if (state.tutorial?.stage === 'battle') return showExpeditionResult(true);
     const bossWon = rooms[state.room].type === '보스';
     if (bossWon) return showExpeditionResult(true);
     state.mode = bossWon ? 'victory' : 'explore';
@@ -1943,33 +2380,9 @@ function finishEncounter() {
 
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
 
-const legacyEffectCodes = {
-    stun: 'STUN', sleep: 'SLEEP', poison: 'POISON', bleed: 'BLEED', provoke: 'PROVOKE',
-    attackUp: 'ATTACK_UP', attackDown: 'ATTACK_DOWN', defenseUp: 'DEFENSE_UP', defenseDown: 'DEFENSE_DOWN',
-    speedUp: 'SPEED_UP', speedDown: 'SPEED_DOWN', revive: 'REVIVE',
-};
-const debuffEffectCodes = new Set([
-    'ATTACK_DOWN', 'DEFENSE_DOWN', 'SPEED_DOWN', 'HIT_CHANCE_DOWN', 'STUN', 'SLEEP', 'PROVOKE', 'HEAL_BLOCK',
-    'BUFF_BLOCK', 'COUNTERATTACK_BLOCK', 'POISON', 'BLEED', 'TARGET', 'CURSE', 'INJURY', 'REVIVE_BLOCK', 'EXTINCTION',
-    'BUFF_DURATION_DOWN', 'DEBUFF_DURATION_UP', 'SKILL_COOLDOWN_UP',
-]);
-const statusStatModifiers = {
-    ATTACK_UP: ['attack', 1], ATTACK_UP_GREATER: ['attack', 1], ATTACK_DOWN: ['attack', -1],
-    DEFENSE_UP: ['defense', 1], DEFENSE_DOWN: ['defense', -1], SPEED_UP: ['speed', 1], SPEED_DOWN: ['speed', -1],
-};
-
 function normalizedCombatEffect(effect) {
-    const code = effect.code || legacyEffectCodes[effect.type] || String(effect.type || '').toUpperCase();
-    const rawChance = Number(effect.chance ?? 1);
-    return {
-        ...effect,
-        code,
-        name: effect.name || effectLabels[effect.type]?.(effect) || code,
-        chance: rawChance > 1 ? rawChance / 100 : rawChance,
-        duration: Number(effect.duration ?? effect.turns ?? 0),
-        value: Number(effect.value ?? 0),
-        category: buffEffectCodes.has(code) ? 'buff' : debuffEffectCodes.has(code) ? 'debuff' : 'status',
-    };
+    const normalized = normalizeCombatEffect(effect);
+    return { ...normalized, name: effect.name || effectLabels[effect.type]?.(effect) || normalized.code };
 }
 
 function statusEffectsMarkup(actor, showSlots = false) {
@@ -2002,9 +2415,179 @@ function combatHealthMarkup(actor, className) {
     return `<div class="meter ${className}" aria-label="체력 ${hp}/${maxHp}, 보호막 ${shield}, 지속 회복 ${recovery}"><span class="health-current" style="width:${hp / capacity * 100}%"></span><span class="health-recovery" style="left:${hp / capacity * 100}%;width:${recovery / capacity * 100}%"></span><span class="health-shield" style="left:${maxHp / capacity * 100}%;width:${shield / capacity * 100}%"></span></div>`;
 }
 
+function gameMenuButtonsMarkup() {
+    const leadingButton = state.view === 'expedition'
+        ? state.ended ? '' : `<button class="game-menu-button retreat-menu-button" type="button" data-action="retreat" aria-label="원정 포기" title="원정 포기" ${combatEndTimer !== null ? 'disabled' : ''}><img src="/assets/icons/flag_icon.svg" alt="" aria-hidden="true"></button>`
+        : state.view === 'guild' ? '' : `<button class="game-menu-button guild-menu-button" type="button" data-action="guild-open" aria-label="길드" title="길드" ${state.view !== 'plaza' ? 'disabled' : ''}><span class="guild-emblem-icon" aria-hidden="true"></span></button>`;
+    return `${leadingButton}<button class="game-menu-button" type="button" data-action="game-menu-open" aria-label="메뉴" title="메뉴">☰</button>`;
+}
+
+let guildDispatchDialogOpen = false;
+let guildDispatchDetailId = '';
+
+// Temporary payroll matches the recruitment price for each grade.
+function temporaryGuildWeeklyWage(member) {
+    return hirePrices[member.grade] ?? 30;
+}
+
+function ensureGuildMembers() {
+    if (!Array.isArray(state.guildMembers)) state.guildMembers = [];
+    if (!Array.isArray(state.guildDispatchMemberIds)) state.guildDispatchMemberIds = [];
+    if (!Array.isArray(state.guildDispatches)) state.guildDispatches = [];
+    state.guildDispatchMemberIds = [...new Set(state.guildDispatchMemberIds)].filter((id) => state.guildMembers.some((member) => member.id === id) && !activeGuildDispatch(state, id)).slice(0, maxPartySize);
+}
+
+function guildDispatchMembersMarkup({ normalParty = false } = {}) {
+    const dispatchFull = !normalParty && state.guildDispatches.filter((dispatch) => dispatch.status === 'active').length >= MAX_ACTIVE_GUILD_DISPATCHES;
+    const normalIds = new Set(state.recruits.map((member) => member.id));
+    const selectedIds = normalParty ? normalIds : new Set(state.guildDispatchMemberIds);
+    return `<section class="guild-dispatch-members" aria-label="${normalParty ? '길드원 선발' : '파견 원정대원 선택'}"><div class="codex-roster-heading"><h2>길드원 목록</h2><span>${state.guildMembers.length}명 · 선발 ${selectedIds.size}/${maxPartySize}</span></div><div class="guild-dispatch-member-grid">${state.guildMembers.map((member) => {
+        const selected = selectedIds.has(member.id);
+        const dispatch = activeGuildDispatch(state, member.id);
+        const inNormalParty = normalIds.has(member.id);
+        const unavailable = normalParty ? !selected && state.guildDispatchMemberIds.includes(member.id) : inNormalParty;
+        const remainingWeeks = dispatch ? Math.max(0, dispatch.returnWeek - state.week) : 0;
+        const selectionLabel = unavailable ? (normalParty ? '파견 선발 중' : '원정대 선발 중') : dispatch ? `파견 중 - ${remainingWeeks}주` : selected ? '선발 취소' : dispatchFull ? '파견 한도 초과' : normalParty ? '원정 대원 선발' : '파견 원정 선발';
+        const full = selectedIds.size >= maxPartySize;
+        return `<article class="codex-character-card guild-dispatch-member-card ${selected ? 'active' : ''}"><button class="guild-dispatch-thumbnail" type="button" data-action="${normalParty ? 'plaza-guild-codex' : 'guild-dispatch-codex'}" data-member-id="${escapeHtml(member.id)}" aria-label="${escapeHtml(member.name)} 도감 보기"><span class="codex-character-frame element-border-${elementBorderClasses[member.element] || 'light'}">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span>${inNormalParty ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/party_icon.svg" alt="원정대 선발">' : selected || dispatch ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/flag_icon.svg" alt="파견 원정대 선발">' : ''}</button><span class="codex-character-name" title="${escapeHtml(member.name)}">${jobGlyphs[member.job] ? `<img class="guild-dispatch-job-icon" src="${jobGlyphs[member.job]}" alt="${escapeHtml(member.job)}" title="${escapeHtml(member.job)}" draggable="false">` : ''}<span class="guild-dispatch-member-name">${escapeHtml(member.name)}</span></span><button class="guild-dispatch-select ${dispatch ? 'is-away' : selected ? 'is-cancel' : dispatchFull ? 'is-dispatch-full' : ''}" type="button" data-action="${normalParty ? 'plaza-guild-toggle' : 'guild-dispatch-toggle'}" data-member-id="${escapeHtml(member.id)}" aria-pressed="${selected}" aria-label="${escapeHtml(member.name)} ${selectionLabel}" ${unavailable || dispatch || !selected && (full || dispatchFull) ? 'disabled' : ''}>${selectionLabel}</button></article>`;
+    }).join('')}</div></section>`;
+}
+
+function partyPowerMarkup(members) {
+    return `<span class="guild-dispatch-power"><img src="/assets/icons/battle_icon.svg" alt="" aria-hidden="true"><span><span class="guild-dispatch-power-label">원정대 전투력</span> ${guildDispatchPower(members).toLocaleString('ko-KR')}</span></span>`;
+}
+
+function guildDispatchPartyMarkup() {
+    const members = state.guildDispatchMemberIds.map((id) => state.guildMembers.find((member) => member.id === id)).filter(Boolean);
+    const power = guildDispatchPower(members);
+    return `<section class="party-panel plaza-roster guild-dispatch-party"><div class="panel-heading"><div><h2>파견 원정대 <small>${members.length}/${maxPartySize}</small></h2></div><span class="guild-dispatch-power"><img src="/assets/icons/battle_icon.svg" alt="" aria-hidden="true"><span><span class="guild-dispatch-power-label">원정대 전투력</span> ${power.toLocaleString('ko-KR')}</span></span></div><div class="party-list plaza-party-list">${members.map((member, index) => heroMarkup({ ...member, hp: member.hp ?? member.stats.maxHp, maxHp: member.maxHp ?? member.stats.maxHp, effects: member.effects || [] }, index, { dispatchControls: true })).join('')}${Array.from({ length: Math.max(0, maxPartySize - members.length) }, emptyPartySlotMarkup).join('')}</div></section>`;
+}
+
+function renderGuildDispatchResults() {
+    if (['lobby', 'playerSetup', 'prologue'].includes(state.view) || state.pendingLevelUp) return;
+    const markup = guildDispatchResultsMarkup(state, guildDestinations, characterThumbnailMarkup);
+    if (!markup) return;
+    game.insertAdjacentHTML('beforeend', markup);
+    for (const child of game.children) if (!child.classList.contains('guild-dispatch-results-backdrop')) child.inert = true;
+    game.querySelector('[data-action="guild-dispatch-results-confirm"]')?.focus();
+}
+
+function confirmGuildDispatchResults() {
+    const ids = [...game.querySelectorAll('[data-dispatch-result-id]')].map((card) => card.dataset.dispatchResultId);
+    acknowledgeGuildDispatchResults(state, ids);
+    render();
+    const nextAction = game.querySelector('.plaza-confirm-overlay [data-action="plaza-dialog-confirm"]')
+        || game.querySelector('[data-action="plaza-rest"]') || game.querySelector('[data-action="guild-expedition-prepare"]');
+    nextAction?.focus({ preventScroll: true });
+}
+
+function currentGuildDispatchPlan() {
+    const plan = guildDispatchPlan(state, guildDestinations, maxPartySize);
+    if (!plan || !guildDestinationUnlocked(plan.destination.location, state.guildClearedDestinations, guildTestUnlock)) return null;
+    if (!guildTestUnlock && plan.destination.subregion !== plan.location.subregions[0][0]) return null;
+    return plan;
+}
+
+function guildDispatchDialogMarkup() {
+    if (!guildDispatchDialogOpen && !guildDispatchDetailId) return '';
+    const dispatch = guildDispatchDetailId ? state.guildDispatches.find((item) => item.id === guildDispatchDetailId && item.status === 'active') : null;
+    const plan = dispatch ? {
+        ...dispatch, bonusChance: dispatch.bonusChance || 0,
+        location: guildDestinations[dispatch.destination.location],
+        members: dispatch.memberSnapshots || dispatch.memberIds.map((id) => state.guildMembers.find((member) => member.id === id)).filter(Boolean),
+    } : guildDispatchDetailId ? null : currentGuildDispatchPlan();
+    if (!plan || !plan.location) { guildDispatchDialogOpen = false; guildDispatchDetailId = ''; return ''; }
+    return `<div class="guild-dispatch-dialog-backdrop"><section class="guild-dispatch-dialog" role="dialog" aria-modal="true" aria-labelledby="guild-dispatch-title" aria-describedby="guild-dispatch-description" tabindex="-1"><header><h2 id="guild-dispatch-title">${dispatch ? '진행 중인 파견 원정' : '파견 원정'}</h2><p id="guild-dispatch-description">${dispatch ? `${dispatch.startedWeek}주차에 출발한 대원 ${plan.members.length}명이 원정을 진행 중입니다. ${dispatch.returnWeek}주차 복귀 예정입니다.` : '파견 원정은 마스터가 직접 전투를 지휘하지 않으며, 선발 대원이 파견되어 원정을 진행 합니다.'}</p></header><div class="guild-dispatch-dialog-content"><section class="guild-dispatch-destination-summary"><img class="guild-dispatch-destination-image" src="/assets/backgrounds/${plan.location.background}.webp" alt="${escapeHtml(plan.location.name)}"><h3>${escapeHtml(plan.destination.name)}</h3><p>${escapeHtml(plan.location.description)}</p><div class="guild-dispatch-summary-line"><span>권장 원정대 전투력</span><strong>${plan.recommendedPower.toLocaleString('ko-KR')}</strong></div></section><section class="guild-dispatch-team-summary"><h3>파견 원정대원 <small>${plan.members.length}명</small></h3><div class="guild-dispatch-dialog-members">${plan.members.map((member) => `<article><span class="guild-dispatch-dialog-thumb">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.job)} · Lv.${member.level} · ${member.grade}등급</span></article>`).join('')}</div><div class="guild-dispatch-summary-line"><span><img src="/assets/icons/battle_icon.svg" alt="" aria-hidden="true">원정대 전투력</span><strong>${plan.power.toLocaleString('ko-KR')}</strong></div><div class="guild-dispatch-highlights"><div><span>${dispatch ? '남은 소요시간' : '소요시간'}</span><strong>${dispatch ? Math.max(0, dispatch.returnWeek - state.week) : plan.weeks}주</strong><small>${dispatch ? dispatch.returnWeek : state.week + plan.weeks}주차 복귀 예정</small></div><div><span>성공 보수</span><strong class="guild-dispatch-gold-reward"><img src="/assets/icons/coin_pouch_icon.svg" alt="" aria-hidden="true">골드 ${plan.gold.toLocaleString('ko-KR')}</strong><strong class="guild-dispatch-fame-reward"><img src="/assets/icons/fame_icon.svg" alt="" aria-hidden="true">명성 ${plan.fame}</strong></div><div><span>예상 성공 확률</span><strong>${Math.round(plan.successChance * 10) / 10}%</strong><small>보너스 +${plan.bonusChance}%p</small></div></div></section></div><footer>${dispatch ? '<button type="button" data-action="guild-dispatch-detail-close">닫기</button>' : '<button type="button" class="guild-dispatch-approve" data-action="guild-dispatch-approve">파견 승인</button><button type="button" data-action="guild-dispatch-cancel">취소</button>'}</footer></section></div>`;
+}
+
+function regularDepartureStatus() {
+    const selected = state.regularSelectedDestination;
+    const available = selected && guildDestinationUnlocked(selected.location, state.guildClearedDestinations, guildTestUnlock)
+        && (guildTestUnlock || selected.subregion === guildDestinations[selected.location]?.subregions[0][0]);
+    return regularExpeditionPreparation({ ...state, regularSelectedDestination: available ? selected : null }, guildDestinations);
+}
+
+function destinationMonsterMarkup(detail, subregion) {
+    return guildDestinationMonsterIds(detail, subregion, guildTestUnlock).map((id) => catalogData.monsters.find((monster) => monster.id === id)).filter((monster) => monster && monsterEnabled(monster.id)).map(developerMonster).map((monster, index) => `<button class="guild-destination-monster" type="button" data-action="guild-destination-monster" data-monster-id="${monster.id}" aria-label="${escapeHtml(monster.name)} 도감 보기"><div class="guild-destination-monster-art"><span class="roster-avatar-frame element-border-${elementBorderClasses[monster.element] || 'light'}" title="${escapeHtml(monster.element)} 속성">${catalogIconMarkup(monster.thumbnailSrc || monster.mark, elementTints[monster.element] || '#a6d7e8', monster.name, 'guild-destination-monster-thumbnail')}</span>${monster.isBoss ? '<img class="guild-destination-monster-badge" src="/assets/icons/monster_icon.svg" alt="" aria-hidden="true">' : ''}</div><span><img src="${jobGlyphs[monster.job]}" alt="${escapeHtml(monster.job)}"><strong>${escapeHtml(monster.name)}</strong></span></button>`).join('');
+}
+
+function renderRegularDestinationSelection() {
+    const roster = `<section class="party-panel"><div class="panel-heading"><h2>원정대 <small>${state.recruits.length}/${maxPartySize}</small></h2>${partyPowerMarkup(state.recruits)}</div><div class="party-list">${state.recruits.map((member, index) => heroMarkup(member, index, { readOnly: true })).join('')}${Array.from({ length: Math.max(0, maxPartySize - state.recruits.length) }, emptyPartySlotMarkup).join('')}</div></section>`;
+    const page = guildPageMarkup({
+        room: 'strategy', expeditionPreparation: true, regularExpedition: true,
+        week: state.week, goldMarkup: goldAmountMarkup(state.gold), fameMarkup: fameAmountMarkup(state.fame),
+        destinationDetail: state.regularDestinationDetail, activeSubregion: state.regularDestinationSubregion,
+        selectedDestination: regularDepartureStatus().destination, testUnlock: guildTestUnlock,
+        monsterMarkup: destinationMonsterMarkup(state.regularDestinationDetail, state.regularDestinationSubregion),
+        dispatchPartyMarkup: roster,
+    });
+    game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div><header class="topbar plaza-topbar">${playerProfileMarkup()}<div class="topbar-menu-actions">${gameMenuButtonsMarkup()}</div></header>${page}${gameFooterMarkup()}${gameMenuMarkup()}`;
+    if (state.regularMapFocusedRegion && !state.regularDestinationDetail) focusGuildMap(game, state.regularMapFocusedRegion, { animate: false, clearedDestinations: state.guildClearedDestinations, testUnlock: guildTestUnlock });
+    if (state.regularDestinationDetail) {
+        fitDestinationMonsterNames(game);
+        void document.fonts.ready.then(() => fitDestinationMonsterNames(game));
+    }
+}
+
+function renderGuild() {
+    ensureGuildMembers();
+    const memberCount = Array.isArray(state.guildMembers) ? state.guildMembers.length : 0;
+    const page = guildPageMarkup({
+        room: state.guildRoom,
+        expeditionPreparation: state.guildExpeditionPreparation,
+        researchOpen: state.guildResearchOpen,
+        gold: state.gold,
+        foundingResearch: state.tutorial?.stage === 'rent' || state.tutorial?.stage === 'rent-popup',
+        expeditionStep: state.guildExpeditionStep,
+        background: state.guildLobbyBackground,
+        goldMarkup: goldAmountMarkup(state.gold),
+        fameMarkup: fameAmountMarkup(state.fame),
+        week: Number(state.week) || 1,
+        memberCount,
+        lobbyMarkup: guildLobbyMarkup(state, characterImageSource(state.guildMembers.find((member) => member.id === state.guildSecretaryId))),
+        membersMarkup: guildDispatchMembersMarkup(),
+        dispatchPartyMarkup: guildDispatchPartyMarkup(),
+        selectedMemberCount: state.guildDispatchMemberIds.length,
+        canDispatch: Boolean(currentGuildDispatchPlan()),
+        dispatches: state.guildDispatches,
+        destinationDetail: state.guildDestinationDetail,
+        selectedDestination: state.guildSelectedDestination,
+        testUnlock: guildTestUnlock,
+        activeSubregion: state.guildDestinationSubregion,
+        monsterMarkup: destinationMonsterMarkup(state.guildDestinationDetail, state.guildDestinationSubregion),
+    });
+    game.innerHTML = `<div class="guild-page-background" aria-hidden="true"></div><header class="topbar plaza-topbar guild-topbar">${playerProfileMarkup()}<div class="topbar-menu-actions">${gameMenuButtonsMarkup()}</div></header>${page}${gameFooterMarkup()}${gameMenuMarkup()}${guildDispatchDialogMarkup()}`;
+    if (guildDispatchDialogOpen || guildDispatchDetailId) {
+        for (const child of game.children) if (!child.classList.contains('guild-dispatch-dialog-backdrop')) child.inert = true;
+        game.querySelector(guildDispatchDetailId ? '[data-action="guild-dispatch-detail-close"]' : '[data-action="guild-dispatch-approve"]')?.focus();
+    }
+    const showingMembers = state.guildExpeditionPreparation && state.guildExpeditionStep === 'members';
+    if (!showingMembers && state.guildMapFocusedRegion && !state.guildDestinationDetail) focusGuildMap(game, state.guildMapFocusedRegion, { animate: false, clearedDestinations: state.guildClearedDestinations, testUnlock: guildTestUnlock });
+    if (!showingMembers && state.guildDestinationDetail) {
+        fitDestinationMonsterNames(game);
+        void document.fonts.ready.then(() => fitDestinationMonsterNames(game));
+    }
+}
+
+function moveBetweenPlazaAndGuild(view) {
+    if (locationTransition.isRunning()) return;
+    gameMenuOpen = false;
+    gameMenuNotice = '';
+    state.guildRoom = 'lobby';
+    state.guildExpeditionPreparation = false;
+    state.guildMapFocusedRegion = '';
+    state.guildDestinationDetail = '';
+    if (state.view === view) return render();
+    plazaTransitionPhase = '';
+    void locationTransition.run(() => {
+        state.view = view;
+        render();
+    }).catch((error) => console.warn('Location transition could not be played.', error));
+}
+
 function playerProfileMarkup() {
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
-    return `<div class="player-profile"><span class="player-avatar" aria-hidden="true"></span><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong><span>Lv.${state.userLevel}</span></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
+    return `<div class="player-profile"><img class="player-avatar" src="${playerThumbnailAsset}" alt="" aria-hidden="true" draggable="false"><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong><span>Lv.${state.userLevel}</span><label class="player-test-unlock" title="테스트: 모든 세부지역 잠금 해제"><input type="checkbox" data-guild-test-unlock aria-label="테스트: 모든 세부지역 잠금 해제" ${guildTestUnlock ? 'checked' : ''}></label></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
 }
 
 function gameFooterMarkup() {
@@ -2015,352 +2598,11 @@ function emptyPartySlotMarkup() {
     return '<article class="hero plaza-empty-hero"><span class="plaza-empty-avatar" aria-hidden="true">◇</span><span class="plaza-empty-label">빈 자리</span></article>';
 }
 
-function addCombatEffect(target, source, rawEffect, chancePassed = false) {
-    const effect = normalizedCombatEffect(rawEffect);
-    if (!effect.code || effect.duration <= 0 && effect.code !== 'INJURY') return false;
-    target.effects ||= [];
-    if (effect.category === 'debuff' && target.effects.some((active) => active.code === 'IMMUNITY' && active.turnsRemaining > 0)) return false;
-    if (effect.category === 'buff' && target.effects.some((active) => active.code === 'BUFF_BLOCK' && active.turnsRemaining > 0)) return false;
-    if (!chancePassed && Math.random() >= effect.chance) return false;
-    const family = effect.code === 'ATTACK_UP_GREATER' ? 'ATTACK_UP' : effect.code;
-    const related = target.effects.filter((active) => (active.code === 'ATTACK_UP_GREATER' ? 'ATTACK_UP' : active.code) === family);
-    const strongest = related.reduce((value, active) => Math.max(value, active.value), -Infinity);
-    const longest = related.reduce((value, active) => Math.max(value, active.turnsRemaining), 0);
-    if (related.length) {
-        effect.value = Math.max(effect.value, strongest);
-        effect.duration = Math.max(effect.duration, longest);
-    }
-    target.effects = target.effects.filter((active) => !related.includes(active));
-    target.effects.push({
-        code: effect.code,
-        name: effect.name,
-        value: effect.value,
-        unit: effect.unit,
-        turnsRemaining: effect.duration,
-        category: effect.category,
-        appliedTurn: Number(target.naturalTurnSerial || 0),
-        sourceId: source.id,
-        sourceAttack: Number(source.stats?.attack || 0),
-        shield: effect.code === 'BARRIER' ? target.maxHp * effect.value : 0,
-    });
-    if (effect.code === 'INJURY') {
-        target.originalMaxHp ||= target.maxHp;
-        const injury = target.effects.filter((active) => active.code === 'INJURY').reduce((sum, active) => sum + active.value, 0);
-        target.maxHp = Math.max(1, Math.round(target.originalMaxHp * (1 - Math.min(0.3, injury))));
-        target.stats.maxHp = target.maxHp;
-        target.hp = Math.min(target.hp, target.maxHp);
-    }
-    return true;
-}
-
-function combatStat(actor, stat) {
-    const base = Number(actor.stats?.[stat] || 0);
-    const modifier = statusStatModifiers;
-    let multiplier = 1;
-    (actor.effects || []).forEach((effect) => {
-        const spec = modifier[effect.code];
-        if (spec?.[0] === stat) multiplier += spec[1] * effect.value;
-    });
-    const flatCodes = {
-        critChance: ['CRITICAL_CHANCE_UP'], critDamage: ['CRITICAL_DAMAGE_UP'],
-        effectHit: ['EFFECTIVENESS_UP'], effectResist: ['EFFECT_RESISTANCE_UP'],
-    };
-    const flat = (flatCodes[stat] || []).reduce((sum, code) => sum + (actor.effects || []).filter((effect) => effect.code === code).reduce((value, effect) => value + effect.value * 100, 0), 0);
-    if (stat === 'critChance') return Math.max(0, base * 10 + flat);
-    if (stat === 'critDamage') return Math.max(100, 100 + base * 10 + flat);
-    if (stat === 'effectHit' || stat === 'effectResist') return Math.max(0, base * 10 + flat);
-    return Math.max(0, base * Math.max(0, multiplier) + flat);
-}
-
-function tickActorEffects(actor) {
-    actor.effects = (actor.effects || []).map((effect) => ({
-        ...effect,
-        turnsRemaining: effect.appliedTurn === actor.naturalTurnSerial ? effect.turnsRemaining : effect.turnsRemaining - 1,
-    })).filter((effect) => effect.turnsRemaining > 0 || effect.code === 'INJURY');
-}
-
-function hasCombatEffect(actor, code) {
-    return (actor.effects || []).some((effect) => effect.code === code && (effect.turnsRemaining > 0 || effect.code === 'INJURY'));
-}
-
-function combatTargets(actor, skill, targetIndex = null) {
-    const actorIsHero = party.includes(actor);
-    const allies = actorIsHero ? party : state.enemies;
-    const enemies = actorIsHero ? state.enemies : party;
-    const canRevive = (skill.effects || []).some((effect) => normalizedCombatEffect(effect).code === 'REVIVE');
-    const targetType = battleTargetFor(skill);
-    if (targetType === 'self') return [actor];
-    if (targetType === 'selfAndAllies' || targetType === 'allyAll') return allies.filter((target) => target.hp > 0 || canRevive);
-    if (targetType === 'enemyAll') return enemies.filter((target) => target.hp > 0);
-    if (targetType === 'ally' || targetType === 'enemy') {
-        const list = targetType === 'ally' ? allies : enemies;
-        const target = targetIndex === null ? null : list[targetIndex];
-        const hidden = target && hasCombatEffect(target, 'STEALTH') && list.some((ally) => ally !== target && ally.hp > 0);
-        if (hidden && targetType === 'enemy') return [];
-        return !target || target.hp <= 0 && !(targetType === 'ally' && canRevive) ? [] : [target];
-    }
-    return [actor];
-}
-
-function effectRecipients(effect, actor, primaryTargets, skill) {
-    const effectTarget = resolvedEffectTarget(skill, effect);
-    if (effectTarget === '자신') return [actor];
-    if (effectTarget === '사망 아군') return primaryTargets.filter((target) => target.hp <= 0);
-    if (effectTarget === '아군') {
-        const allies = party.includes(actor) ? party : state.enemies;
-        const selectedAllies = primaryTargets.filter((target) => allies.includes(target));
-        return selectedAllies.length ? selectedAllies : [actor];
-    }
-    if (['자신→대상', '원래 공격 대상', '이번 주공격'].includes(effectTarget)) return primaryTargets;
-    if (effect.category === 'buff' && ['enemy', 'enemyAll'].includes(battleTargetFor(skill))) return [actor];
-    return primaryTargets.length ? primaryTargets : [actor];
-}
-
-function healCombatant(target, amount) {
-    if (!target || target.hp <= 0 || hasCombatEffect(target, 'HEAL_BLOCK')) return 0;
-    const healing = Math.max(0, Math.min(Math.round(amount), target.maxHp - target.hp));
-    target.hp += healing;
-    if (healing) showCombatNumber(target, 'healing', healing);
-    return healing;
-}
-
-function removeCombatEffects(target, category, count = 1) {
-    let removed = 0;
-    target.effects ||= [];
-    for (let index = target.effects.length - 1; index >= 0 && removed < count; index -= 1) {
-        const effect = target.effects[index];
-        if (effect.category !== category || ['INJURY', 'AUTO_REVIVE'].includes(effect.code)) continue;
-        target.effects.splice(index, 1);
-        removed += 1;
-    }
-    return removed;
-}
-
-function applyDirectDamage(attacker, target, amount, allowReactions = true, allowCounter = allowReactions) {
-    if (!target || target.hp <= 0 || amount <= 0 || hasCombatEffect(target, 'INVINCIBILITY')) return 0;
-    let incoming = Math.max(1, Math.round(amount));
-    const reduction = Math.max(0, ...(target.effects || []).filter((effect) => effect.code === 'DAMAGE_REDUCTION').map((effect) => effect.value));
-    const marked = (target.effects || []).filter((effect) => effect.code === 'TARGET').reduce((sum, effect) => sum + effect.value, 0);
-    incoming = Math.max(0, Math.round(incoming * (1 - reduction + marked)));
-    const barrier = [...(target.effects || [])].filter((effect) => effect.code === 'BARRIER' && effect.shield > 0).sort((left, right) => right.shield - left.shield)[0];
-    if (barrier && incoming > 0) {
-        const absorbed = Math.min(incoming, barrier.shield);
-        barrier.shield -= absorbed;
-        incoming -= absorbed;
-        if (barrier.shield <= 0) target.effects = target.effects.filter((effect) => effect !== barrier);
-    }
-    if (allowReactions && incoming > 0) {
-        const team = party.includes(target) ? party : state.enemies;
-        const sharing = team.find((ally) => ally !== target && ally.hp > 0 && hasCombatEffect(ally, 'DAMAGE_SHARING'));
-        if (sharing) {
-            const share = Math.min(incoming, Math.round(incoming * (sharing.effects.find((effect) => effect.code === 'DAMAGE_SHARING')?.value || 0.3)));
-            incoming -= share;
-            applyDirectDamage(attacker, sharing, share, false);
-        }
-    }
-    const previousHp = target.hp;
-    const lethalHp = hasCombatEffect(target, 'IMMORTALITY') ? 1 : 0;
-    target.hp = Math.max(lethalHp, target.hp - incoming);
-    const actualDamage = previousHp - target.hp;
-    if (actualDamage > 0) {
-        playWebSound('hit');
-        target.hitAt = Date.now();
-        showCombatNumber(target, 'damage', actualDamage);
-        target.effects = (target.effects || []).filter((effect) => effect.code !== 'SLEEP');
-    }
-    if (target.hp <= 0 && !target.extinct && !hasCombatEffect(target, 'REVIVE_BLOCK')) {
-        const autoReviveIndex = (target.effects || []).findIndex((effect) => effect.code === 'AUTO_REVIVE');
-        if (autoReviveIndex >= 0 && !target.reviveUsed) {
-            target.reviveUsed = true;
-            target.hp = target.maxHp;
-            target.effects.splice(autoReviveIndex, 1);
-            target.effects = target.effects.filter((effect) => effect.category === 'buff' && !effect.code.startsWith('DEBUFF'));
-            showCombatNumber(target, 'healing', target.hp);
-        }
-    }
-    if (allowReactions && actualDamage > 0 && attacker?.hp > 0) {
-        const team = party.includes(target) ? party : state.enemies;
-        team.filter((ally) => ally !== target && ally.hp > 0).forEach((ally) => {
-            const curse = (ally.effects || []).find((effect) => effect.code === 'CURSE');
-            if (curse) applyDirectDamage(attacker, ally, actualDamage * curse.value, false);
-        });
-        const reflection = Math.max(0, ...(target.effects || []).filter((effect) => effect.code === 'DAMAGE_REFLECTION').map((effect) => effect.value));
-        if (reflection) applyDirectDamage(target, attacker, actualDamage * reflection, false);
-        if (allowCounter && hasCombatEffect(target, 'COUNTERATTACK') && !hasCombatEffect(target, 'COUNTERATTACK_BLOCK') && !target.counteredThisTurn && attacker.hp > 0) {
-            target.counteredThisTurn = true;
-            const counter = (target.effects || []).find((effect) => effect.code === 'COUNTERATTACK');
-            applyDirectDamage(target, attacker, combatStat(target, 'attack') * (counter?.value || 0.4), false);
-        }
-    }
-    return actualDamage;
-}
-
-function skillHasDamage(skill) {
-    return (skill.damageCoefficients || []).some((value) => value > 0) || Number(skill.damageCoefficient) > 0;
-}
-
-function skillHealingAmount(actor, skill) {
-    const coefficients = skill.healingCoefficients || [];
-    if (coefficients[0] > 0) return combatStat(actor, 'attack') * coefficients[0];
-    if (coefficients[1] > 0) return combatStat(actor, 'maxHp') * coefficients[1];
-    if (skill.heal?.attackCoefficient) return combatStat(actor, 'attack') * skill.heal.attackCoefficient;
-    if (skill.heal?.maxHpCoefficient) return combatStat(actor, 'maxHp') * skill.heal.maxHpCoefficient;
-    return 0;
-}
-
-function applyInstantEffect(source, skill, target, effect, directDamage) {
-    const code = effect.code;
-    if (code === 'HEAL') return;
-    if (['BUFF_DURATION_UP', 'BUFF_DURATION_DOWN', 'DEBUFF_DURATION_UP'].includes(code)) {
-        const category = code === 'DEBUFF_DURATION_UP' ? 'debuff' : 'buff';
-        const amount = Math.max(1, Math.round(effect.value));
-        target.effects = (target.effects || []).map((active) => active.category !== category ? active : {
-            ...active,
-            turnsRemaining: code === 'BUFF_DURATION_DOWN'
-                ? Math.max(0, active.turnsRemaining - amount)
-                : active.turnsRemaining + amount,
-        }).filter((active) => active.turnsRemaining > 0 || active.code === 'INJURY');
-        return;
-    }
-    if (code === 'REVIVE') {
-        if (target.hp > 0 || target.reviveUsed || target.extinct || hasCombatEffect(target, 'REVIVE_BLOCK')) return;
-        target.reviveUsed = true;
-        target.hp = Math.max(1, Math.round(target.maxHp * effect.value));
-        target.effects = (target.effects || []).filter((active) => active.category === 'buff');
-        showCombatNumber(target, 'healing', target.hp);
-        return;
-    }
-    if (code === 'DISPEL_BUFF') return removeCombatEffects(target, 'buff', Math.max(1, Math.round(effect.value)));
-    if (code === 'CLEANSE_DEBUFF') return removeCombatEffects(target, 'debuff', Math.max(1, Math.round(effect.value)));
-    if (code === 'TRANSFER_DEBUFF') {
-        const transferable = source.effects?.findLast((active) => active.category === 'debuff' && !['STUN', 'SLEEP', 'PROVOKE', 'INJURY', 'EXTINCTION', 'REVIVE_BLOCK'].includes(active.code));
-        if (transferable) {
-            source.effects = source.effects.filter((active) => active !== transferable);
-            addCombatEffect(target, source, { ...transferable, chance: 1 }, true);
-        }
-        return;
-    }
-    if (code === 'SKILL_COOLDOWN_DOWN' || code === 'SKILL_COOLDOWN_UP' || code === 'SKILL_COOLDOWN_RESET') {
-        target.cooldowns ||= {};
-        const eligible = (target.skills || []).filter((item) => item.id !== skill.id && item.cooldown > 0 && !item.effects?.some((active) => active.code === 'EXTRA_TURN'));
-        if (code === 'SKILL_COOLDOWN_RESET') {
-            const reset = eligible.find((item) => (target.cooldowns[item.id] || 0) > 0);
-            if (reset) target.cooldowns[reset.id] = 0;
-        } else eligible.forEach((item) => {
-            const current = target.cooldowns[item.id] || 0;
-            target.cooldowns[item.id] = code === 'SKILL_COOLDOWN_DOWN' ? Math.max(0, current - Math.max(1, effect.value)) : Math.min(item.cooldown, current + Math.max(1, effect.value));
-        });
-        return;
-    }
-    if (code === 'LIFESTEAL' && directDamage > 0) return healCombatant(source, directDamage * effect.value);
-    if (code === 'ADDITIONAL_DAMAGE' || code === 'EXTRA_ATTACK') {
-        const coefficient = effect.value;
-        return applyDirectDamage(source, target, combatStat(source, 'attack') * coefficient, false);
-    }
-    if (code === 'EXTRA_TURN') {
-        if (!source.extraTurnUsed) {
-            source.extraTurnUsed = true;
-            source.extraTurnPending = true;
-        }
-        return;
-    }
-    if (code === 'EXTINCTION' && target.hp <= 0) {
-        target.extinct = true;
-        return;
-    }
-    if (code === 'DEFENSE_PENETRATION') {
-        skill.penetration = Math.max(skill.penetration || 0, effect.value);
-        return;
-    }
-    if (code === 'INJURY') {
-        target.originalMaxHp ||= target.maxHp;
-        const injury = ((target.effects || []).find((active) => active.code === 'INJURY')?.value || 0) + effect.value;
-        addCombatEffect(target, source, { ...effect, value: injury, chance: 1 }, true);
-        return;
-    }
-    addCombatEffect(target, source, { ...effect, chance: 1 }, true);
-}
-
-const preAttackEffectCodes = new Set([
-    'DISPEL_BUFF', 'CLEANSE_DEBUFF', 'TRANSFER_DEBUFF', 'BUFF_DURATION_UP', 'BUFF_DURATION_DOWN',
-    'DEBUFF_DURATION_UP', 'DEFENSE_PENETRATION',
-]);
-
-function rollSkillEffects(source, skill, primaryTargets) {
-    const rolled = [];
-    for (const effect of skill.effects || []) {
-        const normalized = normalizedCombatEffect(effect);
-        const targets = effectRecipients(normalized, source, primaryTargets, skill);
-        for (const target of targets) {
-            const opponents = party.includes(source) ? state.enemies : party;
-            const accuracyAdjustment = opponents.includes(target)
-                ? (combatStat(source, 'effectHit') - combatStat(target, 'effectResist')) / 100
-                : 0;
-            const chance = Math.max(0, Math.min(1, normalized.chance + accuracyAdjustment));
-            if (Math.random() < chance) rolled.push({ effect: normalized, target });
-        }
-    }
-    return rolled;
-}
-
-function applySkillEffects(source, skill, rolledEffects, damageByTarget, totalDamage, preAttack, opponentTeam) {
-    for (const { effect, target } of rolledEffects) {
-        if (preAttackEffectCodes.has(effect.code) !== preAttack) continue;
-        if (!preAttack && opponentTeam.includes(target) && skillHasDamage(skill) && !damageByTarget.has(target)) continue;
-        const damage = damageByTarget.has(target) ? damageByTarget.get(target) : totalDamage;
-        applyInstantEffect(source, skill, target, effect, damage);
-    }
-}
-
-function beginNaturalTurn(actor) {
-    actor.naturalTurnSerial = (actor.naturalTurnSerial || 0) + 1;
-    actor.extraTurnUsed = false;
-    actor.counteredThisTurn = false;
-    actor.cooldowns ||= {};
-    Object.keys(actor.cooldowns).forEach((skillId) => {
-        actor.cooldowns[skillId] = Math.max(0, actor.cooldowns[skillId] - 1);
-    });
-    for (const effect of actor.effects || []) {
-        if (effect.code === 'POISON') applyDirectDamage(effect.source || null, actor, actor.maxHp * effect.value, false);
-        if (effect.code === 'BLEED') applyDirectDamage(effect.source || null, actor, effect.sourceAttack * effect.value, false);
-        if (effect.code === 'CONTINUOUS_HEAL') healCombatant(actor, actor.maxHp * effect.value);
-    }
-}
-
-function finishNaturalTurn(actor) {
-    tickActorEffects(actor);
-    actor.counteredThisTurn = false;
-}
-
-function executeCombatSkill(actor, skill, targets) {
-    actor.cooldowns ||= {};
-    if (actor.cooldowns[skill.id] > 0) return { damage: 0, healing: 0 };
-    if (skill.cooldown > 0) actor.cooldowns[skill.id] = skill.cooldown;
-    const ownTeam = party.includes(actor) ? party : state.enemies;
-    const opponentTeam = party.includes(actor) ? state.enemies : party;
-    const healingAmount = skillHealingAmount(actor, skill);
-    const damageByTarget = new Map();
-    const rolledEffects = rollSkillEffects(actor, skill, targets);
-    applySkillEffects(actor, skill, rolledEffects, damageByTarget, 0, true, opponentTeam);
-    let totalDamage = 0;
-    let totalHealing = 0;
-    for (const target of targets) {
-        if (opponentTeam.includes(target) && skillHasDamage(skill) && target.hp > 0) {
-            const { damage, critical, hit } = calculateDamage(actor, skill, target);
-            if (!hit) {
-                showCombatNumber(target, 'miss', '회피');
-                continue;
-            }
-            const dealt = applyDirectDamage(actor, target, damage, true, targets.length === 1);
-            if (critical && dealt > 0) showCombatNumber(target, 'critical', dealt);
-            damageByTarget.set(target, dealt);
-            totalDamage += dealt;
-        }
-        if (ownTeam.includes(target) && target.hp > 0 && healingAmount > 0) totalHealing += healCombatant(target, healingAmount);
-    }
-    applySkillEffects(actor, skill, rolledEffects, damageByTarget, totalDamage, false, opponentTeam);
-    return { damage: totalDamage, healing: totalHealing };
-}
+const { combatStat, hasCombatEffect, combatTargets, skillHasDamage, beginNaturalTurn, finishNaturalTurn, executeCombatSkill } = createCombatEngine({
+    get party() { return party; }, state, normalizedCombatEffect, showCombatNumber, playWebSound,
+    onEffect: (target, effect) => battleEffects.effect(target, effect),
+    onImpact: (target, kind, code) => battleEffects.impact(target, kind, code),
+});
 
 function combatResultText(result) {
     const parts = [];
@@ -2369,31 +2611,6 @@ function combatResultText(result) {
     return parts.join(', ') || '효과를 사용했습니다';
 }
 
-function calculateDamage(attacker, skill, target) {
-    const attack = combatStat(attacker, 'attack');
-    const coefficient = Number(skill.damageCoefficient || 0);
-    const coefficients = skill.damageCoefficients;
-    const rawDamage = Array.isArray(coefficients)
-        ? Math.max(1,
-            attack * Number(coefficients[0] || 0)
-            + combatStat(attacker, 'defense') * Number(coefficients[1] || 0)
-            + combatStat(attacker, 'speed') * Number(coefficients[2] || 0)
-            + combatStat(attacker, 'maxHp') * Number(coefficients[3] || 0))
-        : Math.max(1, attack * coefficient);
-    const attackerEffects = attacker.effects || [];
-    const targetEffects = target?.effects || [];
-    const chanceFrom = (effects, code) => effects.filter((effect) => effect.code === code).reduce((sum, effect) => sum + effect.value * 100, 0);
-    const hitChance = Math.max(0, Math.min(100,
-        100 + chanceFrom(attackerEffects, 'HIT_CHANCE_UP')
-        - chanceFrom(attackerEffects, 'HIT_CHANCE_DOWN')
-        - chanceFrom(targetEffects, 'EVASION_UP')
-        + chanceFrom(targetEffects, 'TARGET')));
-    if (Math.random() * 100 >= hitChance) return { damage: 0, critical: false, hit: false };
-    const critChance = Math.max(0, Math.min(100, combatStat(attacker, 'critChance') - chanceFrom(targetEffects, 'CRITICAL_RESISTANCE_UP')));
-    const critical = Math.random() * 100 < critChance;
-    const critDamage = combatStat(attacker, 'critDamage') / 100;
-    return { damage: Math.max(1, Math.round(critical ? rawDamage * critDamage : rawDamage)), critical, hit: true };
-}
 
 async function enemyTurn() {
     const enemyIndex = state.actingEnemy;
@@ -2413,6 +2630,8 @@ async function enemyTurn() {
         const skillPool = provokedIndex >= 0 ? (attackSkills.length ? attackSkills : [basicAttack]) : availableSkills.length ? availableSkills : [basicAttack];
         const skill = skillPool[Math.floor(Math.random() * skillPool.length)];
         await wait(2000);
+        while (retreatDialogOpen && state.view === 'expedition' && state.mode === 'combat') await wait(100);
+        if (state.view !== 'expedition' || state.mode !== 'combat' || state.ended || state.enemies[enemyIndex] !== enemy) return;
         const targetIndex = provokedIndex >= 0 ? provokedIndex : Math.floor(Math.random() * party.length);
         const skillTargets = combatTargets(enemy, skill, targetIndex);
         const result = executeCombatSkill(enemy, skill, skillTargets);
@@ -2425,11 +2644,13 @@ async function enemyTurn() {
     }
     finishNaturalTurn(enemy);
     await wait(900);
+    while (retreatDialogOpen && state.view === 'expedition' && state.mode === 'combat') await wait(100);
+    if (state.view !== 'expedition' || state.mode !== 'combat' || state.ended || state.enemies[enemyIndex] !== enemy) return;
     advanceCombatTurn();
 }
 
 function selectSkill(skillId) {
-    if (state.mode !== 'combat' || state.enemyPhase) return;
+    if (state.mode !== 'combat' || state.enemyPhase || combatEndTimer !== null || retreatDialogOpen) return;
     const hero = party[state.turn];
     const skill = battleSkillsFor(hero).find((item) => item.id === skillId);
     if (!skill || (hero.cooldowns?.[skill.id] || 0) > 0) return;
@@ -2521,7 +2742,9 @@ function activateNextCombatant() {
 }
 
 function advance() {
+    if (retreatDialogOpen) return;
     if (state.mode !== 'explore' || state.ended) return;
+    playWebSound('travel', 1);
     if (state.room >= rooms.length - 1) return startEncounter(true);
     state.room += 1;
     const room = rooms[state.room];
@@ -2545,12 +2768,22 @@ function restart() {
 }
 
 game.addEventListener('pointerover', (event) => {
+    if (event.pointerType !== 'mouse') return;
     const button = event.target.closest('button');
     if (!button || button.disabled || event.relatedTarget && button.contains(event.relatedTarget)) return;
     playWebSound('hover');
 });
 
 game.addEventListener('click', (event) => {
+    if (locationTransition.isRunning()) {
+        event.preventDefault();
+        return;
+    }
+    if (event.target.closest('[data-action="guild-dispatch-results-confirm"]')) {
+        confirmGuildDispatchResults();
+        return;
+    }
+    if (game.querySelector('.guild-dispatch-results-backdrop')) return;
     if (event.target.closest('.combat-status, .combat-status-popup')) return;
     const skillEdit = event.target.closest('[data-skill-edit]');
     if (skillEdit && import.meta.env.DEV) {
@@ -2559,13 +2792,18 @@ game.addEventListener('click', (event) => {
         render();
         return;
     }
+    const monsterEditButton = event.target.closest('[data-monster-edit]');
+    if (monsterEditButton && import.meta.env.DEV) {
+        openDeveloperCharacterEditor(monsterEditButton.dataset.monsterEdit, true);
+        return;
+    }
     const editButton = event.target.closest('[data-character-edit]');
     if (editButton && import.meta.env.DEV) {
         openDeveloperCharacterEditor(editButton.dataset.characterEdit);
         return;
     }
     syncBackgroundMusic();
-    if (event.target.closest('button:not(:disabled)')) playWebSound('click');
+    if (event.target.closest('button:not(:disabled), .plaza-monologue-dialogue[data-action]')) playWebSound('click');
     const allyTarget = event.target.closest('[data-ally-target]');
     if (allyTarget && !allyTarget.disabled) {
         useAction(state.selectedSkill, Number(allyTarget.dataset.allyTarget));
@@ -2577,6 +2815,42 @@ game.addEventListener('click', (event) => {
         return;
     }
     const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'party-character-codex') {
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        const isDispatch = state.view === 'guild' && state.guildRoom === 'strategy' && state.guildExpeditionPreparation;
+        const memberIds = isDispatch ? state.guildDispatchMemberIds
+            : ['plaza', 'expeditionSelect'].includes(state.view) ? state.recruits.map((member) => member.id) : [];
+        if (!memberIds.includes(memberId) || !catalogData.characters.some((character) => character.id === memberId)) return;
+        state.catalogReturnView = state.view;
+        state.characterCodexTab = 'characters';
+        state.catalogSelectedRosterId = memberId;
+        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
+        gameMenuOpen = false;
+        state.view = 'characterCodex';
+        render();
+        return;
+    }
+    const regularSelection = state.view === 'expeditionSelect';
+    const destinationSelectionAllowed = regularSelection || (state.view === 'guild' && state.guildRoom === 'strategy' && state.guildExpeditionPreparation);
+    const destinationKeys = regularSelection
+        ? { detail: 'regularDestinationDetail', subregion: 'regularDestinationSubregion', region: 'regularMapFocusedRegion', selected: 'regularSelectedDestination' }
+        : { detail: 'guildDestinationDetail', subregion: 'guildDestinationSubregion', region: 'guildMapFocusedRegion', selected: 'guildSelectedDestination' };
+    if (action === 'regular-destination-open') {
+        if (state.view !== 'plaza' || !regularDepartureStatus().requiresDestination) return;
+        state.view = 'expeditionSelect';
+        state.regularMapFocusedRegion = state.regularSelectedDestination?.region || '';
+        state.regularDestinationDetail = state.regularSelectedDestination?.location || '';
+        state.regularDestinationSubregion = state.regularSelectedDestination?.subregion || '';
+        render();
+        return;
+    }
+    if (action === 'regular-destination-close') {
+        if (!regularSelection) return;
+        state.view = 'plaza';
+        render();
+        game.querySelector('[data-action="regular-destination-open"]')?.focus();
+        return;
+    }
     if (action === 'combat-wait' && state.mode === 'combat' && !state.enemyPhase && !battleSkillsFor(party[state.turn]).length) {
         finishNaturalTurn(party[state.turn]);
         advanceCombatTurn();
@@ -2618,6 +2892,282 @@ game.addEventListener('click', (event) => {
     }
     if (action === 'load-save') {
         continueGame(event.target.closest('[data-slot]').dataset.slot);
+        return;
+    }
+    if (action === 'plaza-guild-select-open' || action === 'plaza-guild-select-close') {
+        if (state.view !== 'plaza' || action === 'plaza-guild-select-open' && !hasAvailablePlazaGuildMember(state, maxPartySize)) return;
+        state.plazaGuildSelectionOpen = action === 'plaza-guild-select-open';
+        if (state.tutorial?.stage === 'select-open') state.tutorial.stage = 'select-companion';
+        render();
+        return;
+    }
+    if (action === 'plaza-party-swap') {
+        if (state.view !== 'plaza') return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!state.recruits.some((member) => member.id === memberId && member.isGuildMember)) return;
+        state.plazaGuildSelectionOpen = true;
+        releaseMercenary(memberId);
+        game.querySelector(`[data-action="plaza-guild-toggle"][data-member-id="${memberId}"]`)?.focus({ preventScroll: true });
+        return;
+    }
+    if (action === 'plaza-guild-toggle') {
+        if (state.view !== 'plaza' || !state.plazaGuildSelectionOpen) return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        const scrollTop = game.querySelector('.guild-dispatch-member-grid')?.scrollTop || 0;
+        if (!togglePlazaGuildMember(state, memberId, maxPartySize)) return;
+        if (state.tutorial?.stage === 'select-companion') state.tutorial.stage = 'final-popup';
+        render();
+        const grid = game.querySelector('.guild-dispatch-member-grid');
+        if (grid) grid.scrollTop = scrollTop;
+        game.querySelector(`[data-action="plaza-guild-toggle"][data-member-id="${memberId}"]`)?.focus({preventScroll:true});
+        return;
+    }
+    if (action === 'plaza-guild-codex') {
+        if (state.view !== 'plaza' || !state.plazaGuildSelectionOpen) return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!catalogData.characters.some((member) => member.id === memberId)) return;
+        state.catalogReturnView = 'plaza';
+        state.characterCodexTab = 'characters';
+        state.catalogSelectedRosterId = memberId;
+        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
+        state.view = 'characterCodex';
+        render();
+        return;
+    }
+    if (action === 'tutorial-prologue-next') {
+        if (state.view !== 'prologue') return;
+        state.prologueIndex += 1;
+        if (state.prologueIndex >= tutorialPrologue.length) state.view = 'lobby';
+        render();
+        return;
+    }
+    if (action === 'tutorial-rent') {
+        if (completeTutorialRental(state, tutorialCompanionProfile())) render();
+        return;
+    }
+    if (action === 'tutorial-confirm') {
+        if (confirmTutorialMilestone(state)) {
+            if (state.tutorial.stage === 'done') state.plazaOffers = drawPlazaOffers();
+            render();
+        }
+        return;
+    }
+    if (action === 'guild-open') {
+        if (state.tutorial?.stage === 'guild-open') {
+            state.tutorial.stage = 'rent';
+            state.view = 'guild';
+            state.guildRoom = 'strategy';
+            state.guildResearchOpen = true;
+            state.guildExpeditionPreparation = false;
+            render();
+            return;
+        }
+        if (state.view !== 'plaza' && state.view !== 'guild') return;
+        moveBetweenPlazaAndGuild('guild');
+        return;
+    }
+    if (action === 'guild-room') {
+        if (state.view !== 'guild') return;
+        const room = event.target.closest('[data-guild-room]')?.dataset.guildRoom;
+        if (!Object.hasOwn(guildRooms, room) || guildRooms[room].disabled) return;
+        if (state.guildRoom === room) return;
+        const changeRoom = () => {
+            state.guildRoom = room;
+            state.guildResearchOpen = false;
+            state.guildExpeditionPreparation = false;
+            state.guildMapFocusedRegion = '';
+            state.guildDestinationDetail = '';
+            render();
+        };
+        if (room === 'strategy' || state.guildRoom === 'strategy') {
+            void locationTransition.run(changeRoom).catch((error) => console.warn('Guild room transition could not be played.', error));
+        } else {
+            changeRoom();
+        }
+        return;
+    }
+    if (action === 'guild-research') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy') return;
+        state.guildResearchOpen = true;
+        state.guildExpeditionPreparation = false;
+        render();
+        return;
+    }
+    if (action === 'guild-expedition-prepare') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy') return;
+        state.guildResearchOpen = false;
+        state.guildExpeditionPreparation = true;
+        state.guildExpeditionStep = 'destination';
+        state.guildMapFocusedRegion = '';
+        state.guildDestinationDetail = '';
+        render();
+        playWebSound('travel', 1.2);
+        return;
+    }
+    if (action === 'guild-expedition-step') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation) return;
+        const step = event.target.closest('[data-expedition-step]')?.dataset.expeditionStep;
+        if (!['destination', 'members'].includes(step) || state.guildExpeditionStep === step) return;
+        state.guildExpeditionStep = step;
+        render();
+        return;
+    }
+    if (action === 'guild-dispatch-codex') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation || state.guildExpeditionStep !== 'members') return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!state.guildMembers.some((member) => member.id === memberId) || !catalogData.characters.some((character) => character.id === memberId)) return;
+        state.catalogReturnView = 'guild';
+        state.characterCodexTab = 'characters';
+        state.catalogSelectedRosterId = memberId;
+        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
+        gameMenuOpen = false;
+        state.view = 'characterCodex';
+        render();
+        return;
+    }
+    if (action === 'guild-dispatch-swap') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation) return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!state.guildDispatchMemberIds.includes(memberId)) return;
+        state.guildDispatchMemberIds = state.guildDispatchMemberIds.filter((id) => id !== memberId);
+        state.guildExpeditionStep = 'members';
+        render();
+        game.querySelector(`.guild-dispatch-select[data-member-id="${memberId}"]`)?.focus({ preventScroll: true });
+        return;
+    }
+    if (action === 'guild-dispatch-toggle') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation || state.guildExpeditionStep !== 'members') return;
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!state.guildMembers.some((member) => member.id === memberId) || activeGuildDispatch(state, memberId) || state.recruits.some((member) => member.id === memberId)) return;
+        const selectedIndex = state.guildDispatchMemberIds.indexOf(memberId);
+        if (selectedIndex >= 0) state.guildDispatchMemberIds.splice(selectedIndex, 1);
+        else if (state.guildDispatches.filter((dispatch) => dispatch.status === 'active').length < MAX_ACTIVE_GUILD_DISPATCHES && state.guildDispatchMemberIds.length < maxPartySize) state.guildDispatchMemberIds.push(memberId);
+        else return;
+        const scrollTop = game.querySelector('.guild-dispatch-member-grid')?.scrollTop || 0;
+        render();
+        const grid = game.querySelector('.guild-dispatch-member-grid');
+        if (grid) grid.scrollTop = scrollTop;
+        game.querySelector(`[data-member-id="${memberId}"]`)?.focus({ preventScroll: true });
+        return;
+    }
+    if (action === 'guild-dispatch-detail') {
+        if (state.view !== 'guild' || state.guildRoom !== 'lobby') return;
+        const dispatchId = event.target.closest('[data-dispatch-id]')?.dataset.dispatchId;
+        if (!state.guildDispatches.some((dispatch) => dispatch.id === dispatchId && dispatch.status === 'active')) return;
+        guildDispatchDialogOpen = false;
+        guildDispatchDetailId = dispatchId;
+        render();
+        return;
+    }
+    if (action === 'guild-dispatch-detail-close') {
+        const dispatchId = guildDispatchDetailId;
+        guildDispatchDetailId = '';
+        render();
+        game.querySelector(`[data-dispatch-id="${dispatchId}"]`)?.focus({ preventScroll: true });
+        return;
+    }
+    if (action === 'guild-dispatch-send') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation || !currentGuildDispatchPlan()) return;
+        guildDispatchDialogOpen = true;
+        render();
+        return;
+    }
+    if (action === 'guild-dispatch-cancel') {
+        guildDispatchDialogOpen = false;
+        render();
+        game.querySelector('[data-action="guild-dispatch-send"]')?.focus();
+        return;
+    }
+    if (action === 'guild-dispatch-approve') {
+        if (!guildDispatchDialogOpen || state.view !== 'guild' || !currentGuildDispatchPlan()) return;
+        const dispatch = approveGuildDispatch(state, guildDestinations, maxPartySize);
+        if (!dispatch) return;
+        guildDispatchDialogOpen = false;
+        render();
+        game.querySelector('[data-action="guild-expedition-step"][data-expedition-step="members"]')?.focus();
+        return;
+    }
+    if (action === 'guild-expedition-other') {
+        if (state.view !== 'guild' || state.guildRoom !== 'strategy') return;
+        state.guildExpeditionPreparation = false;
+        state.guildExpeditionStep = 'destination';
+        state.guildMapFocusedRegion = '';
+        state.guildDestinationDetail = '';
+        render();
+        return;
+    }
+    if (action === 'guild-destination-open') {
+        if (!destinationSelectionAllowed || !state[destinationKeys.region]) return;
+        const destination = event.target.closest('[data-destination]')?.dataset.destination;
+        if (!Object.hasOwn(guildDestinations, destination)) return;
+        if (guildDestinations[destination].region !== state[destinationKeys.region]) return;
+        if (!guildDestinationUnlocked(destination, state.guildClearedDestinations, guildTestUnlock)) return;
+        state[destinationKeys.detail] = destination;
+        state[destinationKeys.subregion] = guildDestinations[destination].subregions[0][0];
+        render();
+        playWebSound('click');
+        return;
+    }
+    if (action === 'guild-destination-back') {
+        if (!destinationSelectionAllowed || !state[destinationKeys.detail]) return;
+        state[destinationKeys.region] = guildDestinations[state[destinationKeys.detail]].region;
+        state[destinationKeys.detail] = '';
+        render();
+        return;
+    }
+    if (action === 'guild-destination-subregion') {
+        if (!destinationSelectionAllowed) return;
+        const location = guildDestinations[state[destinationKeys.detail]];
+        const subregion = event.target.closest('[data-subregion]')?.dataset.subregion;
+        const index = location?.subregions.findIndex(([id]) => id === subregion);
+        if (index === undefined || index < 0 || index > 0 && !guildTestUnlock) return;
+        state[destinationKeys.subregion] = subregion;
+        render();
+        return;
+    }
+    if (action === 'guild-destination-select') {
+        const location = guildDestinations[state[destinationKeys.detail]];
+        if (!destinationSelectionAllowed || !location) return;
+        const [subregion, subregionName] = location.subregions.find(([id], index) => id === state[destinationKeys.subregion] && (guildTestUnlock || index === 0)) || location.subregions[0];
+        if (!regularSelection && (state.guildDispatches.filter((dispatch) => dispatch.status === 'active').length >= MAX_ACTIVE_GUILD_DISPATCHES || guildDestinationDispatchActive(state.guildDispatches, state[destinationKeys.detail]))) return;
+        const selected = state[destinationKeys.selected]?.location === state[destinationKeys.detail] && state[destinationKeys.selected]?.subregion === subregion;
+        state[destinationKeys.selected] = selected ? null : { region: location.region, location: state[destinationKeys.detail], subregion, name: `${location.name} ${subregionName}` };
+        if (regularSelection && !selected) state.view = 'plaza';
+        render();
+        playWebSound('click');
+        return;
+    }
+    if (action === 'guild-destination-monster') {
+        if (!destinationSelectionAllowed || !Object.hasOwn(guildDestinations, state[destinationKeys.detail])) return;
+        const monsterId = event.target.closest('[data-monster-id]')?.dataset.monsterId;
+        if (!catalogData.monsters.some((monster) => monster.id === monsterId)) return;
+        state.catalogReturnView = state.view;
+        state.characterCodexTab = 'monsters';
+        state.catalogSelectedRosterId = monsterId;
+        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
+        gameMenuOpen = false;
+        state.view = 'characterCodex';
+        render();
+        return;
+    }
+    if (action === 'guild-map-world') {
+        if (!destinationSelectionAllowed) return;
+        if (returnToGuildWorldMap(game)) state[destinationKeys.region] = '';
+        return;
+    }
+    if (action === 'guild-map-focus') {
+        if (!destinationSelectionAllowed) return;
+        const region = event.target.closest('[data-map-region]')?.dataset.mapRegion;
+        if (focusGuildMap(game, region, { clearedDestinations: state.guildClearedDestinations, testUnlock: guildTestUnlock })) {
+            state[destinationKeys.region] = region;
+            playWebSound('click');
+        }
+        return;
+    }
+    if (action === 'guild-exit') {
+        if (state.tutorial?.stage === 'guild-exit') state.tutorial.stage = 'select-open';
+        if (state.view !== 'guild') return;
+        moveBetweenPlazaAndGuild('plaza');
         return;
     }
     if (action === 'game-menu-open') {
@@ -2713,8 +3263,8 @@ game.addEventListener('click', (event) => {
         gameMenuOpen = false;
         const returnView = state.view === 'catalog' ? state.developerCatalogReturnView : state.catalogReturnView;
         const allowedViews = state.view === 'catalog'
-            ? ['lobby', 'playerSetup', 'plaza', 'expedition', 'characterCodex']
-            : ['lobby', 'playerSetup', 'plaza', 'expedition'];
+            ? ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect', 'characterCodex']
+            : ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect'];
         state.view = allowedViews.includes(returnView) ? returnView : (party.length ? 'expedition' : 'plaza');
         render();
         return;
@@ -2733,6 +3283,20 @@ game.addEventListener('click', (event) => {
     }
     if (action === 'plaza-gift') {
         giftCurrentMercenary();
+        return;
+    }
+    if (action === 'level-up-confirm') {
+        state.pendingLevelUp = null;
+        render();
+        return;
+    }
+    if (action === 'guild-recruitment-confirm') {
+        confirmGuildRecruitment();
+        return;
+    }
+    if (action === 'guild-recruitment-cancel' || action === 'guild-recruitment-result-confirm') {
+        state.guildRecruitmentDialog = null;
+        render();
         return;
     }
     if (action === 'plaza-guild') {
@@ -2813,6 +3377,23 @@ game.addEventListener('click', (event) => {
         return;
     }
     if (action === 'retreat') {
+        if (state.view !== 'expedition' || state.ended || combatEndTimer !== null) return;
+        gameMenuOpen = false;
+        retreatDialogOpen = true;
+        battleEffects.clear();
+        render();
+        game.querySelector('[data-action="retreat-cancel"]')?.focus();
+        return;
+    }
+    if (action === 'retreat-cancel') {
+        retreatDialogOpen = false;
+        render();
+        game.querySelector('[data-action="retreat"]')?.focus();
+        return;
+    }
+    if (action === 'retreat-confirm') {
+        if (!retreatDialogOpen || state.view !== 'expedition' || state.ended) return;
+        retreatDialogOpen = false;
         showExpeditionResult(false, false);
         return;
     }
@@ -2827,8 +3408,8 @@ game.addEventListener('pointerdown', (event) => {
         viewport,
         captureTarget,
         pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
+        startX: logicalPoint(event.clientX, event.clientY).x,
+        startY: logicalPoint(event.clientX, event.clientY).y,
         startScrollLeft: viewport.scrollLeft,
         dragging: false,
     };
@@ -2837,8 +3418,8 @@ game.addEventListener('pointerdown', (event) => {
 
 game.addEventListener('pointermove', (event) => {
     if (!codexCarouselDrag || event.pointerId !== codexCarouselDrag.pointerId) return;
-    const deltaX = event.clientX - codexCarouselDrag.startX;
-    const deltaY = event.clientY - codexCarouselDrag.startY;
+    const deltaX = logicalPoint(event.clientX, event.clientY).x - codexCarouselDrag.startX;
+    const deltaY = logicalPoint(event.clientX, event.clientY).y - codexCarouselDrag.startY;
     if (!codexCarouselDrag.dragging && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
         codexCarouselDrag.dragging = true;
         codexCarouselDrag.viewport.classList.add('is-dragging');
@@ -2872,7 +3453,10 @@ game.addEventListener('input', (event) => {
         const maxVolume = 1;
         const volume = Math.min(maxVolume, Math.max(0, Number(event.target.value)));
         const storageKey = volumeType === 'bgm' ? musicVolumeStorageKey : soundEffectsVolumeStorageKey;
-        if (volumeType === 'bgm') backgroundMusic.volume = volume;
+        if (volumeType === 'bgm') {
+            backgroundMusicVolume = volume;
+            backgroundMusic.volume = backgroundMusicVolume * backgroundMusicMasterVolume;
+        }
         else soundEffectsVolume = volume;
         try {
             localStorage.setItem(storageKey, String(volume));
@@ -2893,6 +3477,42 @@ game.addEventListener('input', (event) => {
 });
 
 game.addEventListener('change', (event) => {
+    if (event.target.matches('[data-guild-test-unlock]')) {
+        guildTestUnlock = event.target.checked;
+        if (!guildTestUnlock) {
+            if (!regularDepartureStatus().destination) state.regularSelectedDestination = null;
+            const detail = guildDestinations[state.regularDestinationDetail];
+            if (detail) {
+                state.regularDestinationSubregion = detail.subregions[0][0];
+                if (!guildDestinationUnlocked(state.regularDestinationDetail, state.guildClearedDestinations)) state.regularDestinationDetail = '';
+            }
+            if (state.regularMapFocusedRegion !== 'Stormreach') {
+                state.regularMapFocusedRegion = '';
+                state.regularDestinationDetail = '';
+            }
+        }
+        if (!guildTestUnlock) {
+            const selected = state.guildSelectedDestination;
+            if (selected && (selected.region !== 'Stormreach' || !guildDestinationUnlocked(selected.location, state.guildClearedDestinations) || selected.subregion !== guildDestinations[selected.location]?.subregions[0][0])) {
+                state.guildSelectedDestination = null;
+            }
+            const detail = guildDestinations[state.guildDestinationDetail];
+            if (detail) {
+                state.guildDestinationSubregion = detail.subregions[0][0];
+                if (!guildDestinationUnlocked(state.guildDestinationDetail, state.guildClearedDestinations)) {
+                    state.guildMapFocusedRegion = detail.region;
+                    state.guildDestinationDetail = '';
+                }
+            }
+            if (state.guildMapFocusedRegion && state.guildMapFocusedRegion !== 'Stormreach') {
+                state.guildMapFocusedRegion = '';
+                state.guildDestinationDetail = '';
+                state.guildDestinationSubregion = '';
+            }
+        }
+        render();
+        return;
+    }
     if (event.target.matches('[data-skill-enabled]') && import.meta.env.DEV) {
         const id = event.target.dataset.skillEnabled;
         try {
@@ -2900,7 +3520,16 @@ game.addEventListener('change', (event) => {
             if (!event.target.checked && state.selectedSkill === id) state.selectedSkill = null;
         } catch {
             event.target.checked = skillEnabled(id);
-            window.alert('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
+            showPopupNotice('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
+        }
+        return;
+    }
+    if (event.target.matches('[data-monster-enabled]') && import.meta.env.DEV) {
+        try {
+            saveMonsterSettings(event.target.dataset.monsterEnabled, { enabled: event.target.checked });
+        } catch (error) {
+            event.target.checked = monsterEnabled(event.target.dataset.monsterEnabled);
+            showPopupNotice(`저장하지 못했습니다. ${error.message}`);
         }
         return;
     }
@@ -2911,7 +3540,7 @@ game.addEventListener('change', (event) => {
             if (state.plazaCurrentOffer && !characterEnabled(state.plazaCurrentOffer.id)) state.plazaCurrentOffer = null;
         } catch {
             event.target.checked = characterEnabled(event.target.dataset.characterEnabled);
-            window.alert('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
+            showPopupNotice('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
         }
         return;
     }
@@ -2947,30 +3576,53 @@ function fitPlazaDialogueBubble(stage) {
     if (bubble.offsetHeight > availableHeight) stage.style.minHeight = `${bubble.offsetHeight + 60}px`;
 }
 
-function openDeveloperCharacterEditor(id) {
-    const original = catalogData.characters.find((entry) => entry.id === id);
+function openDeveloperCharacterEditor(id, isMonster = false, draft = null) {
+    const original = catalogData[isMonster ? 'monsters' : 'characters'].find((entry) => entry.id === id);
     if (!original) return;
-    const entry = developerCharacter(original);
+    const entry = { ...(isMonster ? developerMonster(original) : developerCharacter(original)), ...draft };
     const dialog = document.createElement('dialog');
     dialog.className = 'developer-character-editor';
     dialog.setAttribute('aria-labelledby', 'developer-editor-title');
     const options = (items, current) => items.map((value) => `<option value="${escapeHtml(value)}" ${value === current ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('');
     const jobs = [...new Set(catalogData.growthRows.map((row) => row['직업']).filter(Boolean))];
-    dialog.innerHTML = `<form><h2 id="developer-editor-title">캐릭터 편집</h2><p>Lv.${entry.level} · 스탯은 별자리·직업·등급에 따라 자동 적용됩니다.</p><div class="developer-editor-body"><div class="developer-image-picker"></div><div class="developer-editor-details"><div class="developer-editor-fields"><label>이름<input name="name" value="${escapeHtml(entry.name)}" maxlength="60" required></label><label>속성<select name="element">${options(Object.keys(elementTints), entry.element)}</select></label><label>별자리<select name="zodiac">${options(zodiacNames, entry.zodiac)}</select></label><label>직업<select name="job">${options(jobs, entry.job)}</select></label><label>등급<select name="grade">${[3, 4, 5].map((grade) => `<option value="${grade}" ${grade === entry.grade ? 'selected' : ''}>${grade}등급</option>`).join('')}</select></label></div><section class="developer-editor-stats" aria-label="자동 계산 스탯" aria-live="polite"><h3>자동 적용 스탯</h3><div>${rosterStatColumns.map(([key, label]) => `<div><span class="developer-stat-label">${statLabelMarkup(key, label)}</span><output data-preview-stat="${key}">${entry.stats[key]}</output></div>`).join('')}</div></section></div></div><p class="developer-editor-error" role="alert"></p><div class="developer-editor-buttons"><button type="button" data-editor-cancel>취소</button><button type="submit">저장</button></div></form>`;
+    dialog.innerHTML = `<form><h2 id="developer-editor-title">${isMonster ? '몬스터' : '캐릭터'} 편집</h2>${isMonster ? `<p>${escapeHtml(entry.stageName)} · ${entry.isBoss ? '보스' : '일반'} · ${escapeHtml(entry.size)}형</p>` : ''}<p>Lv.${entry.level} · 스탯은 별자리·직업·등급에 따라 자동 적용됩니다.</p><div class="developer-editor-body"><div class="developer-image-picker"></div><div class="developer-editor-details"><div class="developer-editor-fields"><label>이름<input name="name" value="${escapeHtml(entry.name)}" maxlength="60" required></label><label>속성<select name="element">${options(Object.keys(elementTints), entry.element)}</select></label><label>별자리<select name="zodiac">${options(zodiacNames, entry.zodiac)}</select></label><label>직업<select name="job">${options(jobs, entry.job)}</select></label><label>등급<select name="grade">${(isMonster ? [1, 2, 3, 4, 5] : [3, 4, 5]).map((grade) => `<option value="${grade}" ${grade === entry.grade ? 'selected' : ''}>${grade}등급</option>`).join('')}</select></label></div><section class="developer-editor-stats" aria-label="자동 계산 스탯" aria-live="polite"><h3>자동 적용 스탯</h3><div>${rosterStatColumns.map(([key, label]) => `<div><span class="developer-stat-label">${statLabelMarkup(key, label)}</span><output data-preview-stat="${key}">${entry.stats[key]}</output></div>`).join('')}</div></section>${isMonster ? '' : '<section class="developer-editor-skills" aria-label="캐릭터 스킬 배정"></section>'}</div></div><p class="developer-editor-error" role="alert"></p><div class="developer-editor-buttons"><button type="button" data-editor-cancel>취소</button><button type="submit">저장</button></div></form>`;
     game.append(dialog);
     const form = dialog.querySelector('form');
     const errorText = dialog.querySelector('.developer-editor-error');
     const saveButton = form.querySelector('[type=submit]');
     const imagePicker = createDeveloperImagePicker(dialog.querySelector('.developer-image-picker'), {
-        files: characterPortraitFiles,
+        files: isMonster ? monsterDefinitions.map((entry) => entry.id) : characterPortraitFiles,
+        asset: isMonster
+            ? (id, type) => monsterDefinitions.find((entry) => entry.id === id)[type === 'portrait' ? 'portraitSrc' : 'thumbnailSrc']
+            : (file, type) => type === 'portrait' ? characterPortraitAsset(file) : characterThumbnailAsset(file),
         portraitSrc: entry.portraitSrc,
         thumbnailSrc: entry.thumbnailSrc,
         defaults: {
-            portrait: characterPortraitAssets[id] || jobGlyphs[entry.job],
-            thumbnail: characterThumbnailAssets[id] || jobGlyphs[entry.job],
+            portrait: isMonster ? original.portraitSrc : characterPortraitAssets[id] || jobGlyphs[entry.job],
+            thumbnail: isMonster ? original.thumbnailSrc : characterThumbnailAssets[id] || jobGlyphs[entry.job],
         },
         onError: (text) => { errorText.textContent = text; },
         onBusy: (busy) => { saveButton.disabled = busy; },
+    });
+    const skillPicker = isMonster ? null : createDeveloperCharacterSkillPicker(dialog.querySelector('.developer-editor-skills'), {
+        skills: catalogData.skills.map(effectiveSkill),
+        skillIds: draft?.skillIds || characterSkillIds(entry),
+        isEnabled: skillEnabled,
+        onEdit: (skillId) => {
+            if (saveButton.disabled) { errorText.textContent = '이미지 처리가 끝난 뒤 스킬을 편집해주세요.'; return; }
+            const fields = new FormData(form);
+            developerCharacterEditorReturn = { id, draft: {
+                name: String(fields.get('name')), element: String(fields.get('element')),
+                zodiac: String(fields.get('zodiac')), job: String(fields.get('job')), grade: Number(fields.get('grade')),
+                ...imagePicker.values(), skillIds: skillPicker.values(),
+            } };
+            imagePicker.dispose();
+            dialog.close();
+            dialog.remove();
+            developerEditingSkillId = skillId;
+            state.view = 'skillEditor';
+            render();
+        },
     });
     const previewStats = () => {
         const fields = new FormData(form);
@@ -3000,9 +3652,10 @@ function openDeveloperCharacterEditor(id) {
         if (!name) { errorText.textContent = '이름을 입력해주세요.'; return; }
         try {
             const preview = previewStats();
-            saveCharacterEdit(original, {
+            (isMonster ? saveMonsterEdit : saveCharacterEdit)(original, {
                 name, element: String(fields.get('element')), zodiac: preview.zodiac,
                 job: preview.job, grade: preview.grade, ...imagePicker.values(),
+                ...(skillPicker ? { skillIds: skillPicker.values() } : {}),
             });
         } catch (error) {
             errorText.textContent = `저장하지 못했습니다. ${error.message}`;
@@ -3010,8 +3663,9 @@ function openDeveloperCharacterEditor(id) {
         }
         dialog.close();
         render();
-        game.querySelector(`[data-character-edit="${CSS.escape(id)}"]`)?.focus();
+        game.querySelector(`[data-${isMonster ? 'monster' : 'character'}-edit="${CSS.escape(id)}"]`)?.focus();
     });
+    previewStats();
     dialog.showModal();
 }
 
@@ -3029,18 +3683,20 @@ function showCombatStatusTooltip(trigger) {
     popup.innerHTML = `<strong>${escapeHtml(trigger.dataset.statusName)}</strong><div><span>수치</span><b>${escapeHtml(trigger.dataset.statusValue)}</b></div><div><span>지속</span><b>${escapeHtml(trigger.dataset.statusTurns)}</b></div>`;
     game.append(popup);
     trigger.setAttribute('aria-describedby', popup.id);
-    const rect = trigger.getBoundingClientRect();
-    const canvas = game.getBoundingClientRect();
+    const rect = logicalRect(trigger);
+    const canvas = logicalRect(game);
     const scale = canvas.width / DESIGN_WIDTH;
     popup.style.left = `${Math.max(12, Math.min((rect.right - canvas.left) / scale + 8, DESIGN_WIDTH - popup.offsetWidth - 12))}px`;
     popup.style.top = `${Math.max(12, Math.min((rect.top - canvas.top) / scale, DESIGN_HEIGHT - popup.offsetHeight - 12))}px`;
 }
 
 game.addEventListener('mouseover', (event) => {
+    if (!document.documentElement.hasAttribute('data-mouse-input')) return;
     const trigger = event.target.closest('.combat-status');
     if (trigger && !trigger.contains(event.relatedTarget)) showCombatStatusTooltip(trigger);
 });
 game.addEventListener('focusin', (event) => {
+    if (!document.documentElement.hasAttribute('data-mouse-input')) return;
     const trigger = event.target.closest('.combat-status');
     if (trigger) showCombatStatusTooltip(trigger);
 });
@@ -3063,7 +3719,7 @@ function showDeveloperSkillTooltip(trigger) {
     const entries = state.catalogTab === 'monsters' ? catalogData.monsters : catalogData.characters;
     const original = entries.find((entry) => entry.id === trigger.dataset.developerCharacter);
     if (!original) return;
-    const entry = state.catalogTab === 'characters' ? developerCharacter(original) : original;
+    const entry = state.catalogTab === 'characters' ? developerCharacter(original) : developerMonster(original);
     const skill = activeSkills(entry.skills).find((item) => item.id === trigger.dataset.developerSkill);
     if (!skill) return;
     const popup = document.createElement('div');
@@ -3073,8 +3729,8 @@ function showDeveloperSkillTooltip(trigger) {
     popup.innerHTML = skillTooltip(skill, entry);
     game.append(popup);
     trigger.setAttribute('aria-describedby', popup.id);
-    const rect = trigger.getBoundingClientRect();
-    const canvas = game.getBoundingClientRect();
+    const rect = logicalRect(trigger);
+    const canvas = logicalRect(game);
     const scale = canvas.width / DESIGN_WIDTH;
     const left = Math.max(12, Math.min((rect.left - canvas.left) / scale, DESIGN_WIDTH - popup.offsetWidth - 12));
     const below = (rect.bottom - canvas.top) / scale + 8;
@@ -3087,10 +3743,12 @@ function hideDeveloperSkillTooltip() {
     game.querySelectorAll('.developer-skill-trigger[aria-describedby]').forEach((trigger) => trigger.removeAttribute('aria-describedby'));
 }
 game.addEventListener('mouseover', (event) => {
+    if (!document.documentElement.hasAttribute('data-mouse-input')) return;
     const trigger = event.target.closest('.developer-skill-trigger');
     if (trigger && !trigger.contains(event.relatedTarget)) showDeveloperSkillTooltip(trigger);
 });
 game.addEventListener('focusin', (event) => {
+    if (!document.documentElement.hasAttribute('data-mouse-input')) return;
     const trigger = event.target.closest('.developer-skill-trigger');
     if (trigger) showDeveloperSkillTooltip(trigger);
 });
@@ -3109,17 +3767,29 @@ game.addEventListener('scroll', (event) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') hideDeveloperSkillTooltip();
-    const activeDialogue = state.view === 'plaza' ? getActivePlazaDialogue() : null;
+    const activeDialogue = state.view === 'plaza' && !state.plazaGuildSelectionOpen ? getActivePlazaDialogue() : null;
+    if (activeDialogue && !activeDialogue.node.choices?.length && event.key === 'Enter' && event.target.closest?.('.plaza-monologue-dialogue') && !event.repeat) {
+        event.preventDefault();
+        playWebSound('click');
+        advancePlazaDialogue();
+        return;
+    }
     if (activeDialogue && ['monologue', 'oneOnOne', 'twoPerson'].includes(activeDialogue.dialogue.presentation) && !activeDialogue.node.choices?.length && (event.code === 'Space' || event.key === ' ') && !event.repeat) {
         const target = event.target;
         if (target instanceof HTMLElement && (target.matches('input, textarea, select, [contenteditable="true"]') || target.closest('button'))) return;
         event.preventDefault();
+        playWebSound('click');
         advancePlazaDialogue();
         return;
     }
     if (state.view === 'playerSetup' && state.playerSetupStep === 'name' && event.key === 'Enter') {
         event.preventDefault();
         confirmPlayerName();
+        return;
+    }
+    if (state.view === 'prologue' && ['Enter', ' '].includes(event.key) && !event.repeat) {
+        event.preventDefault();
+        game.querySelector('[data-action="tutorial-prologue-next"]')?.click();
         return;
     }
     if (state.view !== 'expedition') return;
@@ -3135,4 +3805,72 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && state.mode === 'explore') advance();
 });
 
+if (!hasSavedGame()) state.view = 'prologue';
 render();
+
+
+game.addEventListener('keydown', (event) => {
+    if ((!guildDispatchDialogOpen && !guildDispatchDetailId) || state.view !== 'guild') return;
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        if (guildDispatchDetailId) {
+            game.querySelector('[data-action="guild-dispatch-detail-close"]')?.click();
+        } else {
+            guildDispatchDialogOpen = false;
+            render();
+            game.querySelector('[data-action="guild-dispatch-send"]')?.focus();
+        }
+    } else if (event.key === 'Tab') {
+        const buttons = [...game.querySelectorAll('.guild-dispatch-dialog button:not(:disabled)')];
+        const first = buttons[0], last = buttons.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+});
+
+
+game.addEventListener('keydown', (event) => {
+    const dialog = game.querySelector('.guild-dispatch-results-dialog');
+    if (!dialog) return;
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        confirmGuildDispatchResults();
+    } else if (event.key === 'Tab') {
+        const controls = [...dialog.querySelectorAll('button:not(:disabled), [tabindex="0"]')];
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+}, true);
+
+
+game.addEventListener('keydown', (event) => {
+    const dialog = game.querySelector('.guild-recruitment-dialog');
+    if (!dialog) return;
+    event.stopImmediatePropagation();
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.querySelector('[data-action="guild-recruitment-cancel"], [data-action="guild-recruitment-result-confirm"], [data-action="level-up-confirm"]')?.click();
+    } else if (event.key === 'Tab') {
+        const controls = [...dialog.querySelectorAll('button:not(:disabled)')];
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+}, true);
+
+
+game.addEventListener('keydown', event => {
+    if (!retreatDialogOpen) return;
+    event.stopImmediatePropagation();
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        game.querySelector('[data-action="retreat-cancel"]')?.click();
+    } else if (event.key === 'Tab') {
+        const buttons = [...game.querySelectorAll('.retreat-dialog button')];
+        const first = buttons[0], last = buttons.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+}, true);

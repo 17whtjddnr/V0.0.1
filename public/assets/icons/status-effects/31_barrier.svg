@@ -1,0 +1,2 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title"><title id="title">31 보호막</title><rect id="background" width="64" height="64" rx="9" fill="#087CF0"/><path id="outer_shield" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round" d="M10 10Q32 18 54 10V29C54 42 44 52 32 58C20 52 10 42 10 29Z"/>
+<path id="inner_shield" fill="#FFFFFF" d="M18 20Q32 24 46 20V29C46 38 40 45 32 50C24 45 18 38 18 29Z"/></svg>

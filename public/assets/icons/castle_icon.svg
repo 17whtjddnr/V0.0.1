@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>성</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path fill-rule="evenodd" d="M17 24h9v10h10V24h9v84H17V24Zm10 28v15h8V52h-8Z"/>
+    <path fill-rule="evenodd" d="M83 24h9v10h10V24h9v84H83V24Zm10 28v15h8V52h-8Z"/>
+    <path fill-rule="evenodd" d="M51 48h8v10h10V48h8v60H51V48Zm13 29a8 8 0 0 0-8 8v23h16V85a8 8 0 0 0-8-8Z"/>
+  </g>
+</svg>

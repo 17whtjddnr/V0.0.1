@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/src/style.css"><style>body{margin:0;background:#24211e;color:white;font:16px sans-serif}#targets{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:45px 20px}article{text-align:center;position:relative;height:280px}article img{width:160px;height:220px;object-fit:contain;object-position:bottom}h3{margin:2px}</style><div id="targets"></div><script type="module">import { createBattleEffects } from '/src/battle-effects.mjs';import { battleEffectVisuals,approvedEffectDurations } from '/src/battle-effect-visuals.mjs';
+const images=Object.keys(import.meta.glob('/public/assets/art/2D/Monster/**/*.{webp,png}')).slice(0,1).map(p=>p.replace('/public',''));
+const animations=Object.keys(approvedEffectDurations);window.active=true;
+window.targets=animations.map((id,i)=>{const el=document.createElement('article');el.innerHTML='<img src="'+images[0]+'"><h3>'+id+'</h3>';document.querySelector('#targets').append(el);return {id,el};});
+window.fx=createBattleEffects({findImage:t=>t.el.querySelector('img'),isActive:()=>window.active,volume:()=>0,audioContext:()=>new AudioContext()});
+await Promise.all([...document.images].map(img=>img.decode().catch(()=>{})));await fx.preload();window.ready=true;
+window.run=()=>{targets.forEach(t=>{const code=Object.entries(battleEffectVisuals).find(([code,v])=>v.animation===t.id)?.[0];if(code)fx.effect(t,{code});else fx.impact(t,t.id);});};
+</script>

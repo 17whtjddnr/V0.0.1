@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>친밀도</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="M64 24c-6-10-22-8-22 4 0 11 12 21 20 27a3 3 0 0 0 4 0c8-6 20-16 20-27 0-12-16-14-22-4Z"/>
+    <circle cx="36" cy="67" r="13"/>
+    <circle cx="92" cy="67" r="13"/>
+    <path d="M12 106v-5c0-11 9-17 24-17s24 6 24 17v5a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4Zm56 0v-5c0-11 9-17 24-17s24 6 24 17v5a4 4 0 0 1-4 4H72a4 4 0 0 1-4-4Z"/>
+  </g>
+</svg>

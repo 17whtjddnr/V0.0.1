@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>길드아이콘</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M44 18Q64 25 84 18L78 30Q73 34 73 41V55H87Q94 55 98 50L110 44Q103 64 110 84L98 78Q94 73 87 73H73V87Q73 94 78 98L84 110Q64 103 44 110L50 98Q55 94 55 87V73H41Q34 73 30 78L18 84Q25 64 18 44L30 50Q34 55 41 55H55V41Q55 34 50 30L44 18Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

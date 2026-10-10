@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">23 출혈</title>
+<desc id="desc">빨간 정사각형 바탕에 같은 곡률의 큰 방울과 작은 방울. 일정한 간격과 하단 정렬.</desc>
+
+<path id="large_drop" fill="#FFFFFF" d="M23 7C20 17 6 29 6 39A17 17 0 0 0 40 39C40 29 26 17 23 7Z"/>
+<path id="small_drop" fill="#FFFFFF" d="M23 7C20 17 6 29 6 39A17 17 0 0 0 40 39C40 29 26 17 23 7Z" transform="translate(38.5 28) scale(.5)"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

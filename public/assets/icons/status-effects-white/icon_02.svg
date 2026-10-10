@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="208 20 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="208" y="20" width="64" height="64"><g id="icon_02"><title>02 공격력 증가(대)</title>
+<g transform="translate(208 20)" fill="white"><g transform="translate(-4 0) scale(.8)"><path d="M42 8 52 8 52 18 30 40 25 35Z M19 31 34 46 30 50 15 35Z M20 40 25 45 15 55 10 50Z" /></g><path d="M44 15 55 28 48 28 48 48 40 48 40 28 33 28Z" /></g></g>
+</mask></defs><rect x="208" y="20" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

@@ -1,0 +1,25 @@
+#game:has(> .tutorial-prologue-page) { padding: 36px 50px 44px; background: #142a3b; }
+.tutorial-prologue-page header { height: 126px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.tutorial-prologue-page header > span { color: #e5c98a; letter-spacing: .25em; font-size: 18px; }
+#game .tutorial-prologue-page h1 { font: 700 32px/1.4 var(--serif); margin: 0; }
+.tutorial-prologue-scene { position: relative; height: 490px; border: 1px solid rgb(200 222 232 / 45%); background-position: center; background-size: cover; animation: tutorial-scene-in .65s ease-out both; }
+.tutorial-prologue-chapter { position: absolute; right: 22px; bottom: 18px; padding: 8px 14px; background: rgb(8 17 25 / 75%); color: #e3c78d; font-size: 17px; letter-spacing: .12em; }
+.tutorial-prologue-dialogue { height: 230px; margin-top: 24px; }
+.tutorial-guide { position: absolute; z-index: 80; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; max-width: 1100px; padding: 12px 24px; border: 1px solid #e1c887; border-radius: 6px; background: rgb(8 22 32 / 96%); box-shadow: 0 3px 16px #0008; color: #fff; font-size: 19px; pointer-events: none; }
+.tutorial-guide > span { color: #efd091; font-weight: 700; white-space: nowrap; }
+#game .tutorial-highlight { outline: 2px solid #ffe09c; outline-offset: 3px; animation: tutorial-focus-pulse 1.2s ease-in-out infinite; }
+.tutorial-overlay { position: absolute; inset: 0; z-index: 150; display: grid; place-items: center; background: rgb(0 0 0 / 72%); }
+.tutorial-milestone { width: 660px; padding: 38px 44px; text-align: center; border: 1px solid #c8b581; background: #173543; color: #f0f6f8; box-shadow: 0 12px 48px #0009; }
+.tutorial-milestone > img { width: 54px; height: 54px; margin-bottom: 12px; }
+#game .tutorial-milestone h2 { margin: 0 0 24px; font: 700 30px/1.4 var(--serif); }
+.tutorial-milestone p { margin: 16px 0; font-size: 21px; line-height: 1.6; word-break: keep-all; }
+#game .tutorial-milestone button { width: 100%; margin-top: 20px; padding: 16px; border: 1px solid #9bcbb0; background: #315e50; color: #fff; font-size: 22px; }
+#game .guild-layout-main.is-founding { background: #111c25; }
+.guild-research.is-founding .guild-research-connections { display: none; }
+.guild-research.is-founding .guild-research-nodes { width: 300px; grid-template-columns: 1fr; }
+.guild-research.is-founding .guild-research-node { cursor: pointer; }
+#game .tutorial-battle-art { background: linear-gradient(rgb(0 0 0 / 12%),rgb(0 0 0 / 12%)),url('/assets/backgrounds/meadow.webp') center / cover; }
+#game .tutorial-battle-art::before, #game .tutorial-battle-art::after { display: none; }
+@keyframes tutorial-focus-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgb(255 224 156 / 12%); } 50% { box-shadow: 0 0 0 8px rgb(255 224 156 / 35%); } }
+@keyframes tutorial-scene-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #game .tutorial-highlight, .tutorial-prologue-scene { animation: none; } }

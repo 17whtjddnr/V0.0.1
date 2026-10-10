@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">19 회복 불가</title>
+<desc id="desc">빨간 정사각형 바탕, 흰색 하트 중앙에 빨간 엑스 표시.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#E83D36"/>
+<path id="heart" fill="#FFFFFF" d="M32 56C27 53 6 37 6 23C6 9 23 6 32 19C41 6 58 9 58 23C58 37 37 53 32 56Z"/>
+<g id="cross" fill="none" stroke="#E83D36" stroke-width="5.5" stroke-linecap="round">
+<path d="M26 26 38 38M38 26 26 38"/>
+</g>
+</svg>

@@ -1,0 +1,29 @@
+.location-transition {
+    position: absolute;
+    z-index: 20;
+    overflow: hidden;
+    isolation: isolate;
+    pointer-events: none;
+    background: #080a0b;
+}
+.location-transition-pane {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    overflow: hidden;
+    will-change: transform;
+}
+.location-transition-seam {
+    --location-transition-fade: 400px;
+    position: absolute;
+    z-index: 10;
+    left: 100%;
+    top: 0;
+    bottom: 0;
+    width: calc(var(--location-transition-gap,600px) + 2 * var(--location-transition-fade));
+    margin-left: calc(-1 * var(--location-transition-fade));
+    opacity: 0;
+    background: linear-gradient(90deg,transparent 0%,#000 30%,#000 70%,transparent 100%);
+    will-change: transform,opacity;
+}
+#game.is-location-transitioning > :not(.location-transition) { pointer-events: none; }

@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="528 1082 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="528" y="1082" width="64" height="64"><g id="icon_49"><title>49 방어력 관통</title>
+<g transform="translate(528 1082)" fill="white"><path d="M12 12Q32 18 52 12V31Q52 46 32 56Q12 46 12 31Z" /><g fill="black"><path d="M44 12 27 31 36 31 21 53 44 33 34 33 51 12Z" /></g></g></g>
+</mask></defs><rect x="528" y="1082" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

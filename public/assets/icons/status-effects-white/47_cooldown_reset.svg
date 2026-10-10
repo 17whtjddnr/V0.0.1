@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><title>47 스킬 쿨타임 초기화</title><path xmlns="http://www.w3.org/2000/svg" id="circular_arrow" d="M10.77 40.19A23 23 0 1 0 14.38 16.22" fill="none" stroke="#FFFFFF" stroke-width="4.8" stroke-linecap="round" />
+<path xmlns="http://www.w3.org/2000/svg" id="arrowhead" fill="#FFFFFF" d="M8.6 23.1 11.1 7.8 23.1 17.9Z" />
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

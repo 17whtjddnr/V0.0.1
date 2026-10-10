@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>드롭다운</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <path d="M24 45a6 6 0 0 1 8.5 0L64 76.5 95.5 45a6 6 0 0 1 8.5 8.5L68.25 89.25a6 6 0 0 1-8.5 0L24 53.5a6 6 0 0 1 0-8.5Z" fill="#FFFFFF" filter="url(#shadow)"/>
+</svg>

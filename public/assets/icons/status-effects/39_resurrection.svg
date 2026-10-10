@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">39 부활</title>
+<desc id="desc">파란 정사각형 바탕에 흰색 라틴 십자가. 긴 세로축과 위쪽에 위치한 짧은 가로축으로 회복 십자와 구별.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#087CF0"/>
+<path id="resurrection_cross" fill="#FFFFFF" d="M28 6H36Q37 6 37 7V21H51Q52 21 52 22V30Q52 31 51 31H37V57Q37 58 36 58H28Q27 58 27 57V31H13Q12 31 12 30V22Q12 21 13 21H27V7Q27 6 28 6Z"/>
+</svg>

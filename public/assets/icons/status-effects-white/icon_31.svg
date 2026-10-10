@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 728 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="48" y="728" width="64" height="64"><g id="icon_31"><title>31 보호막</title>
+<g transform="translate(48 728)" fill="white"><path d="M13 13Q32 20 51 13V31Q51 45 32 54Q13 45 13 31Z" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><g transform="translate(12 12) scale(.625)"><path d="M12 12Q32 18 52 12V31Q52 46 32 56Q12 46 12 31Z" /></g></g></g>
+</mask></defs><rect x="48" y="728" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

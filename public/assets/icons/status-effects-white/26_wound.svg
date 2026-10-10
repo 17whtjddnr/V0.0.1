@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">26 상처</title>
+<desc id="desc">빨간 정사각형 바탕 위 서로 겹치지 않는 세 개의 흰색 발톱 자국. 오른쪽 위에서 왼쪽 아래로 향한 평행한 상처.</desc>
+
+<g id="claw_marks" fill="#FFFFFF">
+<path id="left_mark" d="M33 7 17 30 6 43 14 20Z"/>
+<path id="middle_mark" d="M48 8 30 37 15 56 25 28Z"/>
+<path id="right_mark" d="M58 20 45 42 29 57 38 36Z"/>
+</g>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

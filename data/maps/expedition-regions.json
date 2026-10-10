@@ -1,0 +1,54 @@
+{
+  "Veyrholt": {"name":"베이르홀트","destinations":[
+    {"name":"서풍 들판","image":"Meadow","type":"nature"},
+    {"name":"울림굴","image":"Cave","type":"dungeon","floors":2},
+    {"name":"검은깃 야영지","image":"Bandit Hideout","type":"bandit"},
+    {"name":"벼랑바람 길","image":"Cliffside Path","type":"nature"},
+    {"name":"푸른솔 숲","image":"Forest","type":"nature"},
+    {"name":"고산 요새","image":"Mountin City","type":"final"}
+  ]},
+  "Eldermere": {"name":"엘더미어","destinations":[
+    {"name":"달빛잎 숲","image":"Forest","type":"nature"},
+    {"name":"별빛 수정굴","image":"Magic Cave","type":"dungeon","floors":3},
+    {"name":"은비늘 강","image":"River","type":"nature"},
+    {"name":"안개이끼 습지","image":"Swamp","type":"nature"},
+    {"name":"잊힌 별의 유적","image":"Ancient Ruins","type":"dungeon","floors":2},
+    {"name":"별탑 왕성","image":"Maagic City","type":"final"}
+  ]},
+  "Thornvale": {"name":"쏜베일","destinations":[
+    {"name":"가시덩굴 밀림","image":"Jungle","type":"nature"},
+    {"name":"덩굴 무덤","image":"Jungle Dungeon","type":"dungeon","floors":4},
+    {"name":"깊은그늘 숲","image":"Forest","type":"nature"},
+    {"name":"꽃가시 평야","image":"Meadow","type":"nature"},
+    {"name":"뿌리숨 동굴","image":"Cave","type":"dungeon","floors":2},
+    {"name":"잠든 수호자의 전당","image":"Hall","type":"dungeon","floors":3},
+    {"name":"덩굴 왕성","image":"Jungle City","type":"final"}
+  ]},
+  "Aurelmark": {"name":"아우렐마크","destinations":[
+    {"name":"황금물결 해안","image":"Coast","type":"nature"},
+    {"name":"백모래 항구","image":"Beach City","type":"town"},
+    {"name":"옛 항구 지하수로","image":"Sewer","type":"dungeon","floors":3},
+    {"name":"파도울림 지하감옥","image":"Dungeon","type":"dungeon","floors":4},
+    {"name":"해풍솔 숲","image":"Forest","type":"nature"},
+    {"name":"황금빛 평야","image":"Meadow","type":"nature"},
+    {"name":"여명 왕성","image":"East City","type":"final"}
+  ]},
+  "Valdoren": {"name":"발도렌","destinations":[
+    {"name":"붉은모래 사막","image":"Desert","type":"nature"},
+    {"name":"모래왕의 묘실","image":"Desert Dungeon","type":"dungeon","floors":3},
+    {"name":"불꽃재 평원","image":"Lava Fields","type":"nature"},
+    {"name":"용암 심장부","image":"Lava Dungeon","type":"dungeon","floors":4},
+    {"name":"검은재 황무지","image":"Darklands","type":"nature"},
+    {"name":"메마른 메아리굴","image":"Cave","type":"dungeon","floors":2},
+    {"name":"사막 왕성","image":"Desert City","type":"final"}
+  ]},
+  "Skeldrath": {"name":"스켈드라스","destinations":[
+    {"name":"서리바람 설원","image":"Snowfield","type":"nature"},
+    {"name":"얼음송곳니 묘굴","image":"Snowfield Dungeon","type":"dungeon","floors":3},
+    {"name":"흰숨 동굴","image":"Cave","type":"dungeon","floors":2},
+    {"name":"눈잣나무 숲","image":"Forest","type":"nature"},
+    {"name":"찬이슬 평야","image":"Meadow","type":"nature"},
+    {"name":"빙벽 지하감옥","image":"Dungeon","type":"dungeon","floors":4},
+    {"name":"서리 왕성","image":"Snowfield City","type":"final"}
+  ]}
+}

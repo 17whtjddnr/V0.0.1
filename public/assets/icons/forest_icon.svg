@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>숲</title>
+  <defs>
+    <filter id="shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g fill="#FFFFFF" filter="url(#shadow)">
+    <path d="m64 18 18 27H72l17 25H78l18 27H32l18-27H39l17-25H46l18-27Z"/>
+    <rect x="59" y="97" width="10" height="14" rx="2"/>
+    <path d="m26 40 15 24H31l10 15-12 18H8l14-21H12l14-36Z"/>
+    <rect x="21" y="97" width="9" height="14" rx="2"/>
+    <path d="m102 40 15 24h-10l9 12h-10l14 21H99L87 79l10-15H87l15-24Z"/>
+    <rect x="98" y="97" width="9" height="14" rx="2"/>
+  </g>
+</svg>

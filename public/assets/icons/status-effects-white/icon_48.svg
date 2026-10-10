@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="368 1082 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="368" y="1082" width="64" height="64"><g id="icon_48"><title>48 스킬 쿨타임 증가</title>
+<g transform="translate(368 1082)" fill="white"><path d="M18 10H46M18 54H46M21 11C21 25 29 24 32 32C29 40 21 39 21 53M43 11C43 25 35 24 32 32C35 40 43 39 43 53" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><path d="M24 18H40L32 28Z M32 38 23 50H41Z" /></g></g>
+</mask></defs><rect x="368" y="1082" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

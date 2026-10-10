@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+<title id="title">07 효과적중 증가</title>
+<desc id="desc">원본에 충실한 흰색 네 갈래 크로스 라이트. 파란 정사각형 바탕.</desc>
+
+<path id="cross_light" fill="#FFFFFF" d="M32 5Q35.5 27.5 59 32Q35.5 36.5 32 59Q28.5 36.5 5 32Q28.5 27.5 32 5Z"/>
+</mask></defs><rect x="0" y="0" width="64" height="64" fill="white" mask="url(#glyph)"/></svg>

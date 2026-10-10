@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">24 표적</title>
+<desc id="desc">빨간 정사각형 바탕 위 흰색 원형 테두리와 중앙의 사람 상반신. 조준선 없이 균형 잡힌 내부 여백.</desc>
+<rect id="background" width="64" height="64" rx="9" fill="#E83D36"/>
+<circle id="outer_ring" cx="32" cy="32" r="24" fill="none" stroke="#FFFFFF" stroke-width="4.5"/>
+<g id="person" fill="#FFFFFF">
+<circle id="head" cx="32" cy="24" r="6.2"/>
+<path id="torso" d="M20 39C20 34.5 25 32.5 32 32.5C39 32.5 44 34.5 44 39V44Q44 47 41 47H23Q20 47 20 44Z"/>
+</g>
+</svg>
