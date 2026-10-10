@@ -1,31 +1,31 @@
 export const TUTORIAL_COMPANION_ID = "CHAR-208";
 export const tutorialPrologue = [
   {
-    "background": "tutorial-land.png",
+    "background": "tutorial-land.webp",
     "text": "의도적으로 잊혀진 과거."
   },
   {
-    "background": "tutorial-storm-sea.png",
+    "background": "tutorial-storm-sea.webp",
     "text": "세상의 끝이라 믿었던 바다.\n그 너머에도 세상은 있었다."
   },
   {
-    "background": "tutorial-audience-chamber.png",
+    "background": "tutorial-audience-chamber.webp",
     "text": "3년 전."
   },
   {
-    "background": "tutorial-audience-chamber.png",
+    "background": "tutorial-audience-chamber.webp",
     "text": "백성을 속여 온 왕이 달아났다.\n그리고, 감춰 두었던 모든 것이 드러났다."
   },
   {
-    "background": "tutorial-war-room-3.png",
+    "background": "tutorial-war-room-3.webp",
     "text": "그 뒤로 3년. 새 왕실은 신대륙을 향해 눈을 돌렸다.\n한정된 제국군 대신, 자유로운 길드를 지원하기로 했다."
   },
   {
-    "background": "tutorial-war-room-3.png",
+    "background": "tutorial-war-room-3.webp",
     "text": "길드는 본래의 자유로움에 더해 부와 명성까지 얻었다.\n나는 완전히 매료되었다."
   },
   {
-    "background": "tutorial-war-room-3.png",
+    "background": "tutorial-war-room-3.webp",
     "text": "격동하는 시대와 발맞추어, 위대한 길드 마스터로 성장하는 이야기.\n바로, 나의 이야기다."
   }
 ];

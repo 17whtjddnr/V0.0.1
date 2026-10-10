@@ -33,7 +33,8 @@ import { playLocationSound } from './location-sound.mjs';
 import { createDeveloperCharacterSkillPicker } from './developer-character-skill-picker.mjs';
 import { createDeveloperSkillEditor } from './developer-skill-editor.mjs';
 import { statusEffectIcons } from './status-effect-icons.mjs';
-import * as XLSX from 'xlsx';
+import { readDefaultSkillRows, readCatalogTable } from './workbook-data.mjs';
+import { createImageWarmup } from './image-warmup.mjs';
 import { rebalanceSkill } from './skill-balance.js';
 import { generateRosters as generateBaseRosters, applyRosterProfile, CHARACTER_COUNT } from './roster-generation.mjs';
 import { configureDeveloperSkills, effectiveSkill, activeSkills, skillEnabled, saveSkillSettings, saveSkillEdit, derivedSkill } from './developer-skills.mjs';
@@ -50,6 +51,7 @@ import plazaFirstConversationDialogue from '../data/dialogues/plaza-first-conver
 import { MONSTER_COUNT, monsterDefinitions, monstersForStage } from './monster-catalog.mjs';
 
 const game = document.querySelector('#game');
+const warmImages = createImageWarmup();
 game.addEventListener('keydown', (event) => {
     if (!['Enter', ' '].includes(event.key) || !event.target.closest('[data-action="guild-map-focus"], .guild-map-location-marker[data-action], [data-action="tutorial-rent"]')) return;
     event.preventDefault();
@@ -106,29 +108,7 @@ function updateLoadingProgress(progress) {
     if (loadingProgressTrack) loadingProgressTrack.setAttribute('aria-valuenow', String(Math.round(loadingProgress)));
 }
 
-function waitForBackgroundMusicReady(timeoutMs = 12000) {
-    if (backgroundMusic.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return Promise.resolve();
-    return new Promise((resolve) => {
-        let finished = false;
-        const finish = () => {
-            if (finished) return;
-            finished = true;
-            window.clearTimeout(timeout);
-            backgroundMusic.removeEventListener('canplay', finish);
-            backgroundMusic.removeEventListener('canplaythrough', finish);
-            backgroundMusic.removeEventListener('error', finish);
-            resolve();
-        };
-        const timeout = window.setTimeout(finish, timeoutMs);
-        backgroundMusic.addEventListener('canplay', finish);
-        backgroundMusic.addEventListener('canplaythrough', finish);
-        backgroundMusic.addEventListener('error', finish);
-        if (backgroundMusic.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) finish();
-    });
-}
-
 async function finishInitialLoading() {
-    await waitForBackgroundMusicReady();
     updateLoadingProgress(100);
     return new Promise((resolve) => {
         window.setTimeout(() => {
@@ -279,14 +259,15 @@ let retreatDialogOpen = false;
 let gameMenuMode = 'menu';
 let gameMenuNotice = '';
 const backgroundMusicTracks = {
-    lobby: 'Loby.mp3',
-    playerSetup: 'Loby.mp3',
-    plaza: 'Town.mp3',
-    guild: 'Loby.mp3',
-    catalog: 'Town.mp3',
-    expedition: 'Dungeon.mp3',
+    lobby: 'Loby.web.mp3',
+    playerSetup: 'Loby.web.mp3',
+    plaza: 'Town.web.mp3',
+    guild: 'Loby.web.mp3',
+    catalog: 'Town.web.mp3',
+    expedition: 'Dungeon.web.mp3',
 };
-const backgroundMusic = new Audio();
+let backgroundMusic = new Audio();
+const bufferedMusic = new Map();
 backgroundMusic.loop = true;
 function readStoredVolume(storageKey, fallback, maximum = 1) {
     try {
@@ -324,8 +305,16 @@ function syncBackgroundMusic() {
     const filename = backgroundMusicTracks[state.view] || backgroundMusicTracks.lobby;
     const source = `/assets/sound/Bgm/${filename}`;
     if (backgroundMusic.getAttribute('src') !== source) {
-        backgroundMusic.src = source;
-        backgroundMusic.load();
+        backgroundMusic.pause();
+        if (!bufferedMusic.has(source)) {
+            const track = new Audio(source);
+            track.loop = true;
+            track.preload = 'auto';
+            track.addEventListener('canplay', tryPlayBackgroundMusic);
+            bufferedMusic.set(source, track);
+        }
+        backgroundMusic = bufferedMusic.get(source);
+        backgroundMusic.volume = backgroundMusicVolume * backgroundMusicMasterVolume;
     }
     tryPlayBackgroundMusic();
 }
@@ -571,20 +560,15 @@ function workbookSkill(row) {
 }
 
 async function loadSkills() {
-    for (const filename of ['skills-editable.xlsx', 'skills.xlsx']) {
-        try {
-            const response = await fetch(`/data/${filename}`, { cache: 'no-store' });
-            if (!response.ok) continue;
-            const workbook = XLSX.read(await response.arrayBuffer(), { type: 'array' });
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
-            const loaded = rows.map(workbookSkill).filter((skill) => skill.id && skill.name);
-            if (loaded.length === defaultSkills.length) {
-                updateLoadingProgress(20);
-                return loaded;
-            }
-        } catch (error) {
-            console.warn(`${filename} could not be loaded.`, error);
+    try {
+        const rows = await readDefaultSkillRows();
+        const loaded = rows.map(workbookSkill).filter((skill) => skill.id && skill.name);
+        if (loaded.length === defaultSkills.length) {
+            updateLoadingProgress(20);
+            return loaded;
         }
+    } catch (error) {
+        console.warn('Default skills could not be loaded.', error);
     }
     console.warn('No valid skill workbook could be loaded; using built-in defaults.');
     updateLoadingProgress(20);
@@ -596,21 +580,8 @@ const skills = await loadSkills();
 let catalogWorkbookLoadsComplete = 0;
 const catalogWorkbookLoadTotal = 5;
 
-function workbookTable(sheet, headerIndex) {
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
-    const headers = rows[headerIndex] || [];
-    return rows.slice(headerIndex + 1)
-        .filter((row) => row.some((value) => value !== '' && value !== null && value !== undefined))
-        .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
-}
-
 async function readWorkbookTable(filename, sheetName, headerIndex) {
-    const response = await fetch(`/data/import/${filename}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`${filename} returned ${response.status}`);
-    const workbook = XLSX.read(await response.arrayBuffer(), { type: 'array' });
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) throw new Error(`${filename} is missing the ${sheetName} sheet`);
-    const rows = workbookTable(sheet, headerIndex);
+    const rows = await readCatalogTable(filename, sheetName, headerIndex);
     catalogWorkbookLoadsComplete += 1;
     updateLoadingProgress(20 + catalogWorkbookLoadsComplete / catalogWorkbookLoadTotal * 74);
     return rows;
@@ -2211,6 +2182,7 @@ function render() {
     applyTutorialGuide();
     renderGuildProgressPopup();
     gameViewport.syncBackground();
+    warmNextSceneImages();
     popupPresentation.sync();
     const dialogue = state.view === 'plaza' && !state.plazaGuildSelectionOpen ? getActivePlazaDialogue() : null;
     let sceneKey = '';
@@ -2239,6 +2211,24 @@ function render() {
         images: [...game.querySelectorAll('.codex-character-art-mask, .plaza-dialogue-character-fallback, .enemy, .plaza-encounter-art')],
         information: [...game.querySelectorAll('.plaza-encounter-info, .plaza-encounter-skills, .plaza-dialogue-bubble, .plaza-monologue-text, .plaza-dialogue-options, .enemy-name, .enemy-hp, .enemy-health, .enemy .combat-statuses')],
     });
+}
+
+function warmNextSceneImages() {
+    if (navigator.connection?.saveData) return;
+    const urls = [];
+    if (state.view === 'lobby' || state.view === 'playerSetup') urls.push(`/assets/backgrounds/${tutorialPrologue[0].background}`);
+    if (state.view === 'prologue') {
+        const current = tutorialPrologue[state.prologueIndex]?.background;
+        const next = tutorialPrologue.slice(state.prologueIndex + 1).find(scene => scene.background !== current);
+        urls.push(next ? `/assets/backgrounds/${next.background}` : '/assets/backgrounds/town-square.webp');
+    }
+    if (state.view === 'plaza') urls.push(`/assets/backgrounds/guild-lobby-${state.guildLobbyBackground || 1}.webp`);
+    if (state.view === 'guild') urls.push('/assets/backgrounds/town-square.webp', '/assets/backgrounds/guild-war-room-1.webp');
+    const destination = state.regularSelectedDestination;
+    if (destination && ['plaza', 'expeditionSelect'].includes(state.view)) {
+        urls.push(...monsterDefinitions.filter(monster => monster.location === destination.location && monster.subregion === destination.subregion).map(monster => monster.portraitSrc));
+    }
+    warmImages(urls);
 }
 
 function renderScene() {
