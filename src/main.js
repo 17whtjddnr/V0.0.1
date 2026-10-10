@@ -2577,7 +2577,7 @@ function moveBetweenPlazaAndGuild(view) {
 
 function playerProfileMarkup() {
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
-    return `<div class="player-profile"><img class="player-avatar" src="${playerThumbnailAsset}" alt="" aria-hidden="true" draggable="false"><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong><span>Lv.${state.userLevel}</span><label class="player-test-unlock" title="테스트: 모든 세부지역 잠금 해제"><input type="checkbox" data-guild-test-unlock aria-label="테스트: 모든 세부지역 잠금 해제" ${guildTestUnlock ? 'checked' : ''}></label></div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
+    return `<div class="player-profile"><img class="player-avatar" src="${playerThumbnailAsset}" alt="" aria-hidden="true" draggable="false"><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong><span>Lv.${state.userLevel}</span>${import.meta.env.DEV ? `<label class="player-test-unlock" title="테스트: 모든 세부지역 잠금 해제"><input type="checkbox" data-guild-test-unlock aria-label="테스트: 모든 세부지역 잠금 해제" ${guildTestUnlock ? 'checked' : ''}></label>` : ''}</div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
 }
 
 function gameFooterMarkup() {
@@ -3467,7 +3467,7 @@ game.addEventListener('input', (event) => {
 });
 
 game.addEventListener('change', async (event) => {
-    if (event.target.matches('[data-guild-test-unlock]')) {
+    if (import.meta.env.DEV && event.target.matches('[data-guild-test-unlock]')) {
         guildTestUnlock = event.target.checked;
         if (!guildTestUnlock) {
             if (!regularDepartureStatus().destination) state.regularSelectedDestination = null;

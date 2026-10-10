@@ -3,6 +3,10 @@ const defaultExpeditionDestination = { location: 'crypt', subregion: '', name: '
 
 export function startRegularExpeditionDestination(state, destination = defaultExpeditionDestination) {
     state.expeditionDestination = { ...destination };
+    state.regularSelectedDestination = null;
+    state.regularDestinationDetail = '';
+    state.regularDestinationSubregion = '';
+    state.regularMapFocusedRegion = '';
     return state.expeditionDestination;
 }
 

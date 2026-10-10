@@ -69,12 +69,22 @@ test('normal departure requires a valid destination before checking for party me
     status = regularExpeditionPreparation(state, destinations);
     assert.equal(status.canDepart, true);
     const dispatchSelection = state.guildSelectedDestination;
+    const departureSelection = state.regularSelectedDestination;
+    state.regularDestinationDetail = departureSelection.location;
+    state.regularDestinationSubregion = departureSelection.subregion;
+    state.regularMapFocusedRegion = 'Stormreach';
     startRegularExpeditionDestination(state, status.destination);
-    assert.deepEqual(state.expeditionDestination, state.regularSelectedDestination);
-    assert.notEqual(state.expeditionDestination, state.regularSelectedDestination);
+    assert.deepEqual(state.expeditionDestination, departureSelection);
+    assert.notEqual(state.expeditionDestination, departureSelection);
+    assert.equal(state.regularSelectedDestination, null);
+    assert.equal(state.regularDestinationDetail, '');
+    assert.equal(state.regularDestinationSubregion, '');
+    assert.equal(state.regularMapFocusedRegion, '');
+    assert.equal(state.guildSelectedDestination, dispatchSelection);
+    assert.equal(regularExpeditionPreparation(state, destinations).canDepart, false);
     finishRegularExpeditionDestination(state, true, destinations);
     assert.equal(state.guildSelectedDestination, dispatchSelection);
-    assert.equal(state.regularSelectedDestination.name, '온바람 평야 북부');
+    assert.equal(state.regularSelectedDestination, null);
 });
 
 test('tutorial departure keeps its predefined destination and three-button preparation', () => {
