@@ -1,23 +1,17 @@
 import { calculateSkillScore } from './skill-balance.js';
+import { createDeveloperContentStore } from './developer-content-store.mjs';
 
-const storageKey = 'game-developer-skills-v1';
-let settings = {};
+const store = createDeveloperContentStore('skills');
 let originals = new Map();
 let formatDescriptions = null;
-try {
-    const parsed = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) settings = parsed;
-} catch { /* Use the workbook when local settings cannot be read. */ }
 
 export function configureDeveloperSkills(skills, formatter) {
     originals = new Map(skills.map((skill) => [skill.id, skill]));
     formatDescriptions = formatter;
 }
-export function skillEnabled(id) { return settings[id]?.enabled !== false; }
+export function skillEnabled(id) { return store.settings[id]?.enabled !== false; }
 export function saveSkillSettings(id, patch) {
-    const next = { ...settings, [id]: { ...settings[id], ...patch } };
-    localStorage.setItem(storageKey, JSON.stringify(next));
-    settings = next;
+    return store.save(id, patch);
 }
 export function derivedSkill(skill) {
     const scoreAfter = calculateSkillScore(skill);
@@ -36,11 +30,11 @@ export function derivedSkill(skill) {
 }
 export function effectiveSkill(skill) {
     const original = originals.get(skill.id) || skill;
-    const saved = settings[skill.id];
+    const saved = store.settings[skill.id];
     return saved?.values ? derivedSkill({ ...original, ...saved.values, id: original.id }) : original;
 }
 export function activeSkills(skills) { return skills.filter((skill) => skillEnabled(skill.id)).map(effectiveSkill); }
 export function saveSkillEdit(id, values, enabled = skillEnabled(id)) {
     if (values.effects.length > 4) throw new Error('효과는 최대 4개까지 적용할 수 있습니다.');
-    saveSkillSettings(id, { values, enabled });
+    return saveSkillSettings(id, { values, enabled });
 }

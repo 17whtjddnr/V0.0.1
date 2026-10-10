@@ -118,14 +118,20 @@ export function createDeveloperSkillEditor(config) {
             page.querySelector('[data-skill-image-upload]').value = '';renderIcons();updateScore();
         }
     });
-    form.addEventListener('submit', (event) => {
+    const projectNote = document.createElement('p');
+    projectNote.className = 'skill-editor-save-note';
+    projectNote.textContent = '저장하면 프로젝트 파일에 기록됩니다. Git 커밋·푸시 후 배포 버전에 반영됩니다.';
+    form.querySelector('.skill-editor-toolbar').after(projectNote);
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();if (save.disabled) return;
+        save.disabled = true; form.inert = true;
         try {
             const draft = readDraft();
             if (!draft.name || !draft.category) throw new Error('스킬 이름과 유형을 입력해주세요.');
-            config.onSave(draft, form.elements.enabled.checked);
+            await config.onSave(draft, form.elements.enabled.checked);
             disposed = true;
         } catch (exception) { error.textContent = `저장하지 못했습니다. ${exception.message}`; }
+        finally { save.disabled = false; form.inert = false; }
     });
     renderIcons();updateScore();
     return page;

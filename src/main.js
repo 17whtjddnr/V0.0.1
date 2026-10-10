@@ -1335,7 +1335,7 @@ function renderDeveloperSkillEditor() {
         skill, effects: catalogData.effects, deriveSkill: derivedSkill,
         enabled: skillEnabled(skill.id), iconChoices,
         defaultThumbnailSrc: wrapper.querySelector('img').src,
-        onSave: (values, enabled) => { saveSkillEdit(original.id, values, enabled); close(); },
+        onSave: async (values, enabled) => { await saveSkillEdit(original.id, values, enabled); close(); },
         onCancel: close,
     });
     game.replaceChildren(editor);
@@ -3466,7 +3466,7 @@ game.addEventListener('input', (event) => {
     search.setSelectionRange(state.catalogSearch.length, state.catalogSearch.length);
 });
 
-game.addEventListener('change', (event) => {
+game.addEventListener('change', async (event) => {
     if (event.target.matches('[data-guild-test-unlock]')) {
         guildTestUnlock = event.target.checked;
         if (!guildTestUnlock) {
@@ -3505,33 +3505,36 @@ game.addEventListener('change', (event) => {
     }
     if (event.target.matches('[data-skill-enabled]') && import.meta.env.DEV) {
         const id = event.target.dataset.skillEnabled;
+        event.target.disabled = true;
         try {
-            saveSkillSettings(id, { enabled: event.target.checked });
+            await saveSkillSettings(id, { enabled: event.target.checked });
             if (!event.target.checked && state.selectedSkill === id) state.selectedSkill = null;
         } catch {
             event.target.checked = skillEnabled(id);
-            showPopupNotice('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
-        }
+            showPopupNotice('활성화 설정을 프로젝트 파일에 저장하지 못했습니다. 개발 서버를 확인해주세요.');
+        } finally { event.target.disabled = false; }
         return;
     }
     if (event.target.matches('[data-monster-enabled]') && import.meta.env.DEV) {
+        event.target.disabled = true;
         try {
-            saveMonsterSettings(event.target.dataset.monsterEnabled, { enabled: event.target.checked });
+            await saveMonsterSettings(event.target.dataset.monsterEnabled, { enabled: event.target.checked });
         } catch (error) {
             event.target.checked = monsterEnabled(event.target.dataset.monsterEnabled);
             showPopupNotice(`저장하지 못했습니다. ${error.message}`);
-        }
+        } finally { event.target.disabled = false; }
         return;
     }
     if (event.target.matches('[data-character-enabled]') && import.meta.env.DEV) {
+        event.target.disabled = true;
         try {
-            saveCharacterSettings(event.target.dataset.characterEnabled, { enabled: event.target.checked });
+            await saveCharacterSettings(event.target.dataset.characterEnabled, { enabled: event.target.checked });
             state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id));
             if (state.plazaCurrentOffer && !characterEnabled(state.plazaCurrentOffer.id)) state.plazaCurrentOffer = null;
         } catch {
             event.target.checked = characterEnabled(event.target.dataset.characterEnabled);
-            showPopupNotice('활성화 설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
-        }
+            showPopupNotice('활성화 설정을 프로젝트 파일에 저장하지 못했습니다. 개발 서버를 확인해주세요.');
+        } finally { event.target.disabled = false; }
         return;
     }
     const filter = event.target.dataset.catalogFilter;
@@ -3578,6 +3581,9 @@ function openDeveloperCharacterEditor(id, isMonster = false, draft = null) {
     dialog.innerHTML = `<form><h2 id="developer-editor-title">${isMonster ? '몬스터' : '캐릭터'} 편집</h2>${isMonster ? `<p>${escapeHtml(entry.stageName)} · ${entry.isBoss ? '보스' : '일반'} · ${escapeHtml(entry.size)}형</p>` : ''}<p>Lv.${entry.level} · 스탯은 별자리·직업·등급에 따라 자동 적용됩니다.</p><div class="developer-editor-body"><div class="developer-image-picker"></div><div class="developer-editor-details"><div class="developer-editor-fields"><label>이름<input name="name" value="${escapeHtml(entry.name)}" maxlength="60" required></label><label>속성<select name="element">${options(Object.keys(elementTints), entry.element)}</select></label><label>별자리<select name="zodiac">${options(zodiacNames, entry.zodiac)}</select></label><label>직업<select name="job">${options(jobs, entry.job)}</select></label><label>등급<select name="grade">${(isMonster ? [1, 2, 3, 4, 5] : [3, 4, 5]).map((grade) => `<option value="${grade}" ${grade === entry.grade ? 'selected' : ''}>${grade}등급</option>`).join('')}</select></label></div><section class="developer-editor-stats" aria-label="자동 계산 스탯" aria-live="polite"><h3>자동 적용 스탯</h3><div>${rosterStatColumns.map(([key, label]) => `<div><span class="developer-stat-label">${statLabelMarkup(key, label)}</span><output data-preview-stat="${key}">${entry.stats[key]}</output></div>`).join('')}</div></section>${isMonster ? '' : '<section class="developer-editor-skills" aria-label="캐릭터 스킬 배정"></section>'}</div></div><p class="developer-editor-error" role="alert"></p><div class="developer-editor-buttons"><button type="button" data-editor-cancel>취소</button><button type="submit">저장</button></div></form>`;
     game.append(dialog);
     const form = dialog.querySelector('form');
+    const projectNote = document.createElement('p');
+    projectNote.textContent = '저장하면 프로젝트 파일에 기록됩니다. Git 커밋·푸시 후 배포 버전에 반영됩니다.';
+    form.prepend(projectNote);
     const errorText = dialog.querySelector('.developer-editor-error');
     const saveButton = form.querySelector('[type=submit]');
     const imagePicker = createDeveloperImagePicker(dialog.querySelector('.developer-image-picker'), {
@@ -3627,6 +3633,7 @@ function openDeveloperCharacterEditor(id, isMonster = false, draft = null) {
         return preview;
     };
     dialog.querySelector('[data-editor-cancel]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('cancel', event => { if (form.inert) event.preventDefault(); });
     dialog.addEventListener('close', () => { imagePicker.dispose(); dialog.remove(); });
     form.addEventListener('change', async (event) => {
         errorText.textContent = '';
@@ -3634,15 +3641,17 @@ function openDeveloperCharacterEditor(id, isMonster = false, draft = null) {
             try { previewStats(); } catch (error) { errorText.textContent = error.message; }
         }
     });
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (saveButton.disabled) return;
         const fields = new FormData(form);
         const name = String(fields.get('name')).trim();
         if (!name) { errorText.textContent = '이름을 입력해주세요.'; return; }
+        saveButton.disabled = true;
+        form.inert = true;
         try {
             const preview = previewStats();
-            (isMonster ? saveMonsterEdit : saveCharacterEdit)(original, {
+            await (isMonster ? saveMonsterEdit : saveCharacterEdit)(original, {
                 name, element: String(fields.get('element')), zodiac: preview.zodiac,
                 job: preview.job, grade: preview.grade, ...imagePicker.values(),
                 ...(skillPicker ? { skillIds: skillPicker.values() } : {}),
@@ -3650,7 +3659,7 @@ function openDeveloperCharacterEditor(id, isMonster = false, draft = null) {
         } catch (error) {
             errorText.textContent = `저장하지 못했습니다. ${error.message}`;
             return;
-        }
+        } finally { saveButton.disabled = false; form.inert = false; }
         dialog.close();
         render();
         game.querySelector(`[data-${isMonster ? 'monster' : 'character'}-edit="${CSS.escape(id)}"]`)?.focus();

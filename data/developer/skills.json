@@ -1,0 +1,146 @@
+{
+  "SKILL_0008": {
+    "values": {
+      "name": "서릿달 일격",
+      "target": "적",
+      "category": "공격|회복",
+      "isBasicAttack": true,
+      "cooldown": 0,
+      "balanceTargetScore": 0.29,
+      "damageCoefficients": [
+        0.28,
+        0,
+        0,
+        0
+      ],
+      "healingCoefficients": [
+        0,
+        0.02
+      ],
+      "effects": [],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_0289": {
+    "values": {
+      "name": "서릿달빛",
+      "target": "아군",
+      "category": "회복",
+      "isBasicAttack": false,
+      "cooldown": 1,
+      "balanceTargetScore": 0.82,
+      "damageCoefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "healingCoefficients": [
+        0,
+        1.1
+      ],
+      "effects": [],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_0619": {
+    "values": {
+      "name": "서릿달빛 반전",
+      "target": "아군과 자신",
+      "category": "버프",
+      "isBasicAttack": false,
+      "cooldown": 2,
+      "balanceTargetScore": 0.85,
+      "damageCoefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "HIT_CHANCE_UP",
+          "name": "명중 증가",
+          "englishName": "Hit Chance Up",
+          "description": "공격 명중 능력 상승",
+          "unit": "비율",
+          "baseValue": 0.2,
+          "baseDuration": 2,
+          "baseCost": 0.4,
+          "effectTarget": "대상",
+          "value": 0.3,
+          "duration": 2,
+          "chance": 1
+        }
+      ],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_1368": {
+    "values": {
+      "name": "서릿달 가호",
+      "target": "아군전체",
+      "category": "공격|디버프",
+      "isBasicAttack": false,
+      "cooldown": 3,
+      "balanceTargetScore": 0.72,
+      "damageCoefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "CONTINUOUS_HEAL",
+          "name": "지속 회복",
+          "englishName": "Continuous Heal",
+          "description": "턴 시작 시 생명력 회복",
+          "unit": "대상 최대HP 비율",
+          "baseValue": 0.07,
+          "baseDuration": 2,
+          "baseCost": 0.55,
+          "effectTarget": "대상",
+          "value": 0.1,
+          "duration": 2,
+          "chance": 1
+        },
+        {
+          "code": "DEFENSE_UP",
+          "name": "방어력 증가",
+          "englishName": "Defense Up",
+          "description": "방어력 상승",
+          "unit": "비율",
+          "baseValue": 0.35,
+          "baseDuration": 2,
+          "baseCost": 0.55,
+          "effectTarget": "대상",
+          "value": 0.3,
+          "duration": 2,
+          "chance": 0.75
+        }
+      ],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  }
+}

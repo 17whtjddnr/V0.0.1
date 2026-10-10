@@ -1,43 +1,37 @@
 import { applyRosterProfile } from './roster-generation.mjs';
 import { activeSkills } from './developer-skills.mjs';
+import { createDeveloperContentStore } from './developer-content-store.mjs';
 
-const storageKey = 'game-developer-characters-v1';
+const store = createDeveloperContentStore('characters');
 let growthRows = [];
 let skillPool = [];
 export function configureDeveloperCharacters(rows, skills) {
     growthRows = rows;
     skillPool = skills;
 }
-let settings = {};
-try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    if (stored && typeof stored === 'object' && !Array.isArray(stored)) settings = stored;
-} catch { /* Invalid local settings fall back to the original data. */ }
 
 export function characterEnabled(id) {
-    return settings[id]?.enabled !== false;
+    return store.settings[id]?.enabled !== false;
 }
 
 export function saveCharacterSettings(id, patch) {
-    const next = { ...settings, [id]: { ...settings[id], ...patch } };
-    localStorage.setItem(storageKey, JSON.stringify(next));
-    settings = next;
+    return store.save(id, patch);
 }
 
 export function characterSkillIds(entry) {
-    const ids = settings[entry.id]?.skillIds;
+    const ids = store.settings[entry.id]?.skillIds;
     return Array.isArray(ids) ? [...ids] : (entry.skills || []).map((skill) => skill.id);
 }
 
 export function characterSkills(entry, fallback = []) {
-    const ids = settings[entry.id]?.skillIds;
+    const ids = store.settings[entry.id]?.skillIds;
     if (!Array.isArray(ids)) return activeSkills(entry.skills?.length ? entry.skills : fallback);
     const byId = new Map(skillPool.map((skill) => [skill.id, skill]));
     return activeSkills(ids.map((id) => byId.get(id)).filter(Boolean));
 }
 
 export function developerCharacter(entry) {
-    const saved = settings[entry.id];
+    const saved = store.settings[entry.id];
     if (!saved) return { ...entry, skills: activeSkills(entry.skills || []) };
     const profile = applyRosterProfile(entry, {
         name: saved.name ?? entry.name,
@@ -60,7 +54,7 @@ export function saveCharacterEdit(entry, values) {
         if (values.skillIds.some((id) => !available.has(id))) throw new Error('등록되어 활성화된 스킬을 선택해주세요.');
         values = { ...values, skillIds: [...values.skillIds] };
     }
-    saveCharacterSettings(entry.id, {
+    return saveCharacterSettings(entry.id, {
         ...values,
         statsByLevel: undefined,
         stats: undefined,

@@ -1,31 +1,25 @@
 import { applyRosterProfile } from './roster-generation.mjs';
 import { activeSkills } from './developer-skills.mjs';
+import { createDeveloperContentStore } from './developer-content-store.mjs';
 
-const storageKey = 'game-developer-monsters-v1';
+const store = createDeveloperContentStore('monsters');
 let growthRows = [];
 let skillPool = [];
 export function configureDeveloperMonsters(rows, skills) {
     growthRows = rows;
     skillPool = skills;
 }
-let settings = {};
-try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    if (stored && typeof stored === 'object' && !Array.isArray(stored)) settings = stored;
-} catch { /* Invalid local settings fall back to the original data. */ }
 
 export function monsterEnabled(id) {
-    return settings[id]?.enabled !== false;
+    return store.settings[id]?.enabled !== false;
 }
 
 export function saveMonsterSettings(id, patch) {
-    const next = { ...settings, [id]: { ...settings[id], ...patch } };
-    localStorage.setItem(storageKey, JSON.stringify(next));
-    settings = next;
+    return store.save(id, patch);
 }
 
 export function developerMonster(entry) {
-    const saved = settings[entry.id];
+    const saved = store.settings[entry.id];
     if (!saved) return { ...entry, skills: activeSkills(entry.skills || []) };
     const profile = applyRosterProfile(entry, {
         name: saved.name ?? entry.name,
@@ -40,7 +34,7 @@ export function developerMonster(entry) {
 }
 
 export function saveMonsterEdit(entry, values) {
-    saveMonsterSettings(entry.id, {
+    return saveMonsterSettings(entry.id, {
         ...values,
         statsByLevel: undefined,
         stats: undefined,

@@ -1,0 +1,17 @@
+{
+  "CHAR-208": {
+    "name": "아일린",
+    "element": "물",
+    "zodiac": "물병자리",
+    "job": "정령사",
+    "grade": 4,
+    "portraitSrc": "/assets/art/2D/Character/0138_F_H.webp?v=20261010-173918",
+    "thumbnailSrc": "/assets/art/2D/Character_thumnail/138_F_H.webp?v=20261010-173627",
+    "skillIds": [
+      "SKILL_0008",
+      "SKILL_0289",
+      "SKILL_0619",
+      "SKILL_1368"
+    ]
+  }
+}
