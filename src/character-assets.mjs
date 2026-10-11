@@ -1,12 +1,20 @@
 import imageFiles from '../data/characters/image-files.json' with { type: 'json' };
+import additionalCharacters from '../data/characters/additional-characters.json' with { type: 'json' };
+
+export { additionalCharacters };
+export const BASE_CHARACTER_COUNT = 261;
 
 // Extra art can be selected in the editor without reshuffling existing characters.
-export const characterPortraitFiles = Object.freeze([...imageFiles, '0138_F_H.webp']);
+export const characterPortraitFiles = Object.freeze([...imageFiles, '0138_F_H.webp', ...additionalCharacters.map(character => character.portraitFile)]);
 
 export function characterPortraitAsset(file) {
     const revisions = {
         '0138_F_H.webp': '20261010-173918',
         '0000_M_W.webp': '20261010-173957',
+        '0087_F_H.webp': '20261011-import',
+        '0069_F_M.webp': '20261011-import',
+        '0005_F_W.webp': '20261011-import',
+        'NorthKing.webp': '20261012-001032',
     };
     return `/assets/art/2D/Character/${file}${revisions[file] ? `?v=${revisions[file]}` : ''}`;
 }
@@ -15,6 +23,10 @@ export function characterThumbnailAsset(file) {
     const updated = {
         '0138_F_H.webp': '138_F_H.webp?v=20261010-173627',
         '0000_M_W.webp': '0000_M_W.webp?v=20261010-173646',
+        '0087_F_H.webp': '0087_F_H.webp?v=20261011-import',
+        '0069_F_M.webp': '0069_F_M.webp?v=20261011-import',
+        '0005_F_W.webp': '0005_F_W.webp?v=20261011-import',
+        'NorthKing.webp': 'NorthKing.webp?v=20261012-001032',
     };
     return `/assets/art/2D/Character_thumnail/${updated[file] || file}`;
 }
@@ -71,6 +83,7 @@ function shuffleWithSeed(items, random) {
 }
 
 export function buildCharacterPortraitFileAssignments(characters) {
+    const added = new Map(additionalCharacters.map(character => [character.id, character.portraitFile]));
     const random = createSeededRandom(20240501);
     const legacyCharacters = characters.filter((character) => Number(character.id.slice(5)) <= 200);
     const shuffledCharacters = shuffleWithSeed(legacyCharacters, random);
@@ -81,10 +94,13 @@ export function buildCharacterPortraitFileAssignments(characters) {
     });
     const usedFiles = new Set(Object.values(assignments));
     const availableFiles = shuffleWithSeed(imageFiles.filter((file) => !usedFiles.has(file)), random);
-    const unassignedCharacters = shuffleWithSeed(characters.filter((character) => !assignments[character.id]), random);
+    const unassignedCharacters = shuffleWithSeed(characters.filter((character) => !assignments[character.id] && !added.has(character.id)), random);
     if (availableFiles.length < unassignedCharacters.length) throw new Error('Not enough unique character image pairs.');
     unassignedCharacters.forEach((character, index) => {
         assignments[character.id] = availableFiles[index];
+    });
+    characters.filter(character => added.has(character.id)).forEach(character => {
+        assignments[character.id] = added.get(character.id);
     });
     return assignments;
 }

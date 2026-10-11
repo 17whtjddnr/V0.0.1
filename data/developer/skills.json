@@ -2,13 +2,13 @@
   "SKILL_0008": {
     "values": {
       "name": "서릿달 일격",
-      "target": "적",
-      "category": "공격|회복",
+      "target": "적전체",
+      "category": "공격",
       "isBasicAttack": true,
       "cooldown": 0,
       "balanceTargetScore": 0.29,
       "damageCoefficients": [
-        0.28,
+        0.1,
         0,
         0,
         0
@@ -138,6 +138,180 @@
         }
       ],
       "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_0046": {
+    "values": {
+      "name": "올려 배기",
+      "target": "적",
+      "category": "공격|디버프",
+      "isBasicAttack": true,
+      "cooldown": 0,
+      "balanceTargetScore": 0.39,
+      "damageCoefficients": [
+        0.25,
+        0,
+        0,
+        0.15
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "HIT_CHANCE_DOWN",
+          "name": "명중 감소",
+          "englishName": "Hit Chance Down",
+          "description": "공격이 빗나갈 확률 증가",
+          "unit": "비율",
+          "baseValue": 0.2,
+          "baseDuration": 2,
+          "baseCost": 0.7,
+          "effectTarget": "대상",
+          "value": 0.05,
+          "duration": 1,
+          "chance": 0.15
+        }
+      ],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_1586": {
+    "values": {
+      "name": "체중 실기",
+      "target": "적",
+      "category": "공격|버프",
+      "isBasicAttack": false,
+      "cooldown": 1,
+      "balanceTargetScore": 0.65,
+      "damageCoefficients": [
+        0.45,
+        0,
+        0,
+        0.5
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "DEFENSE_UP",
+          "name": "방어력 증가",
+          "englishName": "Defense Up",
+          "description": "방어력 상승",
+          "unit": "비율",
+          "baseValue": 0.35,
+          "baseDuration": 2,
+          "baseCost": 0.55,
+          "effectTarget": "자신",
+          "value": 0.3,
+          "duration": 1,
+          "chance": 0.3
+        }
+      ],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_1587": {
+    "values": {
+      "name": "서툰 제압",
+      "target": "적",
+      "category": "공격|디버프",
+      "isBasicAttack": false,
+      "cooldown": 2,
+      "balanceTargetScore": 0.66,
+      "damageCoefficients": [
+        0.6,
+        0,
+        0,
+        0.1
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "DISPEL_BUFF",
+          "name": "강화효과 해제",
+          "englishName": "Dispel Buff",
+          "description": "대상의 강화효과 제거",
+          "unit": "해제 개수",
+          "baseValue": 1,
+          "baseDuration": 0,
+          "baseCost": 0.75,
+          "effectTarget": "대상",
+          "value": 2,
+          "duration": 0,
+          "chance": 0.75
+        }
+      ],
+      "thumbnailSrc": "",
+      "customTooltipKo": "",
+      "customTooltipEn": ""
+    },
+    "enabled": true
+  },
+  "SKILL_1448": {
+    "values": {
+      "name": "도망쳐!",
+      "target": "아군",
+      "category": "버프",
+      "isBasicAttack": false,
+      "cooldown": 2,
+      "balanceTargetScore": 0.74,
+      "damageCoefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "healingCoefficients": [
+        0,
+        0
+      ],
+      "effects": [
+        {
+          "code": "CLEANSE_DEBUFF",
+          "name": "약화효과 해제",
+          "englishName": "Cleanse Debuff",
+          "description": "대상의 약화효과 제거",
+          "unit": "해제 개수",
+          "baseValue": 1,
+          "baseDuration": 0,
+          "baseCost": 0.7,
+          "effectTarget": "대상",
+          "value": 2,
+          "duration": 0,
+          "chance": 0.75
+        },
+        {
+          "code": "SPEED_UP",
+          "name": "속도 증가",
+          "englishName": "Speed Up",
+          "description": "속도 상승",
+          "unit": "비율",
+          "baseValue": 0.2,
+          "baseDuration": 2,
+          "baseCost": 0.65,
+          "effectTarget": "대상",
+          "value": 0.2,
+          "duration": 2,
+          "chance": 1
+        }
+      ],
+      "thumbnailSrc": "/assets/icons/boot_icon.svg",
       "customTooltipKo": "",
       "customTooltipEn": ""
     },

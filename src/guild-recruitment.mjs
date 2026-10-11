@@ -1,4 +1,5 @@
-import { MAX_GUILD_MEMBERS } from './guild-roster.mjs';
+import { MAX_GUILD_MEMBERS, guildMemberCount } from './guild-roster.mjs';
+import { advanceExperienceAtWeekStart } from './experience-progression.mjs';
 
 export const guildRelationshipStages = [
     { label: '앙숙', max: 0, chance: 10 },
@@ -20,7 +21,7 @@ export function guildRecruitmentWage(offer) {
 
 export function canInviteGuildMember(state, offer = state.plazaCurrentOffer) {
     return !!offer && Number(state.userLevel) >= 2
-        && (state.guildMembers || []).length < MAX_GUILD_MEMBERS
+        && guildMemberCount(state) < MAX_GUILD_MEMBERS
         && !(state.guildMembers || []).some(member => member.id === offer.id)
         && !(state.plazaGuildInvitedIds || []).includes(offer.id)
         && Number(state.gold) >= guildRecruitmentWage(offer);
@@ -37,12 +38,12 @@ export function recruitGuildMember(state, offer, random = Math.random) {
         state.gold -= wage;
         const stats = { ...offer.stats };
         const member = { ...offer, stats, baseStats: { ...stats }, isGuildMember: true,
-            weeklyWage: wage, hp: stats.maxHp, maxHp: stats.maxHp, effects: [], cooldowns: {} };
+            weeklyWage: wage, contractWeeklyWage: wage, hp: stats.maxHp, maxHp: stats.maxHp, effects: [], cooldowns: {} };
         state.guildMembers ||= [];
         state.guildMembers.push(member);
         // Preserve a current party slot when its hired character becomes a guild member.
         const hired = (state.recruits || []).find(entry => entry.id === offer.id);
-        if (hired) Object.assign(hired, { isGuildMember: true, weeklyWage: wage });
+        if (hired) Object.assign(hired, { isGuildMember: true, weeklyWage: wage, contractWeeklyWage: wage });
         state.plazaOffers = (state.plazaOffers || []).filter(entry => entry.id !== offer.id);
         if (state.plazaCurrentOffer?.id === offer.id) state.plazaCurrentOffer = null;
     }
@@ -50,12 +51,8 @@ export function recruitGuildMember(state, offer, random = Math.random) {
 }
 
 export function levelUpAtWeekStart(state) {
-    const maximum = Math.max(1, Number(state.experienceToNextLevel) || 100);
-    if ((Number(state.experience) || 0) < maximum) return null;
-    const previousLevel = Math.max(1, Number(state.userLevel) || 1);
-    state.userLevel = previousLevel + 1;
-    state.experience = 0;
-    state.experienceToNextLevel = maximum * 2;
-    state.pendingLevelUp = { previousLevel, level: state.userLevel, maximumExperience: state.experienceToNextLevel };
+    const result = advanceExperienceAtWeekStart(state, 'userLevel');
+    if (!result) return null;
+    state.pendingLevelUp = result;
     return state.pendingLevelUp;
 }

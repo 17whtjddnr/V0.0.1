@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 /OriginalData/
+/.vite-server*.log
+/tmp-codex-story-review/

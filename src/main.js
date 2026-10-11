@@ -1,4 +1,14 @@
 import { configureCombatPower } from './combat-power.mjs';
+import { syncAilinTestMode, normalAilinTestRecord } from './ailin-test-mode.mjs';
+import { storyCast, mainStoryScenes } from './main-story-data.mjs';
+import { visibleStoryScenes, nextStoryScene, createStoryReplay, currentStoryReplay, advanceStoryReplay } from './story-codex.mjs';
+import './story-codex.css';
+import { currentMainStory, beginMainStory, advanceMainStory, recruitStoryCompanion, migrateLysiaConcept, syncWillowArtwork } from './main-story.mjs';
+import { syncCharacterIdentities } from './character-identity-sync.mjs';
+import { consolidateCharacterRecords, uniqueCharacters, configureCharacterDeduplication, canonicalCharacterId } from './character-deduplication.mjs';
+import { recruitmentTerms, encounterLevel, syncGuildProgression, awardCharacterExperience, levelUpCharactersAtWeekStart } from './character-progression.mjs';
+import { MASTER_CHARACTER_ID, createMasterCharacter, selectMasterForExpedition, showPartySwap } from './master-character.mjs';
+import { findCharacterInformation, currentCharacterInformation, filterCharacterInformation } from './character-information.mjs';
 import { createCombatEngine } from './combat-engine.mjs';
 import { createBattleEffects } from './battle-effects.mjs';
 import { createPopupPresentation } from './popup-presentation.mjs';
@@ -15,8 +25,8 @@ import { tutorialPrologue, tutorialDialogues, tutorialGuides, tutorialActionAllo
 import './tutorial.css';
 import { dialoguePanelMarkup } from './dialogue-panel.mjs';
 import { typeDialogueText } from './dialogue-typewriter.mjs';
-import { resetTemporaryGuildRoster } from './guild-roster.mjs';
-import { togglePlazaGuildMember, hasAvailablePlazaGuildMember } from './plaza-guild-party.mjs';
+import { resetTemporaryGuildRoster, guildMemberCount } from './guild-roster.mjs';
+import { togglePlazaGuildMember, hasAvailablePlazaGuildMember, guildSelectionConflict, canTransferGuildSelection, transferGuildSelection, retainRegularGuildSelection } from './plaza-guild-party.mjs';
 import { characterPortraitFiles, buildCharacterPortraitFileAssignments, characterPortraitAsset, characterThumbnailAsset, playerThumbnailAsset } from './character-assets.mjs';
 import { guildPageMarkup, guildRooms } from './guild-page.mjs';
 import { MAX_ACTIVE_GUILD_DISPATCHES, guildDispatchPower, activeGuildDispatch, guildDestinationDispatchActive, guildDispatchPlan, approveGuildDispatch, completeGuildDispatches, pendingGuildDispatchResults, acknowledgeGuildDispatchResults } from './guild-dispatch.mjs';
@@ -121,6 +131,8 @@ async function finishInitialLoading() {
 
 let party = [];
 let guildTestUnlock = false;
+let storyCodexCategory = null;
+let storyCodexReplay = null;
 
 const defaultSkills = [
     { id: 'strike', name: '무기 공격', target: 'enemy', icon: '⚔', damageCoefficient: 0.85, cooldown: 0, description: '선택한 적에게 기본 피해를 줍니다.' },
@@ -135,7 +147,10 @@ function battleSkillsFor(actor) {
 }
 
 function generateRosters(rows, level, skills) {
-    return generateBaseRosters(rows, level, activeSkills(skills || []));
+    const rosters = generateBaseRosters(rows, Math.min(5, level), activeSkills(skills || []));
+    if (level <= 5) return rosters;
+    const atLevel = (entry) => ({ ...entry, level, stats: applyRosterProfile(entry, { level }, rows).stats });
+    return { characters: rosters.characters.map(atLevel), monsters: rosters.monsters.map(atLevel) };
 }
 
 
@@ -163,6 +178,8 @@ const state = {
     playerZodiac: '',
     playerName: '방랑자',
     userLevel: 1,
+    mainStory: null,
+    pendingStoryBoss: null,
     experience: 0,
     experienceToNextLevel: 100,
     pendingLevelUp: null,
@@ -202,6 +219,10 @@ const state = {
     plazaGiftedIds: [],
     plazaGuildInvitedIds: [],
     catalogReturnView: 'plaza',
+    characterInfoReturnView: 'plaza',
+    characterInfoMemberId: '',
+    characterInfoSource: 'recruits',
+    characterInfoFilters: { search: '', element: '', job: '', grade: '' },
     developerCatalogReturnView: 'plaza',
     catalogTab: 'skills',
     catalogSearch: '',
@@ -264,6 +285,7 @@ const backgroundMusicTracks = {
     plaza: 'Town.web.mp3',
     guild: 'Loby.web.mp3',
     catalog: 'Town.web.mp3',
+    characterInfo: 'Town.web.mp3',
     expedition: 'Dungeon.web.mp3',
 };
 let backgroundMusic = new Audio();
@@ -367,6 +389,54 @@ function showPopupNotice(message) {
         if (event.key === 'Tab') { event.preventDefault(); button.focus(); }
     });
     button.focus();
+}
+
+function requestGuildSelectionTransfer(memberId, target) {
+    if (!canTransferGuildSelection(state, memberId, target, maxPartySize)) return;
+    const member = state.guildMembers.find(member => member.id === memberId);
+    const previousParty = target === 'regular' ? '파견 원정대' : '원정대';
+    const nextParty = target === 'regular' ? '원정대' : '파견 원정대';
+    const previousState = state;
+    const previousView = state.view;
+    const previousFocus = document.activeElement;
+    const scrollTop = game.querySelector('.guild-dispatch-member-grid')?.scrollTop || 0;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'end-overlay plaza-confirm-overlay guild-selection-transfer-overlay';
+    backdrop.innerHTML = `<section class="end-dialog" role="dialog" aria-modal="true" data-popup-kind="negative" aria-labelledby="guild-selection-transfer-title"><h2 id="guild-selection-transfer-title">선발 변경 안내</h2><p>${escapeHtml(member.name)}은(는) 이미 ${previousParty}에 선발 중입니다. 그래도 ${nextParty}에 선발하시겠습니까?</p><p>선발하면 기존 ${previousParty}에서는 선발이 취소됩니다.</p><div class="plaza-dialog-actions"><button type="button" class="plaza-dialog-cancel" data-transfer-cancel>취소</button><button type="button" data-transfer-confirm>선발하기</button></div></section>`;
+    const siblings = [...game.children].map(node => [node, node.inert]);
+    siblings.forEach(([node]) => { node.inert = true; });
+    game.append(backdrop);
+    const close = () => {
+        backdrop.remove();
+        siblings.forEach(([node, inert]) => { if (node.isConnected) node.inert = inert; });
+        if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+    backdrop.addEventListener('click', event => {
+        event.stopPropagation();
+        if (event.target.closest('[data-transfer-cancel]')) close();
+        if (!event.target.closest('[data-transfer-confirm]')) return;
+        const validScene = state === previousState && state.view === previousView && (target === 'regular'
+            ? state.plazaGuildSelectionOpen
+            : state.guildRoom === 'strategy' && state.guildExpeditionPreparation && state.guildExpeditionStep === 'members');
+        close();
+        if (!validScene || !transferGuildSelection(state, memberId, target, maxPartySize)) return;
+        render();
+        const grid = game.querySelector('.guild-dispatch-member-grid');
+        if (grid) grid.scrollTop = scrollTop;
+        game.querySelector(`[data-action="${target === 'regular' ? 'plaza-guild-toggle' : 'guild-dispatch-toggle'}"][data-member-id="${memberId}"]`)?.focus({ preventScroll: true });
+    });
+    backdrop.addEventListener('keydown', event => {
+        event.stopImmediatePropagation();
+        if (event.key === 'Escape') { event.preventDefault(); close(); }
+        if (event.key === 'Tab') {
+            const buttons = [...backdrop.querySelectorAll('button')];
+            const first = buttons[0], last = buttons.at(-1);
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    }, true);
+    backdrop.querySelector('[data-transfer-confirm]').focus({ preventScroll: true });
+    popupPresentation.sync();
 }
 
 function playWebSound(kind, duration) {
@@ -744,7 +814,8 @@ configureDeveloperCharacters(catalogData.growthRows, catalogData.skills);
 configureDeveloperMonsters(catalogData.growthRows, catalogData.skills);
 configureCombatPower({ resolveProfile(actor) {
     if (actor.id?.startsWith('CHAR-')) {
-        const profile = developerCharacter(actor);
+        let profile = developerCharacter(actor);
+        if (actor.isMaster) profile = applyRosterProfile(profile, { zodiac: actor.zodiac }, catalogData.growthRows, catalogData.skills);
         return { ...profile, skills: characterSkills(profile, defaultSkills) };
     }
     return actor.id?.startsWith('MON-') ? developerMonster(actor) : actor;
@@ -756,7 +827,7 @@ function powerRosters() {
         const roster = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills);
         powerRosterCache = { key,
             monsters: roster.monsters.filter((actor) => monsterEnabled(actor.id)).map(developerMonster),
-            characters: roster.characters.filter((actor) => characterEnabled(actor.id)).map(developerCharacter),
+            characters: uniqueCharacters(roster.characters.filter((actor) => characterEnabled(actor.id)).map(developerCharacter)),
         };
     }
     return powerRosterCache;
@@ -765,7 +836,6 @@ configureDestinationMonsterPower(() => powerRosters().monsters, () => powerRoste
 updateLoadingProgress(96);
 await finishInitialLoading();
 
-const hirePrices = { 3: 30, 4: 55, 5: 85 };
 const giftPrice = 10;
 const maxPartySize = 4;
 
@@ -788,7 +858,7 @@ function saveGame(slotId = 'autosave') {
     try {
         const storageKey = saveSlotStorageKeys[slotId];
         if (!storageKey) return false;
-        localStorage.setItem(storageKey, JSON.stringify({ version: 1, state, party, savedAt: Date.now() }));
+        localStorage.setItem(storageKey, JSON.stringify({ version: 1, state, party, savedAt: Date.now() }, (_key, value) => normalAilinTestRecord(value)));
         return true;
     } catch (error) {
         console.warn('The game could not be saved.', error);
@@ -829,13 +899,13 @@ function gameMenuMarkup() {
 }
 
 function expeditionResultMarkup(result) {
-    const affinityRows = result.memberAffinities.map((member) => {
+    const affinityRows = result.memberAffinities.filter((member) => member.id !== MASTER_CHARACTER_ID && !member.isMaster).map((member) => {
         const character = party.find((hero) => hero.id === member.id)
             || catalogData.characters.find((entry) => entry.id === member.id)
             || { ...member, mark: jobGlyphs[member.job] || '✦' };
-        return `<article class="expedition-affinity-row"><div class="expedition-affinity-heading"><span class="expedition-member-label">${characterThumbnailMarkup(character, 'expedition-member-thumbnail')}<span class="expedition-member-name">${escapeHtml(member.name)} <small>${escapeHtml(member.job)}</small></span></span><strong class="${member.change > 0 ? 'affinity-up' : member.change < 0 ? 'affinity-down' : ''}">${member.change > 0 ? '+' : ''}${member.change}</strong></div><div class="expedition-affinity-track"><span class="expedition-animated-bar" data-bar-start="${member.before}" data-bar-end="${member.after}" style="width:${member.before}%"></span></div><small class="expedition-affinity-value"><span class="expedition-animated-count" data-count-start="${member.before}" data-count-end="${member.after}">${member.before}</span> / 100</small></article>`;
+        return `<article class="expedition-affinity-row"><div class="expedition-affinity-heading"><span class="expedition-member-label">${characterThumbnailMarkup(character, 'expedition-member-thumbnail', false)}<span class="expedition-member-name">${escapeHtml(member.name)} <small>${escapeHtml(member.job)}</small></span></span><strong class="${member.change > 0 ? 'affinity-up' : member.change < 0 ? 'affinity-down' : ''}">${member.change > 0 ? '+' : ''}${member.change}</strong></div><div class="expedition-affinity-track"><span class="expedition-animated-bar" data-bar-start="${member.before}" data-bar-end="${member.after}" style="width:${member.before}%"></span></div><small class="expedition-affinity-value"><span class="expedition-animated-count" data-count-start="${member.before}" data-count-end="${member.after}">${member.before}</span> / 100</small></article>`;
     }).join('');
-    return `<div class="end-overlay expedition-result-overlay"><section class="end-dialog expedition-result-dialog" data-popup-kind="${result.completed ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="expedition-result-title"><span class="section-kicker">원정 결과</span><h2 id="expedition-result-title">${result.completed ? '원정 성공' : '원정 실패'}</h2><p>${goldTextMarkup(state.message)}</p><div class="expedition-result-rewards"><article class="expedition-reward-item"><div><span>획득 경험치</span><strong><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardExperience}">0</span> EXP</strong></div><div class="expedition-reward-track"><span class="expedition-animated-bar" data-bar-start="${result.experienceBefore}" data-bar-end="${result.experienceAfter}" style="width:${result.experienceBefore}%"></span></div></article><article class="expedition-reward-item expedition-gold-reward"><div><span>획득 골드</span><strong class="gold-amount"><span class="gold-icon" style="--gold-icon-url:url('${goldIcon}')" aria-hidden="true"></span><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardGold}">0</span> G</strong></div></article></div><section class="expedition-affinity-list"><h3>원정대원 호감도</h3>${affinityRows}</section><button class="expedition-result-confirm" type="button" data-action="expedition-result-confirm" disabled>광장으로 복귀하기</button></section></div>`;
+    return `<div class="end-overlay expedition-result-overlay"><section class="end-dialog expedition-result-dialog" data-popup-kind="${result.completed ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="expedition-result-title"><span class="section-kicker">원정 결과</span><h2 id="expedition-result-title">${result.completed ? '원정 성공' : '원정 실패'}</h2><p>${goldTextMarkup(state.message)}</p><div class="expedition-result-rewards"><article class="expedition-reward-item"><div><span>획득 경험치</span><strong><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardExperience}">0</span> EXP</strong></div><div class="expedition-reward-track"><span class="expedition-animated-bar" data-bar-start="${result.experienceBefore}" data-bar-end="${result.experienceAfter}" style="width:${result.experienceBefore}%"></span></div></article><article class="expedition-reward-item expedition-gold-reward"><div><span>획득 골드</span><strong class="gold-amount"><span class="gold-icon" style="--gold-icon-url:url('${goldIcon}')" aria-hidden="true"></span><span class="expedition-animated-count" data-count-start="0" data-count-end="${result.rewardGold}">0</span> G</strong></div></article></div><section class="expedition-affinity-list"><h3>원정대원 호감도</h3>${affinityRows}</section><button class="expedition-result-confirm" type="button" data-action="expedition-result-confirm" disabled>${state.mainStory?.partOneComplete && state.expeditionDestination?.location === 'skeldrath-7' ? '1부 엔딩 보기' : '광장으로 복귀하기'}</button></section></div>`;
 }
 
 function animateExpeditionResults() {
@@ -904,6 +974,21 @@ function continueGame(slotId = 'autosave') {
         expeditionResult: null,
         expeditionRewardBaseline: null,
     });
+    if (saved.state.view === 'expedition' && currentMainStory(saved.state)) {
+        Object.assign(state, saved.state, { mode: 'explore', enemyPhase: false, selectedSkill: null });
+        render();
+        return;
+    }
+    if (saved.state.mainStory?.partOneComplete && saved.state.view === 'expedition' && saved.state.expeditionResult) {
+        Object.assign(state, saved.state);
+        render();
+        return;
+    }
+    if (saved.state.mainStory?.partOneComplete && (saved.state.view === 'partOneEnd' || saved.state.catalogReturnView === 'partOneEnd' || saved.state.characterInfoReturnView === 'partOneEnd')) {
+        state.view = 'partOneEnd';
+        render();
+        return;
+    }
     if (restoreTutorialState(state, saved.state) && state.tutorial.stage === 'battle' && !state.expeditionResult) {
         void activateNextCombatant();
         return;
@@ -937,23 +1022,27 @@ function renderLobby() {
 function renderPlayerSetup() {
     const nameStep = state.playerSetupStep === 'name';
     const zodiacCards = zodiacNames.map((zodiac) => `<button class="zodiac-card ${state.playerZodiac === zodiac ? 'selected' : ''}" type="button" data-action="setup-select-zodiac" data-zodiac="${zodiac}" aria-pressed="${state.playerZodiac === zodiac}"><span class="zodiac-card-glyph" aria-hidden="true">${catalogIconMarkup(zodiacIcons[zodiac], '', '', 'zodiac-choice-icon')}</span><span class="zodiac-card-name">${zodiac}</span></button>`).join('');
-    game.innerHTML = `<main class="player-setup-screen"><div class="player-setup-panel"><span class="player-setup-emblem" aria-hidden="true">✠</span><p class="player-setup-step">PLAYER RECORD · ${nameStep ? '01 / 02' : '02 / 02'}</p><h1>${nameStep ? '길드 마스터를 꿈꾸는 모험가여, 당신의 이름은?' : '당신의 별자리는?'}</h1>${nameStep ? `<label class="player-name-field"><span>모험가 이름</span><input type="text" data-player-name maxlength="16" autocomplete="nickname" value="${escapeHtml(state.playerDraftName)}" placeholder="이름 입력" aria-label="모험가 이름"></label>${state.playerSetupMessage ? `<p class="player-setup-message" role="alert">${escapeHtml(state.playerSetupMessage)}</p>` : ''}<button class="player-setup-confirm" type="button" data-action="setup-name-confirm">결정</button>` : `<p class="player-setup-description">선택한 별자리에 따라 원정대원과의 초기 호감도가 정해집니다.</p><div class="zodiac-card-grid">${zodiacCards}</div>${state.playerSetupMessage ? `<p class="player-setup-message" role="alert">${escapeHtml(state.playerSetupMessage)}</p>` : ''}<button class="player-setup-confirm" type="button" data-action="setup-zodiac-confirm" ${state.playerZodiac ? '' : 'disabled'}>결정</button>`}</div></main>`;
+    game.innerHTML = `<main class="player-setup-screen"><div class="player-setup-panel"><span class="player-setup-emblem" aria-hidden="true">✠</span><p class="player-setup-step">PLAYER RECORD · ${nameStep ? '01 / 02' : '02 / 02'}</p><h1>${nameStep ? '길드 마스터를 꿈꾸는 모험가여, 당신의 이름은?' : '당신의 별자리는?'}</h1>${nameStep ? `<label class="player-name-field"><span>모험가 이름</span><input type="text" data-player-name maxlength="16" autocomplete="nickname" value="${escapeHtml(state.playerDraftName)}" placeholder="이름 입력" aria-label="모험가 이름"></label>${state.playerSetupMessage ? `<p class="player-setup-message" role="alert">${escapeHtml(state.playerSetupMessage)}</p>` : ''}<button class="player-setup-confirm" type="button" data-action="setup-name-confirm">결정</button>` : `<p class="player-setup-description">선택한 별자리에 따라 마스터의 스탯과 원정대원과의 초기 호감도가 정해집니다.</p><div class="zodiac-card-grid">${zodiacCards}</div>${state.playerSetupMessage ? `<p class="player-setup-message" role="alert">${escapeHtml(state.playerSetupMessage)}</p>` : ''}<button class="player-setup-confirm" type="button" data-action="setup-zodiac-confirm" ${state.playerZodiac ? '' : 'disabled'}>결정</button>`}</div></main>`;
     if (nameStep) requestAnimationFrame(() => game.querySelector('[data-player-name]')?.focus());
 }
 
 function plazaOfferWithCurrentProfile(offer) {
-    const updated = developerCharacter(offer);
-    return { ...updated, price: hirePrices[updated.grade] ?? 30, weeklyWage: hirePrices[updated.grade] ?? 30 };
+    const edited = developerCharacter(offer);
+    const level = Math.min(Math.max(1, Number(state.userLevel) || 1), Math.max(1, Number(edited.level) || 1));
+    const updated = edited.level > level ? applyRosterProfile(edited, { level }, catalogData.growthRows, catalogData.skills) : edited;
+    return { ...updated, ...recruitmentTerms(updated) };
 }
 
 function drawPlazaOffers() {
     try {
-        const candidates = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters.filter((entry) => characterEnabled(entry.id) && !(state.guildMembers || []).some(member => member.id === entry.id)).map(developerCharacter);
+        const candidates = uniqueCharacters(generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters.filter((entry) => characterEnabled(entry.id)).map(developerCharacter))
+            .filter(entry => ![...(state.guildMembers || []), ...(state.recruits || [])].some(member => member.id === entry.id));
         const pool = [...candidates];
         const offers = [];
         while (offers.length < 3 && pool.length) {
-            const candidate = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-            offers.push({ ...candidate, price: hirePrices[candidate.grade] ?? 30, weeklyWage: hirePrices[candidate.grade] ?? 30 });
+            const entry = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+            const candidate = applyRosterProfile(entry, { level: encounterLevel(state.userLevel) }, catalogData.growthRows, catalogData.skills);
+            offers.push({ ...candidate, ...recruitmentTerms(candidate) });
         }
         return offers;
     } catch (error) {
@@ -1080,6 +1169,10 @@ function confirmPlayerZodiac() {
     state.plazaMessage = '';
     state.tutorial = { stage: 'meeting' };
     state.guildRosterResetVersion = 1;
+    const masterProfile = developerCharacter(catalogData.characters.find((character) => character.id === MASTER_CHARACTER_ID));
+    const master = createMasterCharacter(masterProfile, state.playerZodiac, catalogData.growthRows, state.userLevel);
+    state.guildMembers = [master, ...state.guildMembers.filter((member) => member.id !== MASTER_CHARACTER_ID)];
+    selectMasterForExpedition(state);
     state.plazaOffers = [];
     startPlazaDialogue('tutorial.meeting');
     render();
@@ -1111,7 +1204,12 @@ function characterImageSource(character, thumbnail = false) {
         return thumbnail ? entry.thumbnailSrc : entry.portraitSrc;
     }
     const entry = developerCharacter(character);
-    if (thumbnail) return entry.thumbnailSrc || characterThumbnailAssets[entry.id];
+    if (thumbnail) {
+        const source = entry.thumbnailSrc || characterThumbnailAssets[entry.id];
+        const file = source?.split('/').pop().split('?')[0];
+        return source?.startsWith('/assets/art/2D/Character_thumnail/') && ['0087_F_H.webp', '0069_F_M.webp', '0005_F_W.webp', 'NorthKing.webp'].includes(file)
+            ? characterThumbnailAsset(file) : source;
+    }
     const portrait = entry.portraitSrc || characterPortraitAssets[entry.id];
     return portrait?.startsWith('/assets/art/2D/Character/')
         ? characterPortraitAsset(portrait.split('/').pop().split('?')[0]) : portrait;
@@ -1214,7 +1312,7 @@ function rosterRowMarkup(entry) {
         return `<button type="button" class="developer-skill-trigger" data-developer-character="${escapeHtml(entry.id)}" data-developer-skill="${escapeHtml(skill.id)}" aria-label="${escapeHtml(skill.name)}">${skillIconMarkup(skill, 'roster-skill-icon')}</button>`;
     }).join('');
     const jobIcon = catalogIconMarkup(jobGlyphs[entry.job] || '✦', '#c2a767', entry.job, 'roster-job-icon', entry.job);
-    return `<tr><td class="roster-avatar-cell"><span class="roster-avatar-frame element-border-${elementBorderClasses[entry.element] || 'light'}">${characterThumbnailMarkup(entry, 'roster-avatar')}</span></td><td class="roster-name-cell"><strong class="roster-name">${escapeHtml(entry.name)}</strong>${jobIcon}</td><td><span class="roster-grade grade-${entry.grade}">${entry.grade}등급</span></td><td class="roster-skills">${skills}</td>${stats.map((stat) => `<td>${entry.stats[stat]}</td>`).join('')}${editable ? `<td class="developer-character-actions"><button type="button" data-${editKind}-edit="${escapeHtml(entry.id)}">편집</button><label><input type="checkbox" data-${editKind}-enabled="${escapeHtml(entry.id)}" ${enabled(entry.id) ? 'checked' : ''} aria-label="${escapeHtml(entry.name)} 활성화">활성화</label></td>` : ''}</tr>`;
+    return `<tr><td class="roster-avatar-cell"><span class="roster-avatar-frame element-border-${elementBorderClasses[entry.element] || 'light'}">${characterThumbnailMarkup(entry, 'roster-avatar', false)}</span></td><td class="roster-name-cell"><strong class="roster-name">${escapeHtml(entry.name)}</strong>${jobIcon}</td><td><span class="roster-grade grade-${entry.grade}">${entry.grade}등급</span></td><td class="roster-skills">${skills}</td>${stats.map((stat) => `<td>${entry.stats[stat]}</td>`).join('')}${editable ? `<td class="developer-character-actions"><button type="button" data-${editKind}-edit="${escapeHtml(entry.id)}">편집</button><label><input type="checkbox" data-${editKind}-enabled="${escapeHtml(entry.id)}" ${enabled(entry.id) ? 'checked' : ''} aria-label="${escapeHtml(entry.name)} 활성화">활성화</label></td>` : ''}</tr>`;
 }
 
 function rosterStatHeadersMarkup() {
@@ -1258,7 +1356,7 @@ function catalogMarkup() {
         content = `<div class="catalog-table-wrap"><table class="catalog-table effect-table"><thead><tr><th>아이콘</th><th>효과</th><th>값 단위</th><th>설명</th></tr></thead><tbody>${rows.map(effectCatalogRowMarkup).join('')}</tbody></table></div>`;
     } else if (state.catalogTab === 'characters' || state.catalogTab === 'monsters') {
         const isMonster = state.catalogTab === 'monsters';
-        const roster = isMonster ? catalogData.monsters.map(developerMonster) : catalogData.characters.map(developerCharacter);
+        const roster = isMonster ? catalogData.monsters.map(developerMonster) : uniqueCharacters(catalogData.characters.map(developerCharacter));
         rows = roster.filter((entry) => {
             const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level, entry.stageName, entry.concept].join(' ').toLocaleLowerCase().includes(query);
             return matchesQuery
@@ -1302,7 +1400,7 @@ function catalogMarkup() {
     const rosterSummary = state.catalogTab === 'characters'
         ? `${catalogData.characters.length}명 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 52–53명 · 직업별 43–44명 · 등급 3→5 ${characterGradeCounts}`
         : state.catalogTab === 'monsters'
-            ? `${catalogData.monsters.length}마리 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 33–34마리 · 직업별 28마리 · 별자리별 14마리 · 등급 1→5 ${monsterGradeCounts}`
+            ? `${catalogData.monsters.length}마리 · 전체 Lv.${state.catalogLevel} 적용 · 속성별 ${catalogData.monsters.length / 5}마리 · 직업별 ${catalogData.monsters.length / 6}마리 · 별자리별 ${catalogData.monsters.length / 12}마리 · 등급 1→5 ${monsterGradeCounts}`
             : '';
     const summary = state.catalogTab === 'skills'
         ? `<p class="catalog-balance-summary">개별 균형 목표 ±2%p · ${balancedSkillCount}/${catalogData.skills.length}개 도달 · 지속턴 반영</p>`
@@ -1346,11 +1444,17 @@ function renderCatalog() {
     game.innerHTML = catalogMarkup();
 }
 
+function characterRosterToolsMarkup(filters, gradeOptions) {
+    const jobOptions = [...new Set(catalogData.stats.map((profile) => profile.job))];
+    return `<div class="catalog-tools"><label class="catalog-search"><span>검색</span><input type="search" data-catalog-search value="${escapeHtml(filters.search)}" placeholder="이름, 속성, 직업 검색" autocomplete="off"></label><label>속성<select data-catalog-filter="element"><option value="">전체 속성</option>${['불', '물', '풀', '빛', '어둠'].map((value) => `<option value="${value}" ${filters.element === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label>직업<select data-catalog-filter="job"><option value="">전체 직업</option>${jobOptions.map((value) => `<option value="${escapeHtml(value)}" ${filters.job === value ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('')}</select></label><label>등급<select data-catalog-filter="grade"><option value="">전체 등급</option>${gradeOptions.map((value) => `<option value="${value}" ${filters.grade === String(value) ? 'selected' : ''}>${value}등급</option>`).join('')}</select></label></div>`;
+}
+
 function characterCodexMarkup() {
     const query = state.catalogSearch.trim().toLocaleLowerCase();
     const isMonster = state.characterCodexTab === 'monsters';
     const rosterLabel = isMonster ? '몬스터' : '캐릭터';
-    const entries = catalogData[isMonster ? 'monsters' : 'characters'].map((entry) => isMonster ? developerMonster(entry) : developerCharacter(entry)).filter((entry) => {
+    const roster = isMonster ? catalogData.monsters.map(developerMonster) : uniqueCharacters(catalogData.characters.map(developerCharacter));
+    const entries = roster.filter((entry) => {
         const matchesQuery = !query || [entry.id, entry.name, entry.element, entry.job, entry.grade, entry.level].join(' ').toLocaleLowerCase().includes(query);
         return matchesQuery
             && (!state.catalogElement || entry.element === state.catalogElement)
@@ -1359,9 +1463,7 @@ function characterCodexMarkup() {
     });
     const selected = entries.find((entry) => entry.id === state.catalogSelectedRosterId) || entries[0];
     state.catalogSelectedRosterId = selected?.id || '';
-    const jobOptions = [...new Set(catalogData.stats.map((profile) => profile.job))];
     const gradeOptions = isMonster ? [1, 2, 3, 4, 5] : [3, 4, 5];
-    const filters = `<label>속성<select data-catalog-filter="element"><option value="">전체 속성</option>${['불', '물', '풀', '빛', '어둠'].map((value) => `<option value="${value}" ${state.catalogElement === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label>직업<select data-catalog-filter="job"><option value="">전체 직업</option>${jobOptions.map((value) => `<option value="${escapeHtml(value)}" ${state.catalogJob === value ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('')}</select></label><label>등급<select data-catalog-filter="grade"><option value="">전체 등급</option>${gradeOptions.map((value) => `<option value="${value}" ${state.catalogGrade === String(value) ? 'selected' : ''}>${value}등급</option>`).join('')}</select></label>`;
     const portraits = entries.map((entry) => {
         const active = entry.id === selected?.id;
         const border = elementBorderClasses[entry.element] || 'light';
@@ -1372,15 +1474,85 @@ function characterCodexMarkup() {
             : catalogIconMarkup(entry.mark, elementTints[entry.element] || '#a6d7e8', entry.name, 'codex-character-thumb');
         return `<button class="codex-character-card ${active ? 'active' : ''}" type="button" data-codex-character="${entry.id}" aria-pressed="${active}" aria-label="${escapeHtml(title)}"><span class="codex-character-frame element-border-${border}">${thumbnail}</span><span class="codex-character-name">${escapeHtml(entry.name)}</span></button>`;
     }).join('');
-    const tabs = `<nav class="codex-tabs" aria-label="도감 종류"><button class="codex-tab ${isMonster ? '' : 'active'}" type="button" data-codex-tab="characters" aria-pressed="${!isMonster}">캐릭터 도감</button><button class="codex-tab ${isMonster ? 'active' : ''}" type="button" data-codex-tab="monsters" aria-pressed="${isMonster}">몬스터 도감</button><button class="codex-tab" type="button" disabled title="아이템 도감 준비 중">아이템 도감</button><button class="codex-tab" type="button" disabled title="던전 도감 준비 중">던전 도감</button></nav>`;
+    const tabs = codexTabsMarkup(isMonster ? 'monsters' : 'characters');
     const panel = selected
-        ? plazaEncounterMarkup(isMonster ? selected : { ...selected, price: hirePrices[selected.grade] ?? 30, weeklyWage: hirePrices[selected.grade] ?? 30, portraitSrc: characterImageSource(selected) })
+        ? plazaEncounterMarkup(isMonster ? selected : { ...selected, ...recruitmentTerms(selected), portraitSrc: characterImageSource(selected) })
         : `<div class="codex-empty-state">조건에 맞는 ${rosterLabel}가 없습니다.</div>`;
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
-    return `<header class="topbar plaza-topbar codex-topbar">${playerProfileMarkup()}<div class="codex-topbar-actions"><button class="game-menu-button codex-back-button" type="button" data-action="view-expedition" aria-label="돌아가기" title="돌아가기"><img src="/assets/icons/back_icon.svg" alt="" aria-hidden="true"></button></div></header><main class="character-codex-page plaza-page">${tabs}<div class="character-codex-heading"><div><h1 class="${isMonster ? 'codex-monster-heading' : ''}">도감 - ${rosterLabel} 도감</h1></div></div><section class="catalog-browser codex-browser"><section class="codex-feature-panel" aria-label="선택한 ${rosterLabel} 상세 정보">${panel}</section><div class="catalog-tools"><label class="catalog-search"><span>검색</span><input type="search" data-catalog-search value="${escapeHtml(state.catalogSearch)}" placeholder="이름, 속성, 직업 검색" autocomplete="off"></label>${filters}</div><section class="codex-roster" aria-label="${rosterLabel} 목록"><div class="codex-roster-heading"><h2>${rosterLabel} 목록</h2><span>${entries.length}/${catalogData[isMonster ? 'monsters' : 'characters'].length}</span></div><div class="codex-roster-viewport" tabindex="0" aria-label="${rosterLabel}를 좌우로 스크롤하여 선택">${portraits || '<p class="codex-empty-roster">표시할 항목이 없습니다.</p>'}</div></section></section></main>${gameFooterMarkup()}${gameMenuMarkup()}`;
+    return `<header class="topbar plaza-topbar codex-topbar">${playerProfileMarkup()}<div class="codex-topbar-actions"><button class="game-menu-button codex-back-button" type="button" data-action="view-expedition" aria-label="돌아가기" title="돌아가기"><img src="/assets/icons/back_icon.svg" alt="" aria-hidden="true"></button></div></header><main class="character-codex-page plaza-page">${tabs}<div class="character-codex-heading"><div><h1 class="${isMonster ? 'codex-monster-heading' : ''}">도감 - ${rosterLabel} 도감</h1></div></div><section class="catalog-browser codex-browser"><section class="codex-feature-panel" aria-label="선택한 ${rosterLabel} 상세 정보">${panel}</section>${characterRosterToolsMarkup({ search: state.catalogSearch, element: state.catalogElement, job: state.catalogJob, grade: state.catalogGrade }, gradeOptions)}<section class="codex-roster" aria-label="${rosterLabel} 목록"><div class="codex-roster-heading"><h2>${rosterLabel} 목록</h2><span>${entries.length}/${roster.length}</span></div><div class="codex-roster-viewport" tabindex="0" aria-label="${rosterLabel}를 좌우로 스크롤하여 선택">${portraits || '<p class="codex-empty-roster">표시할 항목이 없습니다.</p>'}</div></section></section></main>${gameFooterMarkup()}${gameMenuMarkup()}`;
+}
+
+function renderStoryCodex() {
+    const scenes = visibleStoryScenes(state, guildTestUnlock);
+    if (storyCodexReplay && !scenes.some(scene => scene.id === storyCodexReplay.id)) storyCodexReplay = null;
+    const current = currentStoryReplay(storyCodexReplay);
+    if (current) {
+        renderMainStory(current);
+        const stage = game.querySelector('.plaza-encounter-stage');
+        const next = nextStoryScene(state, current.scene.id, guildTestUnlock);
+        stage?.insertAdjacentHTML('beforeend', `<div class="story-replay-controls"><button type="button" class="story-replay-back" data-action="story-replay-close">목록으로 돌아가기</button>${next ? `<button type="button" class="story-replay-back" data-story-scene="${escapeHtml(next.id)}">다음 스토리 보기</button>` : ''}</div><span class="story-replay-position">다시보기 · ${current.index + 1}/${current.scene.lines.length}</span>`);
+        return;
+    }
+    const characters = uniqueCharacters([...catalogData.characters.map(developerCharacter), ...state.guildMembers.filter(member => member.storyCompanion)]);
+    const lower = storyCodexCategory === 'main'
+        ? `<section class="story-codex-lower" aria-label="메인 스토리 대화 목록"><h2>메인 스토리 <small>· ${scenes.length}개 대화</small></h2><div class="story-scene-list">${scenes.map(scene => `<button type="button" class="story-scene-button" data-story-scene="${escapeHtml(scene.id)}"><strong>${escapeHtml(scene.title)}</strong><span>${escapeHtml(scene.placeName || guildDestinations[scene.location]?.name || '')} · ${scene.trigger === 'epilogue' ? '1부 후일담' : scene.trigger === 'result' ? '보스 클리어 후' : scene.trigger === 'room' ? `${scene.room}번 방 진입` : scene.trigger === 'boss' ? '보스방 진입' : '원정 시작'}</span></button>`).join('') || '<p class="story-codex-empty">아직 감상한 메인 스토리가 없습니다.</p>'}</div></section>`
+        : storyCodexCategory === 'characters'
+            ? `<section class="story-codex-lower" aria-label="캐릭터 스토리 캐릭터 목록"><h2>캐릭터 목록</h2><div class="story-character-list">${characters.map(character => `<button type="button" class="codex-character-card" data-story-character="${escapeHtml(character.id)}" aria-label="${escapeHtml(character.name)}"><span class="codex-character-frame element-border-${elementBorderClasses[character.element] || 'light'}"><img class="codex-character-thumb" src="${escapeHtml(characterImageSource(character, true))}" alt="" draggable="false"></span><span class="codex-character-name">${escapeHtml(character.name)}</span></button>`).join('')}</div></section>`
+            : '';
+    game.innerHTML = `<header class="topbar plaza-topbar codex-topbar">${playerProfileMarkup()}<button class="game-menu-button codex-back-button" type="button" data-action="view-expedition" aria-label="돌아가기"><img src="/assets/icons/back_icon.svg" alt="" aria-hidden="true"></button></header><main class="character-codex-page plaza-page story-codex-page">${codexTabsMarkup('stories')}<div class="character-codex-heading"><h1>도감 - 스토리 도감</h1></div><section class="story-category-stage" aria-label="스토리 종류">${[['main', '메인 스토리', '여정에서 만난 이야기'], ['characters', '캐릭터 스토리', '동료들과의 이야기']].map(([id, name, description]) => `<button type="button" class="story-category-button ${storyCodexCategory === id ? 'active' : ''}" data-story-category="${id}" aria-pressed="${storyCodexCategory === id}"><strong>${name}</strong><span>${description}</span></button>`).join('')}</section>${lower}</main>${gameFooterMarkup()}${gameMenuMarkup()}`;
+}
+
+function codexTabsMarkup(active) {
+    return `<nav class="codex-tabs" aria-label="도감 종류">${[['characters', '캐릭터 도감'], ['monsters', '몬스터 도감'], ['stories', '스토리 도감']].map(([id, label]) => `<button class="codex-tab ${active === id ? 'active' : ''}" type="button" data-codex-tab="${id}" aria-pressed="${active === id}">${label}</button>`).join('')}<button class="codex-tab" type="button" disabled title="아이템 도감 준비 중">아이템 도감</button><button class="codex-tab" type="button" disabled title="던전 도감 준비 중">던전 도감</button></nav>`;
+}
+
+function openCharacterInformation(memberId, source) {
+    if (!findCharacterInformation(state, party, memberId, source)) return;
+    if (state.view !== 'characterInfo') state.characterInfoReturnView = state.view;
+    state.characterInfoMemberId = memberId;
+    state.characterInfoSource = source;
+    state.characterInfoFilters = { search: '', element: '', job: '', grade: '' };
+    gameMenuOpen = false;
+    state.view = 'characterInfo';
+    render();
+}
+
+function renderCharacterInformation() {
+    const previousScrollLeft = game.querySelector('.character-info-page .codex-roster-viewport')?.scrollLeft || 0;
+    const filters = state.characterInfoFilters;
+    const members = filterCharacterInformation(state.guildMembers || [], filters);
+    let character = findCharacterInformation(state, party, state.characterInfoMemberId, state.characterInfoSource);
+    if ((!character || Object.values(filters).some(Boolean)) && !members.some((member) => member.id === character?.id)) {
+        character = members[0] || null;
+        state.characterInfoMemberId = character?.id || '';
+        state.characterInfoSource = 'guildMembers';
+    }
+    const current = character && currentCharacterInformation(character, rosterStatColumns.map(([key]) => key), combatStat);
+    const portraitSrc = characterImageSource(character);
+    const panel = current ? plazaEncounterMarkup({ ...current, portraitSrc }, { characterInfo: true })
+        : '<div class="codex-empty-state">조건에 맞는 길드원이 없습니다.</div>';
+    const portraits = members.map((member) => {
+        const active = member.id === character?.id;
+        return `<button class="codex-character-card ${active ? 'active' : ''}" type="button" data-action="character-info-select" data-member-id="${escapeHtml(member.id)}" aria-pressed="${active}" aria-label="${escapeHtml(member.name)} 캐릭터 정보 보기"><span class="codex-character-frame element-border-${elementBorderClasses[member.element] || 'light'}">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span><span class="codex-character-name">${escapeHtml(member.name)}</span></button>`;
+    }).join('');
+    const roster = `${characterRosterToolsMarkup(filters, [3, 4, 5])}<section class="codex-roster" aria-label="길드원 목록"><div class="codex-roster-heading"><h2>길드원 목록</h2><span>${members.length}/${state.guildMembers.length}</span></div><div class="codex-roster-viewport" tabindex="0" aria-label="길드원을 좌우로 스크롤하여 선택">${portraits || '<p class="codex-empty-roster">표시할 항목이 없습니다.</p>'}</div></section>`;
+    game.innerHTML = `<header class="topbar plaza-topbar codex-topbar">${playerProfileMarkup()}<div class="codex-topbar-actions"><button class="game-menu-button codex-back-button" type="button" data-action="character-info-back" aria-label="돌아가기" title="돌아가기"><img src="/assets/icons/back_icon.svg" alt="" aria-hidden="true"></button></div></header><main class="character-codex-page character-info-page plaza-page"><div class="character-codex-heading"><h1>캐릭터 정보</h1></div><section class="catalog-browser codex-browser"><section class="codex-feature-panel" aria-label="현재 캐릭터 정보">${panel}</section>${roster}</section></main>${gameFooterMarkup()}${gameMenuMarkup()}`;
+    game.querySelector('.codex-roster-viewport').scrollLeft = previousScrollLeft;
+    if (portraitSrc) {
+        const mask = document.createElement('div');
+        mask.className = 'codex-character-art-mask is-entering';
+        mask.setAttribute('aria-hidden', 'true');
+        const image = document.createElement('img');
+        image.src = portraitSrc;
+        image.alt = '';
+        image.draggable = false;
+        mask.append(image);
+        game.querySelector('.codex-feature-panel').prepend(mask);
+    }
 }
 
 function renderCharacterCodex() {
+    if (state.characterCodexTab === 'stories') return renderStoryCodex();
     const selectionKey = `${state.characterCodexTab}:${state.catalogSelectedRosterId}`;
     const animatePortrait = selectionKey !== renderedPortraitSelection;
     renderedPortraitSelection = selectionKey;
@@ -1416,7 +1588,7 @@ function renderCharacterCodex() {
     }
 }
 
-function plazaEncounterMarkup(offer) {
+function plazaEncounterMarkup(offer, { characterInfo = false } = {}) {
     if (!offer) {
         const exhausted = state.plazaOffers.length === 0;
         return `<div class="plaza-empty-stage"><span class="plaza-stage-sigil">✦</span><p>${escapeHtml(state.plazaMessage || (exhausted ? '더 이상 제안할 용병이 없는 듯 하다' : '광장에는 여러 모험가가 오갑니다.'))}</p></div>`;
@@ -1429,7 +1601,11 @@ function plazaEncounterMarkup(offer) {
     const portrait = offer.portraitSrc
         ? ''
         : catalogIconMarkup(offer.mark, elementColor, offer.name, 'plaza-portrait-icon', `${offer.name} · ${offer.element}`);
-    const statRows = rosterStatColumns.map(([key, label]) => [key, label, offer.stats[key]]);
+    const statRows = rosterStatColumns.map(([key, label]) => {
+        const value = characterInfo ? offer.currentStats[key] : offer.stats[key];
+        const percent = characterInfo && ['critChance', 'critDamage', 'effectHit', 'effectResist'].includes(key);
+        return [key, label, percent ? `${value}%` : value];
+    });
     const gradeCount = Math.min(5, Math.max(0, Math.floor(Number(offer.grade) || 0)));
     const gradeMarkup = `<span class="detail-grade"><span class="grade-stars" role="img" aria-label="${gradeCount}등급">${Array.from({ length: gradeCount }, () => `<img src="${gradeIcon}" class="grade-star-icon" alt="">`).join('')}</span></span>`;
     const jobIcon = plazaActionIconMarkup(jobGlyphs[offer.job] || '✦', '#a6d7e8');
@@ -1438,13 +1614,18 @@ function plazaEncounterMarkup(offer) {
     const zodiacGlyph = zodiacIcons[offer.zodiac] || '✧';
     const affinityLabel = affinity === 0 ? '앙숙' : affinity <= 10 ? '데면데면한 사이' : affinity <= 20 ? '보통 사이' : affinity <= 50 ? '호감이 있는 사이' : affinity <= 90 ? '친밀한 사이' : '소울메이트';
     const zodiacIcon = catalogIconMarkup(zodiacGlyph, '#a6d7e8', offer.zodiac || '별자리', 'plaza-affinity-icon');
-    const affinityPanel = `<div class="plaza-encounter-affinity"><span class="section-kicker">친밀도</span><div class="plaza-affinity-main"><div class="plaza-affinity-copy"><strong>${affinityLabel}</strong><small>${affinity} / 100</small></div>${zodiacIcon}</div><div class="plaza-affinity-meter"><span style="width:${affinity}%"></span></div></div>`;
+    const affinityPanel = offer.isMaster || offer.id === MASTER_CHARACTER_ID ? '' : `<div class="plaza-encounter-affinity"><span class="section-kicker">친밀도</span><div class="plaza-affinity-main"><div class="plaza-affinity-copy"><strong>${affinityLabel}</strong><small>${affinity} / 100</small></div>${zodiacIcon}</div><div class="plaza-affinity-meter"><span style="width:${affinity}%"></span></div></div>`;
     const weeklyWage = offer.weeklyWage;
     const wageLabel = weeklyWage !== undefined && weeklyWage !== null && weeklyWage !== '' && Number.isFinite(Number(weeklyWage))
         ? goldAmountMarkup(Math.max(0, Number(weeklyWage)))
         : '미정';
-    const priceMarkup = offer.price === undefined ? '' : `<span class="plaza-encounter-price">영입가 <strong>${goldAmountMarkup(offer.price)}</strong></span><span class="plaza-encounter-price plaza-encounter-wage">주급 <strong>${wageLabel}</strong></span>`;
-    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span></div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span>${gradeMarkup}</h2>${offer.stageName ? `<p class="monster-stage-info">${escapeHtml(offer.stageName)} · ${offer.isBoss ? '보스' : '일반'} · ${escapeHtml(offer.size)}형</p><p class="monster-concept">${escapeHtml(offer.concept)}</p>` : ''}<div class="plaza-encounter-stats">${statRows.map(([key, label, value]) => `<span><small>${statLabelMarkup(key, label)}</small><strong>${value}</strong></span>`).join('')}</div>${priceMarkup}</section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">스킬 정보</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
+    const priceLabel = offer.price === undefined || offer.price === null || offer.price === '' ? '미정' : goldAmountMarkup(offer.price);
+    const experience = Math.max(0, Number(offer.experience) || 0);
+    const experienceMaximum = Math.max(1, Number(offer.experienceToNextLevel) || 100);
+    const experiencePercent = Math.min(100, experience / experienceMaximum * 100);
+    const experienceMarkup = characterInfo ? `<div class="character-info-experience"><span class="character-info-experience-value">${experience} / ${experienceMaximum}</span><div class="character-info-experience-track" role="progressbar" aria-label="경험치" aria-valuemin="0" aria-valuemax="${experienceMaximum}" aria-valuenow="${Math.min(experience, experienceMaximum)}"><span style="width:${experiencePercent}%"></span></div></div>` : '';
+    const priceMarkup = !characterInfo && offer.price === undefined ? '' : `<span class="plaza-encounter-price">영입가 <strong>${priceLabel}</strong></span><span class="plaza-encounter-price plaza-encounter-wage">주급 <strong>${wageLabel}</strong></span>`;
+    return `<article class="plaza-encounter"><section class="plaza-encounter-info"><div class="plaza-encounter-title"><span class="plaza-encounter-meta">${jobIcon}<span>${escapeHtml(offer.job)}</span></span><span class="plaza-encounter-meta">${elementIcon}<span>${escapeHtml(offer.element)}</span></span><span class="plaza-encounter-level">Lv.${offer.level}</span>${experienceMarkup}</div><h2 class="plaza-encounter-name"><span>${escapeHtml(offer.name)}</span>${gradeMarkup}</h2>${offer.stageName ? `<p class="monster-stage-info">${escapeHtml(offer.stageName)} · ${offer.isBoss ? '보스' : '일반'} · ${escapeHtml(offer.size)}형</p><p class="monster-concept">${escapeHtml(offer.concept)}</p>` : ''}<div class="plaza-encounter-stats">${statRows.map(([key, label, value]) => `<span><small>${statLabelMarkup(key, label)}</small><strong>${value}</strong></span>`).join('')}</div>${priceMarkup}</section><div class="plaza-encounter-art">${portrait}</div><section class="plaza-encounter-skills"><span class="section-kicker plaza-encounter-skills-title">스킬 정보</span><div class="plaza-encounter-skill-icons">${skillIcons}</div>${affinityPanel}</section></article>`;
 }
 
 function combatStatsFromProfile(stats) {
@@ -1453,6 +1634,7 @@ function combatStatsFromProfile(stats) {
 
 function hireMercenary(characterId) {
     if (!characterEnabled(characterId)) return;
+    if (state.recruits.some(character => character.id === characterId)) return;
     if (state.recruits.length >= maxPartySize) return;
     const offer = state.plazaCurrentOffer;
     if (!offer || offer.id !== characterId) return;
@@ -1595,6 +1777,7 @@ function resetPlazaEncounters() {
 function advanceWeekWithFixedCost(message = '', { resetEncounters = true } = {}) {
     state.week += 1;
     levelUpAtWeekStart(state);
+    levelUpCharactersAtWeekStart(state, party, catalogData.growthRows, catalogData.skills);
     const returnedDispatches = completeGuildDispatches(state);
     const guildWages = weeklyGuildWages();
     const fixedCost = 100 + guildWages;
@@ -1611,11 +1794,16 @@ function advanceWeekWithFixedCost(message = '', { resetEncounters = true } = {})
 }
 
 function returnToPlaza(completed, defeated = false) {
+    const ending = completed && state.mainStory?.partOneComplete && state.expeditionDestination?.location === 'skeldrath-7';
+    if (completed) awardCharacterExperience(state, party, 50);
+    syncGuildProgression(state, party, catalogData.growthRows, catalogData.skills);
+    const tutorialCompanion = party.find(member => member.tutorialCompanion);
+    if (tutorialCompanion && state.tutorial && state.tutorial.stage !== 'done') state.tutorial.companion = structuredClone(tutorialCompanion);
     state.view = 'plaza';
     state.mode = 'explore';
     state.ended = false;
     state.expeditionResult = null;
-    state.recruits = [];
+    retainRegularGuildSelection(state, party);
     party = [];
     state.room = 0;
     state.turn = -1;
@@ -1647,6 +1835,10 @@ function returnToPlaza(completed, defeated = false) {
     }
     if (state.tutorial?.stage === 'battle' && !completed) state.tutorial.stage = 'select-open';
     advanceWeekWithFixedCost(completed ? '원정을 완수했습니다.' : defeated ? '원정대가 전멸했습니다.' : '원정에서 복귀했습니다.', { resetEncounters: false });
+    if (ending) {
+        state.view = 'partOneEnd';
+        state.plazaDialog = '';
+    }
     // Every regular expedition return starts a fresh encounter pool, regardless of outcome.
     state.activePlazaDialogue = null;
     resetPlazaEncounters();
@@ -1655,6 +1847,12 @@ function returnToPlaza(completed, defeated = false) {
 
 function showExpeditionResult(completed, defeated = false) {
     if (state.expeditionResult) return;
+    if (completed && beginMainStory(state, guildDestinations, 'result', 'result')) {
+        state.mode = 'explore';
+        state.enemyPhase = false;
+        render();
+        return;
+    }
     retreatDialogOpen = false;
     if (!completed && state.expeditionRewardBaseline) {
         state.gold = state.expeditionRewardBaseline.gold;
@@ -1763,7 +1961,7 @@ function startExpedition() {
         };
     });
     Object.assign(state, {
-        view: 'expedition', mode: 'explore', room: 0, turn: 0, enemies: [], enemyPhase: false,
+        view: 'expedition', mode: 'explore', room: 0, turn: 0, enemies: [], enemyPhase: false, pendingStoryBoss: null,
         actingEnemy: -1, enemyAttackLanded: false, selectedSkill: null, ended: false, expeditionResult: null,
         expeditionRewardBaseline: { gold: state.gold, experience: state.experience },
         message: '고용한 용병들이 원정대에 합류했습니다.',
@@ -1773,6 +1971,71 @@ function startExpedition() {
         state.tutorial.stage = 'battle';
         return startEncounter();
     }
+    beginMainStory(state, guildDestinations, 'start', 'explore');
+    render();
+}
+
+function mainStoryCharacter(speaker) {
+    const cast = storyCast[speaker];
+    if (cast?.characterId) {
+        const character = developerCharacter(catalogData.characters.find(character => character.id === canonicalCharacterId(cast.characterId)));
+        return { ...character, portraitSrc: characterImageSource(character), thumbnailSrc: characterImageSource(character, true) };
+    }
+    if (!cast?.job) return null;
+    const gender = speaker === 'rival' || cast.gender === 'male' ? '_M_' : '_F_';
+    const candidates = catalogData.characters.filter(character => character.job === cast.job && character.id !== MASTER_CHARACTER_ID && character.id !== TUTORIAL_COMPANION_ID
+        && characterPortraitFileAssignments[character.id]?.includes(gender));
+    const portraits = speaker === 'lysia' ? candidates.filter(character => character.grade === 5) : candidates;
+    const index = { rival: 0, mentor: 1, lora: 2, miel: 3, lysia: 4, nia: 6, tara: 4, rahab: 2, arken: 4, king: 3, gares: 5 }[speaker] || 0;
+    const base = portraits[index % portraits.length];
+    if (!base) return null;
+    const character = developerCharacter(base);
+    return { ...character, portraitSrc: cast.portraitFile ? characterPortraitAsset(cast.portraitFile) : characterImageSource(character),
+        thumbnailSrc: cast.portraitFile ? characterThumbnailAsset(cast.portraitFile) : characterImageSource(character, true) };
+}
+
+function renderMainStory(current = currentMainStory(state)) {
+    const cast = storyCast[current.line.speaker];
+    const speaker = cast.name.replaceAll('{{playerName}}', state.playerName || '마스터');
+    const text = current.line.text.replaceAll('{{playerName}}', state.playerName || '마스터');
+    const location = guildDestinations[current.scene.location];
+    const appeared = [...new Set(current.scene.lines.slice(0, current.index + 1).map(line => line.speaker).reverse())]
+        .filter(key => mainStoryCharacter(key)).slice(0, 2).reverse();
+    const characters = Object.fromEntries(appeared.map(key => [key, { ...mainStoryCharacter(key), name: storyCast[key].name }]));
+    renderPlaza({
+        heading: `${current.scene.placeName || location.name} - ${current.scene.title.split(' / ').at(-1)}`,
+        title: current.scene.title,
+        background: current.scene.background || location.background,
+        dialogue: {
+            id: current.scene.id,
+            presentation: appeared.length > 1 ? 'twoPerson' : appeared.length ? 'oneOnOne' : 'monologue',
+            characterId: appeared[0], participants: appeared, characters,
+        },
+        node: { speaker, text, speakerCharacterId: current.line.speaker },
+    });
+}
+
+function renderPartOneEnding() {
+    const scene = mainStoryScenes.find(scene => scene.partOneEnd);
+    renderMainStory({ scene, index: scene.lines.length - 1, line: scene.lines.at(-1) });
+    game.querySelector('[data-action="plaza-dialogue-advance"]')?.removeAttribute('data-action');
+    game.querySelector('.plaza-encounter-stage')?.insertAdjacentHTML('beforeend', '<div class="part-one-ending-controls"><strong>1부 끝 · 케어윈으로</strong><p>로웬의 기록상 이네스를 찾아서</p><button type="button" data-action="catalog">스토리 도감</button></div>');
+}
+
+function continueMainStory() {
+    if (retreatDialogOpen || gameMenuOpen) return;
+    const result = advanceMainStory(state);
+    if (!result) return;
+    if (!result.finished) return render();
+    if (result.recruit) {
+        const key = result.recruitKey;
+        const member = recruitStoryCompanion(state, mainStoryCharacter(key), catalogData.growthRows, catalogData.skills, key);
+        state.message = key === 'lysia'
+            ? `양손 전투망치 전사 비올라가 길드에 합류했습니다. 영입비는 없으며 계약 주급은 ${member.weeklyWage}G입니다.`
+            : '지도사 윌로우가 길드에 합류했습니다. 윌로우는 주급을 받지 않습니다.';
+    }
+    if (result.resume === 'result') return showExpeditionResult(true);
+    if (result.resume === 'room') return continueExpeditionRoom();
     render();
 }
 
@@ -1789,25 +2052,27 @@ function renderPlazaLegacy() {
     game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div><header class="topbar plaza-topbar"><a class="wordmark" href="#" aria-label="검은 회랑 광장"><span class="wordmark-sigil">✠</span><span>검은 회랑<small>모험가 광장</small></span></a><div class="plaza-player-meta"><span>플레이어 Lv.${state.userLevel}</span><strong>${goldAmountMarkup(state.gold)}</strong><strong class="current-fame">${fameAmountMarkup(state.fame)}</strong><button class="catalog-open" data-action="catalog">도감</button></div></header><main class="plaza-page"><section class="scene plaza-scene"><div class="scene-heading"><span class="section-kicker">모험가 광장</span><h1>${offer ? '새로운 만남' : '광장을 둘러보다'}</h1><p>${offer ? '광장에 한 명의 모험가가 다가왔습니다.' : `${remaining}명의 용병을 만날 수 있습니다.`}</p></div><div class="dungeon-art plaza-encounter-stage"><div class="art-haze haze-one"></div><div class="art-haze haze-two"></div><div class="arch arch-outer"><div class="arch arch-inner"><div class="arch-opening"><div class="distant-light"></div><div class="distant-floor"></div></div></div></div><div class="wall wall-left"><i></i><i></i><i></i><i></i><i></i></div><div class="wall wall-right"><i></i><i></i><i></i><i></i><i></i></div><div class="floor-stone"></div>${offer ? plazaEncounterMarkup(offer) : `<div class="plaza-empty-stage"><span class="plaza-stage-sigil">✦</span><p>${escapeHtml(state.plazaMessage || (state.plazaOffers.length === 0 ? '더 이상 제안할 용병이 없는 듯 하다' : '광장에는 여러 모험가가 오갑니다.'))}</p></div>`}</div></section><section class="lower-grid plaza-lower-grid"><section class="party-panel plaza-roster"><div class="panel-heading"><div><span class="section-kicker">원정 준비</span><h2>용병단 <small>${state.recruits.length}/${maxPartySize}</small></h2></div><span class="formation-label">Lv.${state.userLevel}</span></div><div class="plaza-hired-list">${recruits}${vacantSlots}</div><div class="plaza-depart-row"><button class="plaza-depart" data-action="plaza-depart" ${state.recruits.length === 0 ? 'disabled' : ''}>원정 출발 <span>→</span></button></div></section><aside class="action-panel plaza-action-panel"><div class="panel-heading"><div><span class="section-kicker">${offer ? '선택' : '다음 조우'}</span><h2>${offer ? `${offer.name}과의 대화` : '광장을 살펴본다'}</h2></div><span class="turn-indicator">${remaining}명 남음</span></div>${choices}</aside></section></main><footer class="bottom-note"><span>검은 회랑 <i>·</i> 광장</span><span>직업별 용병 제안 · 최대 ${maxPartySize}명</span></footer>`;
 }
 
-function renderPlaza() {
-    state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id) && !state.guildMembers.some(member => member.id === entry.id)).map(plazaOfferWithCurrentProfile);
-    if (state.plazaCurrentOffer && !characterEnabled(state.plazaCurrentOffer.id)) state.plazaCurrentOffer = null;
-    if (state.plazaCurrentOffer) state.plazaCurrentOffer = plazaOfferWithCurrentProfile(state.plazaCurrentOffer);
+function renderPlaza(story = null) {
+    if (!story) {
+        state.plazaOffers = state.plazaOffers.filter((entry) => characterEnabled(entry.id) && !state.guildMembers.some(member => member.id === entry.id)).map(plazaOfferWithCurrentProfile);
+        if (state.plazaCurrentOffer && !characterEnabled(state.plazaCurrentOffer.id)) state.plazaCurrentOffer = null;
+        if (state.plazaCurrentOffer) state.plazaCurrentOffer = plazaOfferWithCurrentProfile(state.plazaCurrentOffer);
+    }
     const transitionClass = plazaTransitionPhase ? ` plaza-transition-${plazaTransitionPhase}` : '';
     plazaTransitionPhase = '';
-    const offer = !state.plazaGuildSelectionOpen && state.plazaCurrentOffer
+    const offer = !story && !state.plazaGuildSelectionOpen && state.plazaCurrentOffer
         ? { ...state.plazaCurrentOffer, portraitSrc: characterImageSource(state.plazaCurrentOffer) }
         : null;
-    const activeDialogue = state.plazaGuildSelectionOpen ? null : getActivePlazaDialogue();
+    const activeDialogue = story || (state.plazaGuildSelectionOpen ? null : getActivePlazaDialogue());
     const isMonologue = activeDialogue?.dialogue.presentation === 'monologue';
     const isOneOnOne = activeDialogue?.dialogue.presentation === 'oneOnOne';
     const isTwoPerson = activeDialogue?.dialogue.presentation === 'twoPerson';
     const dialogueCharacter = isOneOnOne
-        ? developerCharacter(catalogData.characters.find((character) => character.id === activeDialogue.dialogue.characterId))
+        ? activeDialogue.dialogue.characters?.[activeDialogue.dialogue.characterId] || developerCharacter(catalogData.characters.find((character) => character.id === activeDialogue.dialogue.characterId))
         : null;
     const dialogueCharacterName = dialogueCharacter?.name || '모험가';
     const dialogueParticipants = activeDialogue?.dialogue.participants || [];
-    const dialogueParticipantNames = dialogueParticipants.map((id) => catalogData.characters.find((character) => character.id === id)?.name || '모험가');
+    const dialogueParticipantNames = dialogueParticipants.map((id) => activeDialogue.dialogue.characters?.[id]?.name || catalogData.characters.find((character) => character.id === id)?.name || '모험가');
     const dialogueContextLabel = isMonologue
         ? '독백'
         : isOneOnOne
@@ -1833,7 +2098,7 @@ function renderPlaza() {
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
     const guildWages = weeklyGuildWages();
     const maintenance = weeklyMaintenanceCost();
-    const dialog = state.plazaDialog === 'rest'
+    const dialog = !story && state.plazaDialog === 'rest'
         ? { title: '한 주 쉬기', label: '주간 고정비', message: `생활비 100골드와 길드원 주급 ${guildWages}골드, 총 ${maintenance}골드가 차감됩니다. 한 주를 건너뛰시겠습니까?`, confirm: '한 주 쉬기' }
         : state.plazaDialog === 'maintenance'
             ? { title: '주간 고정비 안내', label: '첫 고정비 납부', message: `매주 생활비 100골드와 길드원 주급 ${guildWages}골드가 차감됩니다. 이번 주 고정비 ${maintenance}골드를 납부했습니다.`, confirm: '확인', cancel: false }
@@ -1845,7 +2110,7 @@ function renderPlaza() {
     const header = `<header class="topbar plaza-topbar${transitionClass}">${playerProfileMarkup()}<div class="plaza-player-meta">${gameMenuButtonsMarkup()}</div></header>`;
     const sceneContent = isOneOnOne || isTwoPerson ? '' : offer ? plazaEncounterMarkup(offer) : '<div class="plaza-empty-stage"></div>';
     const sceneTitle = dialogueContextLabel || (offer ? `${offer.name}과 조우` : '원정 준비 중');
-    const scene = `<section class="scene plaza-scene"><div class="scene-heading location-heading"><h1>모험가 광장 - ${state.plazaGuildSelectionOpen ? '길드원 선발' : escapeHtml(sceneTitle)}</h1><div class="plaza-current-info"><span>${state.week}주차 -</span><strong>${goldAmountMarkup(state.gold)}</strong><strong class="current-fame">${fameAmountMarkup(state.fame)}</strong></div></div><div class="dungeon-art plaza-encounter-stage">${state.plazaGuildSelectionOpen ? guildDispatchMembersMarkup({ normalParty: true }) : sceneContent}</div></section>`;
+    const scene = `<section class="scene plaza-scene"><div class="scene-heading location-heading"><h1>${story ? escapeHtml(story.heading) : `벨포트 · 모험가 광장 - ${state.plazaGuildSelectionOpen ? '길드원 선발' : escapeHtml(sceneTitle)}`}</h1><div class="plaza-current-info"><span>${state.week}주차 -</span><strong>${goldAmountMarkup(state.gold)}</strong><strong class="current-fame">${fameAmountMarkup(state.fame)}</strong></div></div><div class="dungeon-art plaza-encounter-stage">${state.plazaGuildSelectionOpen ? guildDispatchMembersMarkup({ normalParty: true }) : sceneContent}</div></section>`;
     const roster = `<section class="party-panel plaza-roster"><div class="panel-heading"><div><h2>원정대 <small>${state.recruits.length}/${maxPartySize}</small></h2></div>${partyPowerMarkup(state.recruits)}</div><div class="party-list plaza-party-list">${recruits}${vacantSlots}</div></section>`;
     const dialogueNode = activeDialogue?.node;
     const dialogueText = dialogueNode?.text
@@ -1853,11 +2118,11 @@ function renderPlaza() {
         .replaceAll('{{characterName}}', dialogueCharacterName)
         .replaceAll('{{characterOneName}}', dialogueParticipantNames[0] || '모험가')
         .replaceAll('{{characterTwoName}}', dialogueParticipantNames[1] || '모험가') || '';
-    const dialogueSpeaker = dialogueNode?.speaker
+    const dialogueSpeaker = story ? story.node.speaker : dialogueNode?.speaker
         ?.replaceAll('{{playerName}}', state.playerName)
         .replaceAll('{{characterName}}', dialogueCharacterName)
         .replaceAll('{{characterOneName}}', dialogueParticipantNames[0] || '모험가')
-        .replaceAll('{{characterTwoName}}', dialogueParticipantNames[1] || '모험가') || dialogueCharacterName;
+        .replaceAll('{{characterTwoName}}', dialogueParticipantNames[1] || '모험가') ?? dialogueCharacterName;
     const dialogueChoices = dialogueNode?.choices?.length
         ? `<div class="plaza-dialogue-choices">${dialogueNode.choices.slice(0, 8).map((choice) => `<button class="combat-action" type="button" data-action="plaza-dialogue-advance" data-dialogue-next="${escapeHtml(choice.next)}">${escapeHtml(choice.text)}</button>`).join('')}</div>`
         : `<div class="plaza-dialogue-controls"><button class="combat-action" type="button" data-action="plaza-dialogue-advance">${dialogueNode?.end ? '광장 둘러보기' : '다음'}</button></div>`;
@@ -1865,11 +2130,16 @@ function renderPlaza() {
         ? `<div class="plaza-dialogue-copy" aria-live="polite"><span class="plaza-dialogue-speaker">${escapeHtml(dialogueSpeaker)}</span><p>${goldTextMarkup(dialogueText)}</p></div>${dialogueChoices}`
         : isMonologue ? '' : choices;
     const actionPanel = `<aside class="action-panel plaza-action-panel"><div class="panel-heading ${activeDialogue ? '' : offer ? 'contract-heading' : 'expedition-ready-heading'}"><div><h2>${activeDialogue ? '선택' : offer ? '계약' : '원정 준비'}</h2></div></div>${dialogueMarkup}</aside>`;
-    const modal = dialog && !state.pendingLevelUp && !state.guildRecruitmentDialog && !pendingGuildDispatchResults(state).length ? `<div class="end-overlay plaza-confirm-overlay"><section class="end-dialog" data-popup-kind="${state.plazaDialog === 'support' ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="plaza-dialog-title"><span class="section-kicker">${dialog.label}</span><h2 id="plaza-dialog-title">${dialog.title}</h2><p>${goldTextMarkup(dialog.message)}</p><div class="plaza-dialog-actions ${dialog.cancel === false ? 'single-action' : ''}">${dialog.cancel === false ? '' : '<button class="plaza-dialog-cancel" data-action="plaza-dialog-cancel">취소</button>'}<button data-action="plaza-dialog-confirm">${dialog.confirm}</button></div></section></div>` : '';
+    const modal = !story && dialog && !state.pendingLevelUp && !state.guildRecruitmentDialog && !pendingGuildDispatchResults(state).length ? `<div class="end-overlay plaza-confirm-overlay"><section class="end-dialog" data-popup-kind="${state.plazaDialog === 'support' ? 'positive' : 'negative'}" role="dialog" aria-modal="true" aria-labelledby="plaza-dialog-title"><span class="section-kicker">${dialog.label}</span><h2 id="plaza-dialog-title">${dialog.title}</h2><p>${goldTextMarkup(dialog.message)}</p><div class="plaza-dialog-actions ${dialog.cancel === false ? 'single-action' : ''}">${dialog.cancel === false ? '' : '<button class="plaza-dialog-cancel" data-action="plaza-dialog-cancel">취소</button>'}<button data-action="plaza-dialog-confirm">${dialog.confirm}</button></div></section></div>` : '';
     const plazaJobSummary = !activeDialogue && !offer && state.plazaOffers.length
         ? `<p class="plaza-job-summary">광장에 <span class="plaza-job-counts">${plazaJobCountsMarkup()}</span>이 남아 있습니다. 광장을 탐색하여 그들과 조우해보세요.</p>`
         : '';
-    game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div>${header}<main class="plaza-page${transitionClass}">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main>${gameFooterMarkup()}${modal}${gameMenuMarkup()}`;
+    game.innerHTML = `<div class="plaza-page-background" aria-hidden="true"></div>${header}<main class="plaza-page${story ? ' main-story-page' : ''}${transitionClass}">${scene}<section class="lower-grid plaza-lower-grid">${roster}${actionPanel}</section></main>${gameFooterMarkup()}${modal}${gameMenuMarkup()}`;
+    if (story) {
+        const stage = game.querySelector('.plaza-encounter-stage');
+        stage.style.background = `linear-gradient(#0e1c2740, #0e1c2740), url('/assets/backgrounds/${story.background}.webp') center / cover no-repeat`;
+        game.querySelector('.scene-heading h1').title = story.title;
+    }
     if (offer?.portraitSrc && !activeDialogue) {
         const mask = document.createElement('div');
         mask.className = 'codex-character-art-mask plaza-encounter-character-mask';
@@ -1889,7 +2159,7 @@ function renderPlaza() {
         const lowerGrid = game.querySelector('.plaza-lower-grid');
         if (lowerGrid) {
             lowerGrid.classList.add('plaza-lower-grid-monologue');
-            lowerGrid.innerHTML = dialoguePanelMarkup(dialogueNode?.speaker === '' ? '' : '나', dialogueText);
+            lowerGrid.innerHTML = dialoguePanelMarkup(story ? dialogueSpeaker : dialogueNode?.speaker === '' ? '' : '나', dialogueText);
             stopDialogueTypewriter = typeDialogueText(lowerGrid.querySelector('.plaza-monologue-line'), dialogueText, {
                 immediate: plazaDialogueExitPending || window.matchMedia('(prefers-reduced-motion: reduce)').matches,
                 onCharacter: playDialogueTypingSound,
@@ -1903,7 +2173,7 @@ function renderPlaza() {
             ? [{ id: activeDialogue.dialogue.characterId, character: dialogueCharacter, name: dialogueCharacterName, side: 'center' }]
             : dialogueParticipants.map((id, index) => ({
                 id,
-                character: catalogData.characters.find((character) => character.id === id),
+                character: activeDialogue.dialogue.characters?.[id] || catalogData.characters.find((character) => character.id === id),
                 name: dialogueParticipantNames[index],
                 side: index === 0 ? 'left' : 'right',
             }));
@@ -1989,7 +2259,7 @@ function combatNumberMarkup(target) {
 }
 
 function guildDispatchCardActionsMarkup(member, normalParty = false) {
-    const canSwap = !normalParty || member.isGuildMember;
+    const canSwap = showPartySwap(state.tutorial, member, normalParty);
     return `<div class="guild-dispatch-card-actions">${canSwap ? `<button type="button" data-action="${normalParty ? 'plaza-party-swap' : 'guild-dispatch-swap'}" data-member-id="${escapeHtml(member.id)}" aria-label="${escapeHtml(member.name)} 선발 취소 후 대원 선택" title="선발 취소 후 대원 선택"><img src="/assets/icons/swap_icon.svg" alt="" aria-hidden="true"></button>` : ''}<button type="button" disabled aria-label="스크롤 · 추후 개발" title="추후 개발"><img src="/assets/icons/scroll_icon.svg" alt="" aria-hidden="true"></button></div>`;
 }
 
@@ -2003,9 +2273,9 @@ function heroMarkup(hero, index, { dispatchControls = false, plazaControls = fal
     return `<article class="hero ${fallen ? 'fallen' : ''} ${hit ? 'hit' : ''} ${targetable ? 'targetable' : ''} ${!preparationControls && state.mode === 'combat' && !state.enemyPhase && state.turn === index ? 'active' : ''}" ${targetable ? `data-ally-target="${index}" role="button" tabindex="0" aria-label="${hero.name}, 체력 ${hero.hp}/${hero.maxHp}"` : ''}>
         ${combatNumberMarkup(hero)}
         ${characterTooltip(hero)}
-        ${preparationControls ? `<button type="button" class="hero-thumbnail hero-codex-button roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}" data-action="party-character-codex" data-member-id="${escapeHtml(hero.id)}" aria-label="${escapeHtml(hero.name)} 도감 보기">${characterThumbnailMarkup(hero, 'roster-avatar')}</button>` : `<span class="hero-thumbnail roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}">${characterThumbnailMarkup(hero, 'roster-avatar')}</span>`}
+        ${preparationControls ? `<button type="button" class="hero-thumbnail hero-codex-button roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}" data-action="party-character-codex" data-member-id="${escapeHtml(hero.id)}" aria-label="${escapeHtml(hero.name)} 캐릭터 정보 보기">${characterThumbnailMarkup(hero, 'roster-avatar')}</button>` : `<span class="hero-thumbnail roster-avatar-frame element-border-${elementBorderClasses[hero.element] || 'light'}">${characterThumbnailMarkup(hero, 'roster-avatar')}</span>`}
         ${preparationControls && !readOnly ? guildDispatchCardActionsMarkup(hero, plazaControls) : statusEffectsMarkup(hero, true)}
-        <div class="hero-name-row">${catalogIconMarkup(jobGlyphs[hero.job] || '✦', elementTints[hero.element] || '#a99060', hero.job, 'hero-job-icon')}<strong class="hero-name">${escapeHtml(hero.name)}</strong><span class="hero-level">Lv.${escapeHtml(hero.level || 1)}</span></div>
+        <div class="hero-name-row">${catalogIconMarkup(jobGlyphs[hero.job] || '✦', elementTints[hero.element] || '#a99060', hero.job, 'hero-job-icon')}<strong class="hero-name">${escapeHtml(hero.name)}</strong></div>
         <div class="hero-vitals"><strong class="hero-status ${hit ? 'hit-text' : ''}">${fallen ? '전투 불능' : `${hero.hp}<small>/${hero.maxHp}</small>`}</strong></div>
         ${combatHealthMarkup(hero, 'health')}
     </article>`;
@@ -2065,9 +2335,12 @@ function monstersForEncounter(boss) {
 const updateScenePresentation = createScenePresentation(playWebSound);
 
 function tutorialCompanionProfile() {
-    const profile = developerCharacter(catalogData.characters.find(character => character.id === TUTORIAL_COMPANION_ID));
+    const edited = developerCharacter(catalogData.characters.find(character => character.id === TUTORIAL_COMPANION_ID));
+    const existing = state.guildMembers?.find(member => member.id === TUTORIAL_COMPANION_ID) || state.tutorial?.companion;
+    const profile = applyRosterProfile(edited, { level: existing?.level || 1 }, catalogData.growthRows, catalogData.skills);
     const stats = { ...profile.stats };
-    return { ...profile, stats, baseStats: { ...stats }, hp: stats.maxHp, maxHp: stats.maxHp,
+    return { ...profile, experience: existing?.experience || 0, experienceToNextLevel: existing?.experienceToNextLevel,
+        stats, baseStats: { ...stats }, hp: stats.maxHp, maxHp: stats.maxHp,
         color: ({ 불: 'red', 물: 'blue', 풀: 'green', 빛: 'ivory', 어둠: 'gold' })[profile.element] || 'ivory',
         price: 0, weeklyWage: 0, wageExempt: true, tutorialCompanion: true, cooldowns: {}, effects: [] };
 }
@@ -2076,13 +2349,15 @@ function finishTutorialStory() {
     const id = state.activePlazaDialogue?.id;
     if (id === 'tutorial.meeting' && state.tutorial?.stage === 'meeting') {
         const companion = tutorialCompanionProfile();
-        state.recruits = [companion];
+        state.recruits = state.recruits.filter((member) => member.isMaster);
+        selectMasterForExpedition(state);
+        state.recruits.push(companion);
         const pool = generateRosters(catalogData.growthRows, state.userLevel, catalogData.skills).characters
-            .filter(character => character.id !== companion.id && characterEnabled(character.id) && character.grade === 3).map(developerCharacter);
+            .filter(character => character.id !== companion.id && character.id !== MASTER_CHARACTER_ID && characterEnabled(character.id) && character.grade === 3).map(developerCharacter);
         state.plazaOffers = [];
         while (state.plazaOffers.length < 2 && pool.length) {
             const candidate = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-            state.plazaOffers.push({ ...candidate, price: hirePrices[candidate.grade] ?? 30, weeklyWage: hirePrices[candidate.grade] ?? 30 });
+            state.plazaOffers.push({ ...candidate, ...recruitmentTerms(candidate) });
         }
         state.activePlazaDialogue = null;
         state.plazaCurrentOffer = null;
@@ -2109,8 +2384,11 @@ function renderTutorialPrologue() {
 }
 
 function tutorialElementAllowed(element) {
+    if (state.view === 'characterInfo' && element.matches('[data-catalog-search], [data-catalog-filter]')) return true;
     const target = element.closest('[data-action], [data-target], [data-ally-target]');
     const action = target?.dataset.action || (target?.hasAttribute('data-target') ? 'combat-target' : target?.hasAttribute('data-ally-target') ? 'combat-ally' : '');
+    if (action === 'player-character-info') return true;
+    if (state.view === 'characterInfo' && ['character-info-back', 'character-info-select'].includes(action)) return true;
     return tutorialActionAllowed(state.tutorial, action, target?.dataset.memberId);
 }
 
@@ -2168,9 +2446,16 @@ function render() {
     }
     if (!['lobby', 'playerSetup', 'prologue'].includes(state.view)) {
         syncTutorialCompanion(state, tutorialCompanionProfile(), party);
-        [...(state.guildMembers || []), ...(state.recruits || []), ...(state.plazaOffers || []), ...(state.plazaCurrentOffer ? [state.plazaCurrentOffer] : [])].forEach((member) => {
-            member.weeklyWage = member.wageExempt ? 0 : temporaryGuildWeeklyWage(member);
-        });
+        configureCharacterDeduplication(catalogData.characters.map(entry => {
+            const profile = developerCharacter(entry, { uniqueName: false });
+            return { ...profile, portraitSrc: profile.portraitSrc || characterPortraitAssets[entry.id], thumbnailSrc: profile.thumbnailSrc || characterThumbnailAssets[entry.id] };
+        }));
+        consolidateCharacterRecords(state, party);
+        migrateLysiaConcept(state, party, catalogData.growthRows, catalogData.skills);
+        syncWillowArtwork(state, party, mainStoryCharacter('lora'));
+        syncCharacterIdentities(state, party, catalogData.growthRows, catalogData.skills, developerCharacter);
+        syncGuildProgression(state, party, catalogData.growthRows, catalogData.skills);
+        syncAilinTestMode(state, party, import.meta.env.DEV && guildTestUnlock, catalogData.growthRows, catalogData.skills);
     }
     if (!['lobby', 'playerSetup', 'prologue'].includes(state.view)) completeGuildDispatches(state);
     if (state.view === 'guild') {
@@ -2188,7 +2473,10 @@ function render() {
     let sceneKey = '';
     let contentKey = '';
     let sound = 'appear';
-    if (state.view === 'plaza' && state.plazaGuildSelectionOpen) {
+    if (state.view === 'expedition' && currentMainStory(state)) {
+        sceneKey = `main-story:${state.mainStory.active.id}`;
+        contentKey = `${sceneKey}:${state.mainStory.active.line}`;
+    } else if (state.view === 'plaza' && state.plazaGuildSelectionOpen) {
         sceneKey = 'plaza:guild-selection';
     } else if (dialogue) {
         sceneKey = `dialogue:${dialogue.dialogue.id}`;
@@ -2202,6 +2490,8 @@ function render() {
     } else if (state.view === 'characterCodex') {
         sceneKey = `codex:${state.characterCodexTab}:${state.catalogSelectedRosterId}`;
         contentKey = `${sceneKey}:${state.catalogLevel}`;
+    } else if (state.view === 'characterInfo') {
+        sceneKey = `character-info:${state.characterInfoSource}:${state.characterInfoMemberId}`;
     } else if (state.view === 'guild') {
         sceneKey = `guild:${state.guildRoom}`;
         sound = 'step';
@@ -2231,11 +2521,29 @@ function warmNextSceneImages() {
     warmImages(urls);
 }
 
+function expeditionInformationOpen() {
+    return state.view === 'characterInfo' && state.characterInfoReturnView === 'expedition';
+}
+
 function renderScene() {
+    if (state.view === 'expedition' && currentMainStory(state)) {
+        battleEffects.clear();
+        clearTimeout(combatEndTimer);
+        combatEndTimer = null;
+        saveGame();
+        return renderMainStory();
+    }
     if (state.view !== 'expedition' || state.ended) retreatDialogOpen = false;
     if (state.view === 'expedition' && state.mode === 'combat') void battleEffects.preload();
-    else { battleEffects.clear(); clearTimeout(combatEndTimer); combatEndTimer = null; }
+    else {
+        battleEffects.clear();
+        if (!expeditionInformationOpen()) { clearTimeout(combatEndTimer); combatEndTimer = null; }
+    }
     syncBackgroundMusic();
+    if (state.view === 'partOneEnd') {
+        saveGame();
+        return renderPartOneEnding();
+    }
     if (state.view === 'prologue') return renderTutorialPrologue();
     if (state.view === 'lobby') return renderLobby();
     if (state.view === 'playerSetup') return renderPlayerSetup();
@@ -2244,6 +2552,7 @@ function renderScene() {
         saveGame();
         return renderCatalog();
     }
+    if (state.view === 'characterInfo') return renderCharacterInformation();
     if (state.view === 'characterCodex') {
         saveGame();
         return renderCharacterCodex();
@@ -2306,7 +2615,10 @@ function renderScene() {
 }
 
 function startEncounter(boss = false) {
-    const enemies = monstersForEncounter(boss);
+    const pending = boss && state.pendingStoryBoss;
+    const sameDestination = pending && pending.location === state.expeditionDestination?.location && pending.subregion === state.expeditionDestination?.subregion;
+    const enemies = sameDestination ? pending.enemies : monstersForEncounter(boss);
+    if (boss) state.pendingStoryBoss = null;
     if (!enemies.length) {
         state.message = '이 구역에 활성화된 몬스터가 없습니다. 개발자 자료실에서 몬스터를 활성화해 주세요.';
         render();
@@ -2337,10 +2649,12 @@ function presentCombatEnd(action) {
     if (combatEndTimer !== null) return;
     if (!battleEffects.hasPending()) return action();
     // Let the final impact play on its target before replacing the battle scene.
-    combatEndTimer = setTimeout(() => {
+    const finish = () => {
+        if (expeditionInformationOpen()) { combatEndTimer = setTimeout(finish, 100); return; }
         combatEndTimer = null;
         if (state.view === 'expedition' && state.mode === 'combat') action();
-    }, 1100);
+    };
+    combatEndTimer = setTimeout(finish, 1100);
     render();
 }
 
@@ -2388,11 +2702,17 @@ function statusEffectsMarkup(actor, showSlots = false) {
     }).join('')}${showSlots ? Array.from({ length: Math.max(0, 4 - effects.length) }, () => '<span class="combat-status-empty" aria-hidden="true"></span>').join('') : ''}</div>`;
 }
 
-function characterThumbnailMarkup(character, className) {
+function characterLevelMarkup(level) {
+    const label = `Lv.${escapeHtml(level || 1)}`;
+    return `<span class="character-thumbnail-level" data-level="${label}">${label}</span>`;
+}
+
+function characterThumbnailMarkup(character, className, showLevel = true) {
     const src = characterImageSource(character, true);
-    return src
+    const image = src
         ? `<img class="${className}" src="${src}" alt="${escapeHtml(character.name)}" draggable="false">`
         : catalogIconMarkup(character.mark, elementTints[character.element] || '#a99060', character.name, className);
+    return showLevel ? `<span class="character-thumbnail${className === 'expedition-member-thumbnail' ? ' is-affinity-thumbnail' : ''}">${image}${characterLevelMarkup(character.level)}</span>` : image;
 }
 
 function combatHealthMarkup(actor, className) {
@@ -2415,11 +2735,6 @@ function gameMenuButtonsMarkup() {
 let guildDispatchDialogOpen = false;
 let guildDispatchDetailId = '';
 
-// Temporary payroll matches the recruitment price for each grade.
-function temporaryGuildWeeklyWage(member) {
-    return hirePrices[member.grade] ?? 30;
-}
-
 function ensureGuildMembers() {
     if (!Array.isArray(state.guildMembers)) state.guildMembers = [];
     if (!Array.isArray(state.guildDispatchMemberIds)) state.guildDispatchMemberIds = [];
@@ -2431,15 +2746,15 @@ function guildDispatchMembersMarkup({ normalParty = false } = {}) {
     const dispatchFull = !normalParty && state.guildDispatches.filter((dispatch) => dispatch.status === 'active').length >= MAX_ACTIVE_GUILD_DISPATCHES;
     const normalIds = new Set(state.recruits.map((member) => member.id));
     const selectedIds = normalParty ? normalIds : new Set(state.guildDispatchMemberIds);
-    return `<section class="guild-dispatch-members" aria-label="${normalParty ? '길드원 선발' : '파견 원정대원 선택'}"><div class="codex-roster-heading"><h2>길드원 목록</h2><span>${state.guildMembers.length}명 · 선발 ${selectedIds.size}/${maxPartySize}</span></div><div class="guild-dispatch-member-grid">${state.guildMembers.map((member) => {
+    return `<section class="guild-dispatch-members" aria-label="${normalParty ? '길드원 선발' : '파견 원정대원 선택'}"><div class="codex-roster-heading"><h2>길드원 목록</h2><span>${guildMemberCount(state)}명${state.guildMembers.some((member) => member.isMaster) ? ' + 마스터' : ''} · 선발 ${selectedIds.size}/${maxPartySize}</span></div><div class="guild-dispatch-member-grid">${state.guildMembers.map((member) => {
         const selected = selectedIds.has(member.id);
         const dispatch = activeGuildDispatch(state, member.id);
         const inNormalParty = normalIds.has(member.id);
         const unavailable = normalParty ? !selected && state.guildDispatchMemberIds.includes(member.id) : inNormalParty;
         const remainingWeeks = dispatch ? Math.max(0, dispatch.returnWeek - state.week) : 0;
-        const selectionLabel = unavailable ? (normalParty ? '파견 선발 중' : '원정대 선발 중') : dispatch ? `파견 중 - ${remainingWeeks}주` : selected ? '선발 취소' : dispatchFull ? '파견 한도 초과' : normalParty ? '원정 대원 선발' : '파견 원정 선발';
+        const selectionLabel = dispatch ? `파견 중 - ${remainingWeeks}주` : selected ? '선발 취소' : dispatchFull ? '파견 한도 초과' : unavailable ? (normalParty ? '파견 선발 중' : '원정대 선발 중') : normalParty ? '원정 대원 선발' : '파견 원정 선발';
         const full = selectedIds.size >= maxPartySize;
-        return `<article class="codex-character-card guild-dispatch-member-card ${selected ? 'active' : ''}"><button class="guild-dispatch-thumbnail" type="button" data-action="${normalParty ? 'plaza-guild-codex' : 'guild-dispatch-codex'}" data-member-id="${escapeHtml(member.id)}" aria-label="${escapeHtml(member.name)} 도감 보기"><span class="codex-character-frame element-border-${elementBorderClasses[member.element] || 'light'}">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span>${inNormalParty ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/party_icon.svg" alt="원정대 선발">' : selected || dispatch ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/flag_icon.svg" alt="파견 원정대 선발">' : ''}</button><span class="codex-character-name" title="${escapeHtml(member.name)}">${jobGlyphs[member.job] ? `<img class="guild-dispatch-job-icon" src="${jobGlyphs[member.job]}" alt="${escapeHtml(member.job)}" title="${escapeHtml(member.job)}" draggable="false">` : ''}<span class="guild-dispatch-member-name">${escapeHtml(member.name)}</span></span><button class="guild-dispatch-select ${dispatch ? 'is-away' : selected ? 'is-cancel' : dispatchFull ? 'is-dispatch-full' : ''}" type="button" data-action="${normalParty ? 'plaza-guild-toggle' : 'guild-dispatch-toggle'}" data-member-id="${escapeHtml(member.id)}" aria-pressed="${selected}" aria-label="${escapeHtml(member.name)} ${selectionLabel}" ${unavailable || dispatch || !selected && (full || dispatchFull) ? 'disabled' : ''}>${selectionLabel}</button></article>`;
+        return `<article class="codex-character-card guild-dispatch-member-card ${selected ? 'active' : ''}"><button class="guild-dispatch-thumbnail" type="button" data-action="${normalParty ? 'plaza-guild-codex' : 'guild-dispatch-codex'}" data-member-id="${escapeHtml(member.id)}" aria-label="${escapeHtml(member.name)} 캐릭터 정보 보기"><span class="codex-character-frame element-border-${elementBorderClasses[member.element] || 'light'}">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span>${inNormalParty ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/party_icon.svg" alt="원정대 선발">' : selected || dispatch ? '<img class="guild-dispatch-selected-flag" src="/assets/icons/flag_icon.svg" alt="파견 원정대 선발">' : ''}</button><span class="codex-character-name" title="${escapeHtml(member.name)}">${jobGlyphs[member.job] ? `<img class="guild-dispatch-job-icon" src="${jobGlyphs[member.job]}" alt="${escapeHtml(member.job)}" title="${escapeHtml(member.job)}" draggable="false">` : ''}<span class="guild-dispatch-member-name">${escapeHtml(member.name)}</span></span><button class="guild-dispatch-select ${dispatch ? 'is-away' : selected ? 'is-cancel' : dispatchFull ? 'is-dispatch-full' : ''}" type="button" data-action="${normalParty ? 'plaza-guild-toggle' : 'guild-dispatch-toggle'}" data-member-id="${escapeHtml(member.id)}" aria-pressed="${selected}" aria-label="${escapeHtml(member.name)} ${selectionLabel}" ${dispatch || !selected && (full || dispatchFull) ? 'disabled' : ''}>${selectionLabel}</button></article>`;
     }).join('')}</div></section>`;
 }
 
@@ -2484,10 +2799,10 @@ function guildDispatchDialogMarkup() {
     const plan = dispatch ? {
         ...dispatch, bonusChance: dispatch.bonusChance || 0,
         location: guildDestinations[dispatch.destination.location],
-        members: dispatch.memberSnapshots || dispatch.memberIds.map((id) => state.guildMembers.find((member) => member.id === id)).filter(Boolean),
+        members: (dispatch.memberSnapshots || dispatch.memberIds.map((id) => ({ id }))).map((snapshot) => state.guildMembers.find((member) => member.id === snapshot.id) || snapshot),
     } : guildDispatchDetailId ? null : currentGuildDispatchPlan();
     if (!plan || !plan.location) { guildDispatchDialogOpen = false; guildDispatchDetailId = ''; return ''; }
-    return `<div class="guild-dispatch-dialog-backdrop"><section class="guild-dispatch-dialog" role="dialog" aria-modal="true" aria-labelledby="guild-dispatch-title" aria-describedby="guild-dispatch-description" tabindex="-1"><header><h2 id="guild-dispatch-title">${dispatch ? '진행 중인 파견 원정' : '파견 원정'}</h2><p id="guild-dispatch-description">${dispatch ? `${dispatch.startedWeek}주차에 출발한 대원 ${plan.members.length}명이 원정을 진행 중입니다. ${dispatch.returnWeek}주차 복귀 예정입니다.` : '파견 원정은 마스터가 직접 전투를 지휘하지 않으며, 선발 대원이 파견되어 원정을 진행 합니다.'}</p></header><div class="guild-dispatch-dialog-content"><section class="guild-dispatch-destination-summary"><img class="guild-dispatch-destination-image" src="/assets/backgrounds/${plan.location.background}.webp" alt="${escapeHtml(plan.location.name)}"><h3>${escapeHtml(plan.destination.name)}</h3><p>${escapeHtml(plan.location.description)}</p><div class="guild-dispatch-summary-line"><span>권장 원정대 전투력</span><strong>${plan.recommendedPower.toLocaleString('ko-KR')}</strong></div></section><section class="guild-dispatch-team-summary"><h3>파견 원정대원 <small>${plan.members.length}명</small></h3><div class="guild-dispatch-dialog-members">${plan.members.map((member) => `<article><span class="guild-dispatch-dialog-thumb">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.job)} · Lv.${member.level} · ${member.grade}등급</span></article>`).join('')}</div><div class="guild-dispatch-summary-line"><span><img src="/assets/icons/battle_icon.svg" alt="" aria-hidden="true">원정대 전투력</span><strong>${plan.power.toLocaleString('ko-KR')}</strong></div><div class="guild-dispatch-highlights"><div><span>${dispatch ? '남은 소요시간' : '소요시간'}</span><strong>${dispatch ? Math.max(0, dispatch.returnWeek - state.week) : plan.weeks}주</strong><small>${dispatch ? dispatch.returnWeek : state.week + plan.weeks}주차 복귀 예정</small></div><div><span>성공 보수</span><strong class="guild-dispatch-gold-reward"><img src="/assets/icons/coin_pouch_icon.svg" alt="" aria-hidden="true">골드 ${plan.gold.toLocaleString('ko-KR')}</strong><strong class="guild-dispatch-fame-reward"><img src="/assets/icons/fame_icon.svg" alt="" aria-hidden="true">명성 ${plan.fame}</strong></div><div><span>예상 성공 확률</span><strong>${Math.round(plan.successChance * 10) / 10}%</strong><small>보너스 +${plan.bonusChance}%p</small></div></div></section></div><footer>${dispatch ? '<button type="button" data-action="guild-dispatch-detail-close">닫기</button>' : '<button type="button" class="guild-dispatch-approve" data-action="guild-dispatch-approve">파견 승인</button><button type="button" data-action="guild-dispatch-cancel">취소</button>'}</footer></section></div>`;
+    return `<div class="guild-dispatch-dialog-backdrop"><section class="guild-dispatch-dialog" role="dialog" aria-modal="true" aria-labelledby="guild-dispatch-title" aria-describedby="guild-dispatch-description" tabindex="-1"><header><h2 id="guild-dispatch-title">${dispatch ? '진행 중인 파견 원정' : '파견 원정'}</h2><p id="guild-dispatch-description">${dispatch ? `${dispatch.startedWeek}주차에 출발한 대원 ${plan.members.length}명이 원정을 진행 중입니다. ${dispatch.returnWeek}주차 복귀 예정입니다.` : '파견 원정은 마스터가 직접 전투를 지휘하지 않으며, 선발 대원이 파견되어 원정을 진행 합니다.'}</p></header><div class="guild-dispatch-dialog-content"><section class="guild-dispatch-destination-summary"><img class="guild-dispatch-destination-image" src="/assets/backgrounds/${plan.location.background}.webp" alt="${escapeHtml(plan.location.name)}"><h3>${escapeHtml(plan.destination.name)}</h3><p>${escapeHtml(plan.location.description)}</p><div class="guild-dispatch-summary-line"><span>권장 원정대 전투력</span><strong>${plan.recommendedPower.toLocaleString('ko-KR')}</strong></div></section><section class="guild-dispatch-team-summary"><h3>파견 원정대원 <small>${plan.members.length}명</small></h3><div class="guild-dispatch-dialog-members">${plan.members.map((member) => `<article><span class="guild-dispatch-dialog-thumb">${characterThumbnailMarkup(member, 'codex-character-thumb')}</span><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.job)} · ${member.grade}등급</span></article>`).join('')}</div><div class="guild-dispatch-summary-line"><span><img src="/assets/icons/battle_icon.svg" alt="" aria-hidden="true">원정대 전투력</span><strong>${plan.power.toLocaleString('ko-KR')}</strong></div><div class="guild-dispatch-highlights"><div><span>${dispatch ? '남은 소요시간' : '소요시간'}</span><strong>${dispatch ? Math.max(0, dispatch.returnWeek - state.week) : plan.weeks}주</strong><small>${dispatch ? dispatch.returnWeek : state.week + plan.weeks}주차 복귀 예정</small></div><div><span>성공 보수</span><strong class="guild-dispatch-gold-reward"><img src="/assets/icons/coin_pouch_icon.svg" alt="" aria-hidden="true">골드 ${plan.gold.toLocaleString('ko-KR')}</strong><strong class="guild-dispatch-fame-reward"><img src="/assets/icons/fame_icon.svg" alt="" aria-hidden="true">명성 ${plan.fame}</strong></div><div><span>예상 성공 확률</span><strong>${Math.round(plan.successChance * 10) / 10}%</strong><small>보너스 +${plan.bonusChance}%p</small></div></div></section></div><footer>${dispatch ? '<button type="button" data-action="guild-dispatch-detail-close">닫기</button>' : '<button type="button" class="guild-dispatch-approve" data-action="guild-dispatch-approve">파견 승인</button><button type="button" data-action="guild-dispatch-cancel">취소</button>'}</footer></section></div>`;
 }
 
 function regularDepartureStatus() {
@@ -2521,7 +2836,7 @@ function renderRegularDestinationSelection() {
 
 function renderGuild() {
     ensureGuildMembers();
-    const memberCount = Array.isArray(state.guildMembers) ? state.guildMembers.length : 0;
+    const memberCount = guildMemberCount(state);
     const page = guildPageMarkup({
         room: state.guildRoom,
         expeditionPreparation: state.guildExpeditionPreparation,
@@ -2577,7 +2892,7 @@ function moveBetweenPlazaAndGuild(view) {
 
 function playerProfileMarkup() {
     const experiencePercent = Math.min(100, Math.max(0, state.experience / state.experienceToNextLevel * 100));
-    return `<div class="player-profile"><img class="player-avatar" src="${playerThumbnailAsset}" alt="" aria-hidden="true" draggable="false"><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong><span>Lv.${state.userLevel}</span>${import.meta.env.DEV ? `<label class="player-test-unlock" title="테스트: 모든 세부지역 잠금 해제"><input type="checkbox" data-guild-test-unlock aria-label="테스트: 모든 세부지역 잠금 해제" ${guildTestUnlock ? 'checked' : ''}></label>` : ''}</div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
+    return `<div class="player-profile"><button type="button" data-action="player-character-info" aria-label="마스터 캐릭터 정보 보기" class="player-avatar character-thumbnail roster-avatar-frame element-border-fire" title="불 속성"><img src="${playerThumbnailAsset}" alt="" aria-hidden="true" draggable="false">${characterLevelMarkup(state.userLevel)}</button><div class="player-profile-name">${playerZodiacIconMarkup() || '<span class="player-zodiac-mark" aria-hidden="true"></span>'}<strong>${escapeHtml(state.playerName)}</strong>${import.meta.env.DEV ? `<label class="player-test-unlock" title="테스트: 모든 세부지역 해금 + 아일린 공/방/체/속 9999"><input type="checkbox" data-guild-test-unlock aria-label="테스트: 모든 세부지역 해금 + 아일린 공/방/체/속 9999" ${guildTestUnlock ? 'checked' : ''}></label>` : ''}</div><div class="player-experience"><div><span>경험치</span><strong>${state.experience}/${state.experienceToNextLevel}</strong></div><div class="plaza-exp-track"><span style="width:${experiencePercent}%"></span></div></div></div>`;
 }
 
 function gameFooterMarkup() {
@@ -2620,7 +2935,7 @@ async function enemyTurn() {
         const skillPool = provokedIndex >= 0 ? (attackSkills.length ? attackSkills : [basicAttack]) : availableSkills.length ? availableSkills : [basicAttack];
         const skill = skillPool[Math.floor(Math.random() * skillPool.length)];
         await wait(2000);
-        while (retreatDialogOpen && state.view === 'expedition' && state.mode === 'combat') await wait(100);
+        while ((retreatDialogOpen && state.view === 'expedition' || expeditionInformationOpen()) && state.mode === 'combat') await wait(100);
         if (state.view !== 'expedition' || state.mode !== 'combat' || state.ended || state.enemies[enemyIndex] !== enemy) return;
         const targetIndex = provokedIndex >= 0 ? provokedIndex : Math.floor(Math.random() * party.length);
         const skillTargets = combatTargets(enemy, skill, targetIndex);
@@ -2634,7 +2949,7 @@ async function enemyTurn() {
     }
     finishNaturalTurn(enemy);
     await wait(900);
-    while (retreatDialogOpen && state.view === 'expedition' && state.mode === 'combat') await wait(100);
+    while ((retreatDialogOpen && state.view === 'expedition' || expeditionInformationOpen()) && state.mode === 'combat') await wait(100);
     if (state.view !== 'expedition' || state.mode !== 'combat' || state.ended || state.enemies[enemyIndex] !== enemy) return;
     advanceCombatTurn();
 }
@@ -2732,15 +3047,30 @@ function activateNextCombatant() {
 }
 
 function advance() {
-    if (retreatDialogOpen) return;
+    if (retreatDialogOpen || currentMainStory(state)) return;
     if (state.mode !== 'explore' || state.ended) return;
     playWebSound('travel', 1);
     if (state.room >= rooms.length - 1) return startEncounter(true);
     state.room += 1;
+    addLog(`${rooms[state.room].name}에 도착했습니다.`);
+    if (beginMainStory(state, guildDestinations, 'room', 'room')) return render();
+    return continueExpeditionRoom();
+}
+
+function continueExpeditionRoom() {
     const room = rooms[state.room];
-    addLog(`${room.name}에 도착했습니다.`);
     if (room.type === '전투') return startEncounter();
     if (room.type === '보스') {
+        if (beginMainStory(state, guildDestinations, 'boss', 'room')) {
+            const enemies = monstersForEncounter(true);
+            if (enemies.length) {
+                state.pendingStoryBoss = { ...state.expeditionDestination, enemies };
+                state.mainStory.active.bossName = enemies[0].name;
+                render();
+                return;
+            }
+            state.mainStory.active = null;
+        }
         state.message = '이 문 너머에서 오래된 숨소리가 들립니다.';
         render();
         return;
@@ -2805,18 +3135,61 @@ game.addEventListener('click', (event) => {
         return;
     }
     const action = event.target.closest('[data-action]')?.dataset.action;
+    const storyCategory = event.target.closest('[data-story-category]');
+    if (storyCategory && state.view === 'characterCodex' && state.characterCodexTab === 'stories') {
+        storyCodexCategory = storyCategory.dataset.storyCategory;
+        storyCodexReplay = null;
+        render();
+        return;
+    }
+    const storyScene = event.target.closest('[data-story-scene]');
+    if (storyScene && state.view === 'characterCodex' && state.characterCodexTab === 'stories') {
+        const id = storyScene.dataset.storyScene;
+        const scene = visibleStoryScenes(state, guildTestUnlock).find(scene => scene.id === id);
+        const boss = monsterDefinitions.find(monster => monster.location === scene?.location && monster.subregion === guildDestinations[scene?.location]?.subregions[0][0] && monster.isBoss);
+        storyCodexReplay = createStoryReplay(state, id, guildTestUnlock, boss?.name);
+        render();
+        return;
+    }
+    if (action === 'story-replay-close') {
+        storyCodexReplay = null;
+        render();
+        return;
+    }
+    if (action === 'player-character-info') {
+        const inExpedition = state.view === 'expedition' || expeditionInformationOpen();
+        const source = inExpedition && party.some((member) => member.id === MASTER_CHARACTER_ID) ? 'party'
+            : state.recruits.some((member) => member.id === MASTER_CHARACTER_ID) ? 'recruits' : 'guildMembers';
+        openCharacterInformation(MASTER_CHARACTER_ID, source);
+        return;
+    }
     if (action === 'party-character-codex') {
         const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
         const isDispatch = state.view === 'guild' && state.guildRoom === 'strategy' && state.guildExpeditionPreparation;
         const memberIds = isDispatch ? state.guildDispatchMemberIds
             : ['plaza', 'expeditionSelect'].includes(state.view) ? state.recruits.map((member) => member.id) : [];
-        if (!memberIds.includes(memberId) || !catalogData.characters.some((character) => character.id === memberId)) return;
-        state.catalogReturnView = state.view;
-        state.characterCodexTab = 'characters';
-        state.catalogSelectedRosterId = memberId;
-        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
+        if (!memberIds.includes(memberId)) return;
+        openCharacterInformation(memberId, isDispatch ? 'guildMembers' : 'recruits');
+        return;
+    }
+    if (action === 'character-info-select') {
+        if (state.view !== 'characterInfo') return;
+        if (suppressCodexCarouselClick) {
+            suppressCodexCarouselClick = false;
+            return;
+        }
+        const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (!state.guildMembers.some((member) => member.id === memberId)) return;
+        state.characterInfoMemberId = memberId;
+        state.characterInfoSource = 'guildMembers';
+        render();
+        game.querySelector(`[data-action="character-info-select"][data-member-id="${CSS.escape(memberId)}"]`)?.focus({ preventScroll: true });
+        return;
+    }
+    if (action === 'character-info-back') {
         gameMenuOpen = false;
-        state.view = 'characterCodex';
+        state.view = ['plaza', 'guild', 'expeditionSelect', 'expedition', 'characterCodex', 'catalog', 'partOneEnd'].includes(state.characterInfoReturnView)
+            ? state.characterInfoReturnView : 'plaza';
         render();
         return;
     }
@@ -2903,6 +3276,10 @@ game.addEventListener('click', (event) => {
     if (action === 'plaza-guild-toggle') {
         if (state.view !== 'plaza' || !state.plazaGuildSelectionOpen) return;
         const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (guildSelectionConflict(state, memberId, 'regular')) {
+            requestGuildSelectionTransfer(memberId, 'regular');
+            return;
+        }
         const scrollTop = game.querySelector('.guild-dispatch-member-grid')?.scrollTop || 0;
         if (!togglePlazaGuildMember(state, memberId, maxPartySize)) return;
         if (state.tutorial?.stage === 'select-companion') state.tutorial.stage = 'final-popup';
@@ -2915,13 +3292,7 @@ game.addEventListener('click', (event) => {
     if (action === 'plaza-guild-codex') {
         if (state.view !== 'plaza' || !state.plazaGuildSelectionOpen) return;
         const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
-        if (!catalogData.characters.some((member) => member.id === memberId)) return;
-        state.catalogReturnView = 'plaza';
-        state.characterCodexTab = 'characters';
-        state.catalogSelectedRosterId = memberId;
-        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
-        state.view = 'characterCodex';
-        render();
+        openCharacterInformation(memberId, 'guildMembers');
         return;
     }
     if (action === 'tutorial-prologue-next') {
@@ -3005,14 +3376,7 @@ game.addEventListener('click', (event) => {
     if (action === 'guild-dispatch-codex') {
         if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation || state.guildExpeditionStep !== 'members') return;
         const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
-        if (!state.guildMembers.some((member) => member.id === memberId) || !catalogData.characters.some((character) => character.id === memberId)) return;
-        state.catalogReturnView = 'guild';
-        state.characterCodexTab = 'characters';
-        state.catalogSelectedRosterId = memberId;
-        state.catalogSearch = state.catalogElement = state.catalogJob = state.catalogGrade = '';
-        gameMenuOpen = false;
-        state.view = 'characterCodex';
-        render();
+        openCharacterInformation(memberId, 'guildMembers');
         return;
     }
     if (action === 'guild-dispatch-swap') {
@@ -3028,6 +3392,10 @@ game.addEventListener('click', (event) => {
     if (action === 'guild-dispatch-toggle') {
         if (state.view !== 'guild' || state.guildRoom !== 'strategy' || !state.guildExpeditionPreparation || state.guildExpeditionStep !== 'members') return;
         const memberId = event.target.closest('[data-member-id]')?.dataset.memberId;
+        if (guildSelectionConflict(state, memberId, 'dispatch')) {
+            requestGuildSelectionTransfer(memberId, 'dispatch');
+            return;
+        }
         if (!state.guildMembers.some((member) => member.id === memberId) || activeGuildDispatch(state, memberId) || state.recruits.some((member) => member.id === memberId)) return;
         const selectedIndex = state.guildDispatchMemberIds.indexOf(memberId);
         if (selectedIndex >= 0) state.guildDispatchMemberIds.splice(selectedIndex, 1);
@@ -3227,6 +3595,9 @@ game.addEventListener('click', (event) => {
         return;
     }
     if (action === 'catalog') {
+        if (state.view === 'partOneEnd') state.characterCodexTab = 'stories';
+        storyCodexCategory = null;
+        storyCodexReplay = null;
         state.catalogReturnView = state.view;
         gameMenuOpen = false;
         gameMenuNotice = '';
@@ -3253,8 +3624,8 @@ game.addEventListener('click', (event) => {
         gameMenuOpen = false;
         const returnView = state.view === 'catalog' ? state.developerCatalogReturnView : state.catalogReturnView;
         const allowedViews = state.view === 'catalog'
-            ? ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect', 'characterCodex']
-            : ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect'];
+            ? ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect', 'characterCodex', 'characterInfo', 'partOneEnd']
+            : ['lobby', 'playerSetup', 'plaza', 'guild', 'expedition', 'expeditionSelect', 'characterInfo', 'partOneEnd'];
         state.view = allowedViews.includes(returnView) ? returnView : (party.length ? 'expedition' : 'plaza');
         render();
         return;
@@ -3264,6 +3635,15 @@ game.addEventListener('click', (event) => {
         return;
     }
     if (action === 'plaza-dialogue-advance') {
+        if (state.view === 'characterCodex' && currentStoryReplay(storyCodexReplay)) {
+            storyCodexReplay = advanceStoryReplay(storyCodexReplay);
+            render();
+            return;
+        }
+        if (state.view === 'expedition' && currentMainStory(state)) {
+            continueMainStory();
+            return;
+        }
         advancePlazaDialogue(event.target.closest('[data-dialogue-next]')?.dataset.dialogueNext || '');
         return;
     }
@@ -3326,6 +3706,8 @@ game.addEventListener('click', (event) => {
     const codexTab = event.target.closest('[data-codex-tab]');
     if (codexTab) {
         state.characterCodexTab = codexTab.dataset.codexTab;
+        storyCodexCategory = null;
+        storyCodexReplay = null;
         if (state.characterCodexTab === 'characters' && ['1', '2'].includes(state.catalogGrade)) state.catalogGrade = '';
         render();
         return;
@@ -3393,7 +3775,7 @@ game.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     const viewport = event.target.closest('.codex-roster-viewport');
     if (!viewport) return;
-    const captureTarget = event.target.closest('[data-codex-character]') || viewport;
+    const captureTarget = event.target.closest('[data-codex-character], [data-action="character-info-select"]') || viewport;
     codexCarouselDrag = {
         viewport,
         captureTarget,
@@ -3458,6 +3840,16 @@ game.addEventListener('input', (event) => {
         return;
     }
     if (!event.target.matches('[data-catalog-search]')) return;
+    if (state.view === 'characterInfo') {
+        state.characterInfoFilters.search = event.target.value;
+        const start = event.target.selectionStart;
+        const end = event.target.selectionEnd;
+        render();
+        const search = game.querySelector('[data-catalog-search]');
+        search.focus({ preventScroll: true });
+        search.setSelectionRange(start, end);
+        return;
+    }
     state.catalogSearch = event.target.value;
     state.catalogPage = 0;
     render();
@@ -3539,6 +3931,12 @@ game.addEventListener('change', async (event) => {
     }
     const filter = event.target.dataset.catalogFilter;
     if (!filter) return;
+    if (state.view === 'characterInfo' && ['element', 'job', 'grade'].includes(filter)) {
+        state.characterInfoFilters[filter] = event.target.value;
+        render();
+        game.querySelector(`[data-catalog-filter="${filter}"]`)?.focus({ preventScroll: true });
+        return;
+    }
     if (filter === 'type') state.catalogType = event.target.value;
     if (filter === 'target') state.catalogTarget = event.target.value;
     if (filter === 'effect') state.catalogEffect = event.target.value;
@@ -3766,6 +4164,31 @@ game.addEventListener('scroll', (event) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') hideDeveloperSkillTooltip();
+    if (state.view === 'characterCodex' && currentStoryReplay(storyCodexReplay)) {
+        if (gameMenuOpen || event.repeat) return;
+        if (event.target.closest?.('input, textarea, select, [contenteditable="true"], .story-replay-controls')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            storyCodexReplay = null;
+            render();
+        } else if (['Enter', ' '].includes(event.key)) {
+            event.preventDefault();
+            const next = advanceStoryReplay(storyCodexReplay);
+            if (!next && event.key === ' ') return;
+            storyCodexReplay = next;
+            render();
+        }
+        return;
+    }
+    if (state.view === 'expedition' && currentMainStory(state)) {
+        if (retreatDialogOpen || gameMenuOpen) return;
+        if (['Enter', ' '].includes(event.key) && !event.repeat) {
+            event.preventDefault();
+            playWebSound('click');
+            continueMainStory();
+        }
+        return;
+    }
     const activeDialogue = state.view === 'plaza' && !state.plazaGuildSelectionOpen ? getActivePlazaDialogue() : null;
     if (activeDialogue && !activeDialogue.node.choices?.length && event.key === 'Enter' && event.target.closest?.('.plaza-monologue-dialogue') && !event.repeat) {
         event.preventDefault();

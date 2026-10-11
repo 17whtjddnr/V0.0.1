@@ -91,6 +91,9 @@ for (const [id, location] of Object.entries(guildDestinations)) {
     location.monsterIds = Object.values(location.monsterIdsBySubregion).flat();
 }
 
+guildDestinations['valdoren-7'].description = '태양신의 후계자를 따르는 발도렌의 살아 있는 도시. 신전과 시장, 관개 시설을 침공한 몬스터들로부터 주민을 지켜야 합니다.';
+guildDestinations['skeldrath-7'].description = '마이아의 후손이 이끄는 설원의 도시. 장벽과 옛 장치로 문명을 지키고 있지만, 백야의 서리룡이 마지막 방벽을 위협합니다.';
+
 let destinationMonsterRoster = () => [];
 let destinationCharacterRoster = () => [];
 export function configureDestinationMonsterPower(rosterProvider, characterProvider = () => []) {

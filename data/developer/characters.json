@@ -13,5 +13,20 @@
       "SKILL_0619",
       "SKILL_1368"
     ]
+  },
+  "CHAR-246": {
+    "name": "마스터",
+    "element": "불",
+    "zodiac": "처녀자리",
+    "job": "기사",
+    "grade": 3,
+    "portraitSrc": "",
+    "thumbnailSrc": "",
+    "skillIds": [
+      "SKILL_0046",
+      "SKILL_1586",
+      "SKILL_1587",
+      "SKILL_1448"
+    ]
   }
 }

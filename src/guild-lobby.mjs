@@ -1,4 +1,4 @@
-import { MAX_GUILD_MEMBERS } from './guild-roster.mjs';
+import { MAX_GUILD_MEMBERS, guildMemberCount } from './guild-roster.mjs';
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const number = (value) => (Number(value) || 0).toLocaleString('ko-KR');
 
@@ -7,7 +7,7 @@ export function guildLobbyOverview(state) {
     const dispatches = (state.guildDispatches || []).filter((dispatch) => dispatch.status === 'active')
         .sort((a, b) => a.returnWeek - b.returnWeek || a.startedWeek - b.startedWeek);
     return {
-        memberCount: members.length, memberCapacity: MAX_GUILD_MEMBERS,
+        memberCount: guildMemberCount(state), memberCapacity: MAX_GUILD_MEMBERS,
         weeklyWages: members.reduce((total, member) => total + Math.max(0, Number(member.weeklyWage) || 0), 0),
         dispatchCount: dispatches.length, dispatches: dispatches.slice(0, 4),
         secretary: members.find((member) => member.id === state.guildSecretaryId),

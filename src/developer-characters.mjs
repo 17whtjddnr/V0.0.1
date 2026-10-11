@@ -1,6 +1,8 @@
 import { applyRosterProfile } from './roster-generation.mjs';
 import { activeSkills } from './developer-skills.mjs';
 import { createDeveloperContentStore } from './developer-content-store.mjs';
+import { characterIdentity } from './character-identity.mjs';
+import { distinctCharacterName } from './character-deduplication.mjs';
 
 const store = createDeveloperContentStore('characters');
 let growthRows = [];
@@ -30,19 +32,25 @@ export function characterSkills(entry, fallback = []) {
     return activeSkills(ids.map((id) => byId.get(id)).filter(Boolean));
 }
 
-export function developerCharacter(entry) {
+export function developerCharacter(entry, options = {}) {
     const saved = store.settings[entry.id];
-    if (!saved) return { ...entry, skills: activeSkills(entry.skills || []) };
+    const identity = characterIdentity({ ...entry, ...saved });
+    if (!saved && (!identity || identity.job === entry.job)) {
+        const profile = { ...entry, ...identity, skills: activeSkills(entry.skills || []) };
+        return { ...profile, name: options.uniqueName === false ? profile.name : distinctCharacterName(profile) };
+    }
+    const settings = saved || {};
     const profile = applyRosterProfile(entry, {
-        name: saved.name ?? entry.name,
-        element: saved.element ?? entry.element,
-        grade: saved.grade ?? entry.grade,
-        zodiac: saved.zodiac ?? entry.zodiac,
-        job: saved.job ?? entry.job,
-        portraitSrc: saved.portraitSrc ?? entry.portraitSrc,
-        thumbnailSrc: saved.thumbnailSrc ?? entry.thumbnailSrc,
+        name: settings.name ?? entry.name,
+        element: settings.element ?? entry.element,
+        grade: settings.grade ?? entry.grade,
+        zodiac: settings.zodiac ?? entry.zodiac,
+        job: settings.job ?? entry.job,
+        portraitSrc: settings.portraitSrc ?? entry.portraitSrc,
+        thumbnailSrc: settings.thumbnailSrc ?? entry.thumbnailSrc,
+        ...identity,
     }, growthRows, activeSkills(skillPool));
-    return { ...profile, skills: characterSkills(profile) };
+    return { ...profile, name: options.uniqueName === false ? profile.name : distinctCharacterName(profile), skills: characterSkills(profile) };
 }
 
 export function saveCharacterEdit(entry, values) {

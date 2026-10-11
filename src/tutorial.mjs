@@ -14,7 +14,7 @@ export const tutorialPrologue = [
   },
   {
     "background": "tutorial-audience-chamber.webp",
-    "text": "백성을 속여 온 왕이 달아났다.\n그리고, 감춰 두었던 모든 것이 드러났다."
+    "text": "백성을 속여 온 왕이 달아났다.\n왕가가 몇 세기 동안 결계마법과 정보통제로 바깥세상을 감춰 왔다는 사실이 드러났다. 이유는 아직 알 수 없었다."
   },
   {
     "background": "tutorial-war-room-3.webp",
@@ -26,7 +26,7 @@ export const tutorialPrologue = [
   },
   {
     "background": "tutorial-war-room-3.webp",
-    "text": "격동하는 시대와 발맞추어, 위대한 길드 마스터로 성장하는 이야기.\n바로, 나의 이야기다."
+    "text": "신대륙 해안의 개척 도시 벨포트. 브란이 임명한 사령관이 다스리는 이곳에서 수많은 길드가 새로운 길을 연다.\n그 작은 깃발 중 하나가, 나의 길드다."
   }
 ];
 export const tutorialDialogues = [
@@ -38,7 +38,7 @@ export const tutorialDialogues = [
     "nodes": {
       "line0": {
         "speaker": "",
-        "text": "의뢰 게시판에 왕실에서 발행한 신대륙 토벌 공고문이 가득하다.",
+        "text": "브란인들이 세운 개척 도시 벨포트의 모험가 광장. 사령부 게시판에는 왕실의 지원으로 발행한 신대륙 토벌 공고문이 가득하다.",
         "presentation": "monologue",
         "next": "line1"
       },

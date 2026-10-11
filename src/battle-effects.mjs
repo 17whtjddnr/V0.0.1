@@ -29,8 +29,10 @@ export function createBattleEffects({ findImage, isActive, volume, audioContext,
             const [pixi, originals] = await Promise.all([import('pixi.js'), import('./approved-battle-effects.mjs')]);
             if (destroyed) return;
             PIXI = pixi; factories = originals.approvedEffectFactories;
-            renderer = new PIXI.Application();
-            await renderer.init({ width: host.clientWidth, height: host.clientHeight, backgroundAlpha: 0, antialias: true, resolution: Math.min(devicePixelRatio || 1, 2), autoDensity: true, preference: 'webgl' });
+            const application = new PIXI.Application();
+            await application.init({ width: host.clientWidth, height: host.clientHeight, backgroundAlpha: 0, antialias: true, resolution: Math.min(devicePixelRatio || 1, 2), autoDensity: true, preference: 'webgl' });
+            if (destroyed) { application.destroy(true, { children: true }); return; }
+            renderer = application;
             overlay = document.createElement('div');
             overlay.className = 'battle-effects-overlay';
             overlay.setAttribute('aria-hidden', 'true');

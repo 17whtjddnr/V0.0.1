@@ -11,9 +11,17 @@ const stages = [
     ['벼랑바람 길', 'veyrholt-4', 'Veyrholt'], ['푸른솔 숲', 'veyrholt-5', 'Veyrholt'],
     ['고산 요새', 'veyrholt-6', 'Veyrholt'],
 ];
+for (const [region, data] of Object.entries(JSON.parse(readFileSync(path.join(root, 'data/maps/expedition-regions.json'), 'utf8')))) {
+    if (region === 'Veyrholt') continue;
+    data.destinations.forEach((destination, index) => stages.push([destination.name, region.toLowerCase() + '-' + (index + 1), region]));
+}
+const previous = JSON.parse(readFileSync(path.join(root, 'data/monsters/expedition-monsters.json'), 'utf8'));
+const original = new Map(previous.filter(entry => ['Stormreach', 'Veyrholt'].includes(entry.region)).map(entry => [entry.id, entry]));
+const placeholder = previous.find(entry => entry.id === 'MON-EXP-0001');
 const subregions = { 북부: 'north', 서부: 'west', 동부: 'east', 남부: 'south',
     '성문 입구': 'gate', '무너진 광장': 'square', 광장: 'square', '왕실 유적': 'royal', 왕실: 'royal',
     '황폐한 안뜰': 'courtyard', 안뜰: 'courtyard', '외곽 초소': 'outpost', 야영지: 'camp', '약탈품 창고': 'warehouse', 망루: 'tower' };
+Object.assign(subregions, { '입구': 'entrance', '부두': 'dock', '시장': 'market' });
 const files = (directory) => readdirSync(path.join(root, directory), { recursive: true })
     .filter((file) => file.endsWith('.webp')).map((file) => file.replaceAll('\\', '/'));
 const images = files('public/assets/art/2D/Monster');
@@ -38,19 +46,26 @@ for (const line of readFileSync(path.join(root, '던전별_몬스터_추천.md')
         const match = cell.match(/^(.+?)〔([대중소])〕—(.+)$/);
         if (!match) throw new Error(`Invalid monster: ${cell}`);
         const [, name, size, concept] = match;
-        const image = assetFor(images, name), thumbnail = assetFor(thumbnails, name);
-        if (!thumbnail) throw new Error(`Missing thumbnail: ${name}`);
-        const number = Number(path.posix.basename(thumbnail).match(/^\d+/)[0]);
-        const thumbnailSrc = `/assets/art/2D/Monster_thumnail/${thumbnail}`;
+        const temporary = !['Stormreach', 'Veyrholt'].includes(stage[2]);
+        const image = temporary ? null : assetFor(images, name), thumbnail = temporary ? null : assetFor(thumbnails, name);
+        if (!temporary && !thumbnail) throw new Error(`Missing thumbnail: ${name}`);
+        const number = temporary ? monsters.length + 1 : Number(path.posix.basename(thumbnail).match(/^\d+/)[0]);
+        const thumbnailSrc = temporary ? placeholder.thumbnailSrc : `/assets/art/2D/Monster_thumnail/${thumbnail}`;
         monsters.push({ id: `MON-EXP-${String(number).padStart(4, '0')}`, name, size, concept,
             region: stage[2], location: stage[1], locationName: stage[0], subregion, subregionName,
             stageName: `${stage[0]} ${subregionName}`, isBoss: slot === 3,
             grade: slot === 3 ? 5 : size === '대' ? 4 : size === '중' ? 2 + (number % 2) : 1 + (number % 2),
             portraitSrc: image ? `/assets/art/2D/Monster/${image}` : thumbnailSrc,
             thumbnailSrc, portraitFallback: !image });
+        const entry = monsters.at(-1);
+        if (temporary) Object.assign(entry, { portraitSrc: placeholder.portraitSrc, thumbnailSrc: placeholder.thumbnailSrc, portraitFallback: false, imagePlaceholder: true });
+        else {
+            const saved = original.get(entry.id);
+            if (saved) for (const field of ['grade', 'element', 'job', 'zodiac']) entry[field] = saved[field];
+        }
     });
 }
-if (monsters.length !== 168 || new Set(monsters.map((entry) => entry.id)).size !== 168) throw new Error('Expected 168 unique monsters.');
+if (monsters.length !== 660 || new Set(monsters.map((entry) => entry.id)).size !== 660) throw new Error('Expected 660 unique monsters.');
 
 // Assign fixed, balanced quotas, reserving the strongest thematic matches first.
 // Seeded tie-breaking keeps assignments stable across reloads and regeneration.
@@ -93,7 +108,8 @@ function noise(text) {
 for (const [field, preferences] of Object.entries(rules)) {
     const options = Object.keys(preferences);
     const capacity = Object.fromEntries(options.map((value, index) => [value, Math.floor(monsters.length / options.length) + (index < monsters.length % options.length ? 1 : 0)]));
-    const pending = new Set(monsters);
+    const pending = new Set(monsters.filter(entry => !original.has(entry.id)));
+    for (const entry of monsters) if (original.has(entry.id)) capacity[entry[field]] -= 1;
     const score = (entry, value) => {
         const [strong, weak] = preferences[value];
         const identity = field === 'element' && value === '풀' && /풀방울|꽃|포자|나무|고목|수호목|씨앗|덩굴/.test(entry.name) ? 30 : 0;

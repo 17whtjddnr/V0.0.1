@@ -1,0 +1,46 @@
+[
+  {
+    "id": "CHAR-262",
+    "name": "라하브",
+    "gender": "M",
+    "job": "마도사",
+    "element": "불",
+    "zodiac": "사자자리",
+    "grade": 5,
+    "portraitFile": "DesertKing.webp",
+    "description": "발도렌의 지도자. 태양신의 후계자를 자칭하며 화염과 교리로 신도들을 이끈다."
+  },
+  {
+    "id": "CHAR-263",
+    "name": "테오발드",
+    "gender": "M",
+    "job": "마도사",
+    "element": "빛",
+    "zodiac": "천칭자리",
+    "grade": 5,
+    "portraitFile": "king.webp",
+    "description": "브란의 새 국왕. 온화한 미소 뒤에서 왕권과 신성의 경계를 허문다."
+  },
+  {
+    "id": "CHAR-264",
+    "name": "베르너",
+    "gender": "M",
+    "job": "전사",
+    "element": "물",
+    "zodiac": "염소자리",
+    "grade": 4,
+    "portraitFile": "139_M_W.webp",
+    "description": "차분한 검술로 동료의 빈틈을 메우는 은발의 전사. 계약보다 동료와의 약속을 우선한다."
+  },
+  {
+    "id": "CHAR-265",
+    "name": "아르켄",
+    "gender": "M",
+    "job": "기사",
+    "element": "물",
+    "zodiac": "황소자리",
+    "grade": 5,
+    "portraitFile": "NorthKing.webp",
+    "description": "마이아의 후손이자 설원 도시의 지도자. 장벽과 전승을 지키며 추방한 동생을 그리워한다."
+  }
+]

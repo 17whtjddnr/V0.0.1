@@ -1,8 +1,10 @@
 import { monsterDefinitions } from './monster-catalog.mjs';
+import { characterIdentity } from './character-identity.mjs';
+import { additionalCharacters, characterPortraitAsset, characterThumbnailAsset } from './character-assets.mjs';
 
 const legacyCharacterGradeCounts = [120, 55, 25];
 const characterGradeCounts = [157, 72, 32];
-export const CHARACTER_COUNT = characterGradeCounts.reduce((sum, count) => sum + count, 0);
+export const CHARACTER_COUNT = characterGradeCounts.reduce((sum, count) => sum + count, 0) + additionalCharacters.length;
 const elements = ['불', '물', '풀', '빛', '어둠'];
 
 const characterHouses = ['아르덴', '벨로스', '칼드윈', '에르하임', '세라핀', '라그넬', '모르칸', '엘드리안', '바르카', '실바렌', '카르미르', '노크티스', '이그니스', '루미에르', '드라벤', '오르펠', '페르디아', '아스텔', '케르누스', '발테온', '아르셀', '레오니스', '에델린', '베르하임', '카스텔', '로젠펠', '미르가르'];
@@ -120,7 +122,10 @@ function skillsForRoster(index, skillPool, job) {
 function createCharacterRoster(count, gradeCounts, zodiacs, jobs, growth, level, skillPool) {
     const grades = [...allocateGrades(legacyCharacterGradeCounts, 3), ...allocateGrades(gradeCounts.map((count, index) => count - legacyCharacterGradeCounts[index]), 3)];
     return Array.from({ length: count }, (_, index) => {
-        const { zodiac, job } = zodiacAndJob(index, zodiacs, jobs);
+        const assigned = zodiacAndJob(index, zodiacs, jobs);
+        const identity = characterIdentity({ id: `CHAR-${String(index + 1).padStart(3, '0')}`, job: assigned.job });
+        const { zodiac } = assigned;
+        const job = identity?.job || assigned.job;
         const element = elements[index % elements.length];
         const grade = grades[index];
         const profile = growth.get(`${zodiac}|${job}|${level}|${grade}`);
@@ -128,7 +133,8 @@ function createCharacterRoster(count, gradeCounts, zodiacs, jobs, growth, level,
         const stats = statsFromGrowth(profile);
         return {
                 id: `CHAR-${String(index + 1).padStart(3, '0')}`,
-                name: characterName(index),
+                name: identity?.name || characterName(index),
+                gender: identity?.gender,
                 zodiac,
                 element,
                 job,
@@ -159,10 +165,25 @@ function createMonsterRoster(growth, level, skillPool) {
 
 export function applyRosterProfile(entry, changes, growthRows, skillPool = []) {
     const profile = { ...entry, ...changes };
-    const row = growthRows.find((row) => row['별자리'] === profile.zodiac
+    let row = growthRows.find((row) => row['별자리'] === profile.zodiac
         && row['직업'] === profile.job
         && Number(row['레벨']) === Number(profile.level)
         && Number(row['등급']) === Number(profile.grade));
+    if (!row && Number.isInteger(Number(profile.level)) && Number(profile.level) > 5) {
+        const matching = growthRows.filter((row) => row['별자리'] === profile.zodiac && row['직업'] === profile.job && Number(row['등급']) === Number(profile.grade));
+        const first = matching.find((row) => Number(row['레벨']) === 1);
+        const last = matching.find((row) => Number(row['레벨']) === 5);
+        if (first && last) {
+            // Continue the workbook's linear level reduction beyond its five listed levels.
+            const step = (Number(last['잔존 비율']) - Number(first['잔존 비율'])) / 4;
+            const ratio = Number(last['잔존 비율']) + step * (Number(profile.level) - 5);
+            row = { ...last, '레벨': Number(profile.level) };
+            for (const label of ['공격력', '생명력', '방어력', '속도', '치명확률', '치명피해', '효과적중', '효과저항']) {
+                const base = Number(first[`레벨 감소 ${label}`]) / Number(first['레벨 감소율']);
+                row[label] = Math.max(1, Math.round(base * ratio));
+            }
+        }
+    }
     if (!row) throw new Error('선택한 별자리·직업·등급·레벨의 성장표가 없습니다.');
     const index = Math.max(0, Number(String(entry.id).match(/\d+$/)?.[0] || 1) - 1);
     return {
@@ -189,7 +210,13 @@ export function generateRosters(growthRows, level = 5, skillPool = []) {
     }
     const growth = lookupGrowthRows(validRows);
     return {
-        characters: createCharacterRoster(CHARACTER_COUNT, characterGradeCounts, zodiacs, jobs, growth, selectedLevel, skillPool),
+        characters: [
+            ...createCharacterRoster(CHARACTER_COUNT - additionalCharacters.length, characterGradeCounts, zodiacs, jobs, growth, selectedLevel, skillPool),
+            ...additionalCharacters.map(character => applyRosterProfile({ ...character,
+                level: selectedLevel, skills: skillsForRoster(Number(character.id.slice(5)) - 1, skillPool, character.job),
+                portraitSrc: characterPortraitAsset(character.portraitFile), thumbnailSrc: characterThumbnailAsset(character.portraitFile),
+            }, {}, growthRows, skillPool)),
+        ],
         monsters: createMonsterRoster(growth, selectedLevel, skillPool),
     };
 }

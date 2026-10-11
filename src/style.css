@@ -909,6 +909,7 @@ body:has(.plaza-page) { background: #366887; color: #e2edf3; }
 #game .hero-status small { font-size: 16px; }
 #game .plaza-empty-label { font-size: 20px; }
 #game .plaza-action-label,
+#game .character-thumbnail-level,
 #game .plaza-dialogue-choice,
 #game .continue-button,
 #game .combat-skill-name { font-size: 20px; }
@@ -928,7 +929,7 @@ body:has(.plaza-page) { background: #366887; color: #e2edf3; }
 
 /* Reference object geometry, not just the outer panel proportions. */
 #game .player-profile { position: relative; display: block; width: 456px; height: 100px; min-width: 456px; }
-#game .player-avatar { position: absolute; inset: 0 auto auto 0; width: 100px; height: 100px; border: 4px solid #909090; border-radius: 20px; object-fit: cover; background: rgb(0 0 0 / 30%); }
+#game .player-avatar { position: absolute; inset: 0 auto auto 0; width: 100px; height: 100px; border: 4px solid #d76b50; border-radius: 20px; object-fit: cover; background: rgb(0 0 0 / 30%); }
 #game .player-profile-name { position: absolute; top: 0; left: 156px; width: 300px; height: 50px; min-height: 0; gap: 10px; }
 #game .player-profile-name strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #game .player-profile-name .player-zodiac-mark { position: absolute; top: 7px; left: -36px; width: 33.6px; height: 33.6px; background: transparent; }
@@ -974,6 +975,48 @@ body:has(.plaza-page) { background: #366887; color: #e2edf3; }
 #game .lower-grid .hero { display: block; height: 210px; min-height: 210px; padding: 0; border: 1px solid #ffffff99; background: #0000004d; }
 #game .hero .hero-thumbnail { position: absolute; left: 27px; top: 20px; width: 120px; height: 120px; border-width: 5px; border-radius: 20px; overflow: hidden; }
 #game .hero-thumbnail .roster-avatar { display: block; width: 100%; height: 100%; object-fit: contain; }
+#game .character-thumbnail { position: relative; display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; border-radius: inherit; }
+#game .character-thumbnail > :is(img,svg) { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+#game :is(.hero-thumbnail,.codex-character-frame,.guild-dispatch-dialog-thumb,.guild-dispatch-result-thumb):has(> .character-thumbnail) { overflow: visible; }
+#game .character-thumbnail.is-affinity-thumbnail { width: 32px; height: 32px; flex: 0 0 32px; }
+#game .character-thumbnail.player-avatar { position: absolute; width: 100px; height: 100px; border-radius: 20px; overflow: visible; }
+#game .character-thumbnail.player-avatar > img { object-fit: cover; border-radius: 16px; }
+#game button.player-avatar { padding: 0; cursor: pointer; }
+#game button.player-avatar:focus-visible { outline: 2px solid #ffcf00; outline-offset: 4px; }
+#game .character-thumbnail-level {
+    position: absolute;
+    left: -7px;
+    top: -12px;
+    z-index: 1;
+    margin: 0;
+    padding: 0 1px;
+    font-family: 'Arial Black', 'Noto Sans KR', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    font-synthesis: weight;
+    line-height: 1.25;
+    letter-spacing: -1px;
+    white-space: nowrap;
+    color: #000;
+    -webkit-text-fill-color: #000;
+    -webkit-text-stroke: 4px #000;
+    paint-order: stroke fill;
+    isolation: isolate;
+    pointer-events: none;
+}
+#game .character-thumbnail-level::before {
+    content: attr(data-level);
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: inherit;
+    color: #ffcf00;
+    background: linear-gradient(180deg, #ffff40 0%, #ffff00 30%, #ffdc00 60%, #ffab00 85%, #ff9500 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 0;
+}
 #game .hero-name-row { position: absolute; left: 4px; top: 152px; width: calc(100% - 10px); height: 27px; display: flex; justify-content: center; align-items: center; gap: 5px; }
 #game .hero-job-icon { width: 23px; height: 23px; flex: 0 0 23px; }
 #game .hero-name { max-width: calc(100% - 28px); font-size: 16px; }
@@ -1023,6 +1066,11 @@ body:has(.plaza-page) { background: #366887; color: #e2edf3; }
 #game .plaza-encounter { position: relative; display: block; width: 100%; }
 #game .plaza-encounter-info { position: absolute; left: 80px; top: 44px; width: 650px; height: 400px; }
 #game .plaza-encounter-title { position: absolute; left: 0; top: 0; width: 650px; height: 30px; }
+#game .character-info-page .plaza-encounter-title { flex-wrap: nowrap; }
+#game .character-info-experience { position: relative; display: flex; align-items: center; align-self: stretch; flex: 0 1 240px; min-width: 80px; margin-left: auto; }
+#game .character-info-experience-value { position: absolute; right: 0; bottom: calc(50% + 8px); color: #bed1da; font-size: 13px; font-weight: 700; line-height: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#game .character-info-experience-track { width: 100%; height: 8px; overflow: hidden; border-radius: 4px; background: rgba(0, 0, 0, .4); box-shadow: inset 0 0 0 1px rgba(190, 209, 218, .18); }
+#game .character-info-experience-track > span { display: block; height: 100%; border-radius: inherit; background: #76bdd4; }
 #game .plaza-encounter-name { position: absolute; left: 0; top: 30px; width: 650px; height: 60px; margin: 0; align-items: center; }
 #game .plaza-encounter-stats { position: absolute; left: 0; top: 90px; width: 650px; height: 190px; grid-template-columns: repeat(2,300px); grid-auto-rows: 40px; gap: 10px 50px; }
 #game .plaza-encounter-stats > span { padding: 0 12px; border: 0; align-items: center; background: #00000033; }

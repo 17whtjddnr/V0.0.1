@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { togglePlazaGuildMember, hasAvailablePlazaGuildMember } from '../src/plaza-guild-party.mjs';
+import { togglePlazaGuildMember, hasAvailablePlazaGuildMember, guildSelectionConflict, canTransferGuildSelection, transferGuildSelection } from '../src/plaza-guild-party.mjs';
 import { guildDispatchPlan } from '../src/guild-dispatch.mjs';
 const member = (id) => ({ id, name: id, stats: { maxHp: 100, attack: 20, defense: 10, speed: 5 }, skills: [], weeklyWage: 30 });
 const makeState = () => ({ gold: 100, guildMembers: ['a', 'b', 'c', 'd', 'e'].map(member), recruits: [], guildDispatches: [], guildDispatchMemberIds: [] });
@@ -62,11 +62,87 @@ test('selection opens only when an additional available guild member can join', 
     togglePlazaGuildMember(state, 'a');
     state.guildDispatches = [{ status: 'active', memberIds: ['b'] }];
     state.guildDispatchMemberIds = ['c'];
-    assert.equal(hasAvailablePlazaGuildMember(state), false);
+    assert.equal(hasAvailablePlazaGuildMember(state), true);
     state.guildDispatchMemberIds = [];
     assert.equal(hasAvailablePlazaGuildMember(state), true);
     state.recruits.push(...['mercenary1', 'mercenary2', 'mercenary3'].map(member));
     assert.equal(hasAvailablePlazaGuildMember(state), false);
     state.recruits.pop();
     assert.equal(hasAvailablePlazaGuildMember(state), true);
+});
+
+test('checking a conflicting selection leaves both parties unchanged until confirmation', () => {
+    const state = makeState();
+    state.guildDispatchMemberIds = ['a', 'b'];
+    const before = structuredClone(state);
+    assert.equal(guildSelectionConflict(state, 'a', 'regular'), true);
+    assert.equal(canTransferGuildSelection(state, 'a', 'regular'), true);
+    assert.deepEqual(state, before);
+    assert.equal(transferGuildSelection(state, 'a', 'regular'), true);
+    assert.deepEqual(state.guildDispatchMemberIds, ['b']);
+    assert.equal(state.recruits[0].id, 'a');
+    assert.equal(state.recruits[0].weeklyWage, 30);
+    assert.equal(state.gold, 100);
+});
+
+test('confirmed regular to dispatch transfer removes only the selected guild member', () => {
+    const state = makeState();
+    togglePlazaGuildMember(state, 'a');
+    togglePlazaGuildMember(state, 'b');
+    state.recruits.push(member('mercenary'));
+    state.guildDispatchMemberIds = ['c'];
+    const before = structuredClone(state);
+    assert.equal(canTransferGuildSelection(state, 'a', 'dispatch'), true);
+    assert.deepEqual(state, before);
+    assert.equal(transferGuildSelection(state, 'a', 'dispatch'), true);
+    assert.deepEqual(state.recruits.map(member => member.id), ['b', 'mercenary']);
+    assert.deepEqual(state.guildDispatchMemberIds, ['c', 'a']);
+    assert.equal(state.guildMembers[0].weeklyWage, 30);
+    assert.equal(state.gold, 100);
+});
+
+test('active dispatches cannot transfer in either direction even with stale reservations', () => {
+    for (const target of ['regular', 'dispatch']) {
+        const state = makeState();
+        if (target === 'regular') state.guildDispatchMemberIds = ['a'];
+        else togglePlazaGuildMember(state, 'a');
+        state.guildDispatches = [{ status: 'active', memberIds: ['a'] }];
+        const before = structuredClone(state);
+        assert.equal(transferGuildSelection(state, 'a', target), false);
+        assert.deepEqual(state, before);
+    }
+});
+
+test('full target parties or dispatch limits preserve the original selection', () => {
+    for (const target of ['regular', 'dispatch']) {
+        const state = makeState();
+        if (target === 'regular') {
+            state.guildDispatchMemberIds = ['a'];
+            state.recruits = ['b','c','d','e'].map(member);
+        } else {
+            togglePlazaGuildMember(state, 'a');
+            state.guildDispatchMemberIds = ['b','c','d','e'];
+        }
+        const before = structuredClone(state);
+        assert.equal(transferGuildSelection(state, 'a', target), false);
+        assert.deepEqual(state, before);
+    }
+    const state = makeState();
+    togglePlazaGuildMember(state, 'a');
+    state.guildDispatches = Array.from({length: 4}, () => ({status: 'active', memberIds: []}));
+    const before = structuredClone(state);
+    assert.equal(transferGuildSelection(state, 'a', 'dispatch'), false);
+    assert.deepEqual(state, before);
+});
+
+test('transferred master returns to slot one and repeat confirmation has no effect', () => {
+    const state = makeState();
+    state.guildMembers[0].isMaster = true;
+    togglePlazaGuildMember(state, 'b');
+    state.guildDispatchMemberIds = ['a'];
+    assert.equal(transferGuildSelection(state, 'a', 'regular'), true);
+    assert.deepEqual(state.recruits.map(member => member.id), ['a', 'b']);
+    const before = structuredClone(state);
+    assert.equal(transferGuildSelection(state, 'a', 'regular'), false);
+    assert.deepEqual(state, before);
 });
